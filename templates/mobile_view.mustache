@@ -1,0 +1,83 @@
+{{!
+    This file is part of the Certificate Pro plugin for Moodle - https://lms-labs.com
+
+    Certificate Pro is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Certificate Pro is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Certificate Pro.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_certificatepro/mobile_view
+
+    The Certificate Pro activity as the Moodle app shows it.
+
+    Context variables required for this template:
+    * name - the activity name
+    * intro - the activity description
+    * hasissue - whether the learner holds a certificate
+    * status - valid, expired, revoked or notissued
+    * code - the verification code
+    * issued - when it was issued, already formatted
+    * unmet - the criteria still to meet
+    * downloadurl - where to download the certificate
+    * verifyurl - the public verification address
+
+    Example context (json):
+    {
+        "name": "Course certificate",
+        "intro": "",
+        "hasissue": true,
+        "status": "valid",
+        "code": "CP-4H2K-9QX3-7M1T",
+        "serial": "ACME-000042",
+        "issued": "15 August 2026",
+        "unmet": [],
+        "downloadurl": "https://example.com/mod/certificatepro/view.php?id=1&download=1",
+        "verifyurl": "https://example.com/mod/certificatepro/verify.php?code=CP-4H2K-9QX3-7M1T"
+    }
+}}
+<div class="certificatepro-mobile">
+    {{#intro}}
+        <core-course-module-description description="{{{intro}}}"></core-course-module-description>
+    {{/intro}}
+
+    {{#hasissue}}
+        <ion-card>
+            <ion-card-header>
+                <ion-card-subtitle>{{issued}}</ion-card-subtitle>
+                <ion-card-title>{{name}}</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+                <p><code>{{code}}</code></p>
+                {{#serial}}<p>{{serial}}</p>{{/serial}}
+                <ion-button expand="block" href="{{downloadurl}}" core-link>
+                    {{ 'plugin.mod_certificatepro.downloadcertificate' | translate }}
+                </ion-button>
+                <ion-button expand="block" fill="outline" href="{{verifyurl}}" core-link>
+                    {{ 'plugin.mod_certificatepro.verifytitle' | translate }}
+                </ion-button>
+            </ion-card-content>
+        </ion-card>
+    {{/hasissue}}
+
+    {{^hasissue}}
+        <ion-card>
+            <ion-card-content>
+                <p>{{ 'plugin.mod_certificatepro.notyetavailable' | translate }}</p>
+                <ion-list>
+                    {{#unmet}}
+                        <ion-item><ion-label class="ion-text-wrap">{{.}}</ion-label></ion-item>
+                    {{/unmet}}
+                </ion-list>
+            </ion-card-content>
+        </ion-card>
+    {{/hasissue}}
+</div>

@@ -1,0 +1,69 @@
+<?php
+// This file is part of the Certificate Pro plugin for Moodle - https://lms-labs.com
+//
+// Certificate Pro is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Certificate Pro is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Certificate Pro.  If not, see <https://www.gnu.org/licenses/>.
+
+/**
+ * Upgrade steps for the Certificate Pro activity module.
+ *
+ * @package    mod_certificatepro
+ * @copyright  2026 LMS Labs <https://lms-labs.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Execute the Certificate Pro upgrade from the given old version.
+ *
+ * @param int $oldversion the version we are upgrading from
+ * @return bool always true
+ */
+function xmldb_certificatepro_upgrade($oldversion) {
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
+    if ($oldversion < 2026081501) {
+        // The shared media library, so a signature or a logo is uploaded once
+        // and used by every certificate on the site.
+        $table = new xmldb_table('certificatepro_media');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+        $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null);
+        $table->add_field('kind', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL, null, 'other');
+        $table->add_field('pixelwidth', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('pixelheight', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('createdby', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('kind', XMLDB_INDEX_NOTUNIQUE, ['kind']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_mod_savepoint(true, 2026081501, 'certificatepro');
+    }
+
+    if ($oldversion < 2026081502) {
+        // No schema change. The general purpose picture element now offers the
+        // whole shared library rather than only pictures filed as "other".
+        upgrade_mod_savepoint(true, 2026081502, 'certificatepro');
+    }
+
+    return true;
+}

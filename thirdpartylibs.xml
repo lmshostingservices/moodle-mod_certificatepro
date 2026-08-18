@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<libraries>
+    <!--
+        Certificate Pro bundles no third-party libraries. PDF generation and QR
+        code drawing both use TCPDF, which ships with Moodle core, so nothing
+        needs to be vendored here.
+    -->
+</libraries>

@@ -1,0 +1,124 @@
+{{!
+    This file is part of the Certificate Pro plugin for Moodle - https://lms-labs.com
+
+    Certificate Pro is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Certificate Pro is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Certificate Pro.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_certificatepro/brief_wizard
+
+    One question at a time, then a result.
+
+    Both guided wizards share this shell. The questions come from the brief
+    classes, so the wizard never states an option the brief would not accept and
+    the two cannot drift apart.
+
+    Context variables required for this template:
+    * kind - artwork or seal
+    * isartwork - whether this is the artwork wizard
+    * isseal - whether this is the seal wizard
+    * canusemodel - whether the author may ask a model
+    * steps - the questions, each with index, human, name, label, type, multiple,
+      required, maxlength, ischoice, istext and an options list
+
+    Example context (json):
+    {
+        "kind": "seal",
+        "isartwork": false,
+        "isseal": true,
+        "canusemodel": false,
+        "total": 1,
+        "steps": [
+            {
+                "index": 0, "human": 1, "name": "shape", "label": "Silhouette",
+                "type": "choice", "multiple": false, "required": false, "maxlength": 0,
+                "ischoice": true, "istext": false, "first": true, "last": true,
+                "options": [{"value": "circle", "label": "Circle", "selected": true}]
+            }
+        ]
+    }
+}}
+<div class="cpro-library cpro-wizard" data-region="wizard" data-kind="{{kind}}">
+    <div class="cpro-wizard-progress">
+        <span data-region="progress" role="status" aria-live="polite"></span>
+        <div class="cpro-wizard-bar"><span data-region="bar"></span></div>
+    </div>
+
+    <div data-region="steps">
+        {{#steps}}
+            <fieldset class="cpro-wizard-step" data-region="step" data-index="{{index}}"
+                      data-name="{{name}}" data-multiple="{{#multiple}}1{{/multiple}}{{^multiple}}0{{/multiple}}"
+                      hidden>
+                <legend class="cpro-wizard-question">{{label}}</legend>
+
+                {{#ischoice}}
+                    <div class="cpro-wizard-options">
+                        {{#options}}
+                            <label class="cpro-wizard-option">
+                                {{#multiple}}
+                                    <input type="checkbox" name="cpro-{{name}}" value="{{value}}"
+                                           {{#selected}}checked{{/selected}}>
+                                {{/multiple}}
+                                {{^multiple}}
+                                    <input type="radio" name="cpro-{{name}}" value="{{value}}"
+                                           {{#selected}}checked{{/selected}}>
+                                {{/multiple}}
+                                <span>{{label}}</span>
+                            </label>
+                        {{/options}}
+                    </div>
+                {{/ischoice}}
+
+                {{#istext}}
+                    <input type="text" class="form-control" name="cpro-{{name}}"
+                           id="cpro-field-{{name}}" {{#hasmaxlength}}maxlength="{{maxlength}}"{{/hasmaxlength}}
+                           {{#required}}required{{/required}} autocomplete="off">
+                {{/istext}}
+            </fieldset>
+        {{/steps}}
+    </div>
+
+    <div class="cpro-wizard-result" data-region="result" hidden>
+        <h4 data-region="resultheading"></h4>
+        <div class="cpro-wizard-preview {{#isseal}}cpro-wizard-preview-seal{{/isseal}}"
+             data-region="preview" role="img" aria-label="{{#str}} briefpreviewalt, mod_certificatepro {{/str}}"></div>
+        <p class="cpro-wizard-summary" data-region="summary"></p>
+        <ul class="cpro-wizard-warnings" data-region="warnings"></ul>
+
+        {{#isartwork}}
+            {{#canusemodel}}
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="cpro-usemodel" data-region="usemodel">
+                    <label class="form-check-label" for="cpro-usemodel">
+                        {{#str}} briefusemodel, mod_certificatepro {{/str}}
+                    </label>
+                </div>
+                <p class="text-muted small">{{#str}} briefusemodelhint, mod_certificatepro {{/str}}</p>
+            {{/canusemodel}}
+        {{/isartwork}}
+    </div>
+
+    <div class="cpro-library-actions">
+        <p class="cpro-library-note" data-region="note" role="status" aria-live="polite"></p>
+        <button type="button" class="btn btn-secondary" data-action="back" hidden>
+            {{#str}} briefback, mod_certificatepro {{/str}}
+        </button>
+        <button type="button" class="btn btn-primary" data-action="next">
+            {{#str}} briefnext, mod_certificatepro {{/str}}
+        </button>
+        <button type="button" class="btn btn-primary" data-action="apply" hidden>
+            {{#isartwork}}{{#str}} briefapplyartwork, mod_certificatepro {{/str}}{{/isartwork}}
+            {{#isseal}}{{#str}} briefapplyseal, mod_certificatepro {{/str}}{{/isseal}}
+        </button>
+    </div>
+</div>

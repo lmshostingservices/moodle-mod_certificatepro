@@ -1,0 +1,23 @@
+{
+  "manifest_version": 1,
+  "collections": [
+    {
+      "name": "Certificate Blank Templates",
+      "source": "https://www.vecteezy.com/members/108219400214807447187/collections/2157856/certificate-blank-templates",
+      "curator": "NCT Perth",
+      "default_role": "border"
+    }
+  ],
+  "items": [
+    {
+      "id": 67100551,
+      "content_type": "vector",
+      "slug": "blue-gold-abstract-white-background-suitable-for-certificate",
+      "title": "Blue gold abstract white background, Suitable for certificate",
+      "thumb": "https://static.vecteezy.com/system/resources/thumbnails/067/100/551/small/blue-gold-abstract-white-background-suitable-for-certificate-vector.jpg",
+      "role": "full",
+      "orientation": "landscape",
+      "palette": ["navy", "gold"]
+    }
+  ]
+}

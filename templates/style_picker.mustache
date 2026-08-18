@@ -1,0 +1,86 @@
+{{!
+    This file is part of the Certificate Pro plugin for Moodle - https://lms-labs.com
+
+    Certificate Pro is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Certificate Pro is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Certificate Pro.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_certificatepro/style_picker
+
+    The typography combination gallery.
+
+    Each tile is a specimen: the same six lines of a certificate set in the
+    combination it names, drawn with the site's own web fonts so an author sees
+    the substitution they will actually get rather than the one we hoped for.
+
+    Context variables required for this template:
+    * combinations - the combinations, each with id, name, mood, families,
+      scripts, substituted, hassubstitution and a roles list
+    * paper - the design's paper colour
+    * rule - the design's rule colour
+
+    Example context (json):
+    {
+        "paper": "#ffffff",
+        "rule": "#d8dee6",
+        "combinations": [
+            {
+                "id": "laurel_crest",
+                "name": "Laurel Crest",
+                "mood": "formal ceremony, engraved",
+                "families": "Cinzel, EB Garamond",
+                "scripts": "latin, greek",
+                "substituted": "",
+                "hassubstitution": false,
+                "roles": [
+                    {"role": "title", "family": "Cinzel", "text": "Certificate of Achievement",
+                     "css": "font-size:18px;"}
+                ]
+            }
+        ]
+    }
+}}
+<div class="cpro-library cpro-stylepicker" data-region="stylepicker">
+    <p class="cpro-library-lede">{{#str}} stylepickerintro, mod_certificatepro {{/str}}</p>
+
+    <div class="cpro-gallery" role="listbox" aria-label="{{#str}} stylepickerlabel, mod_certificatepro {{/str}}" data-region="gallery" tabindex="0">
+        {{#combinations}}
+            <div class="cpro-gallery-item" role="option" tabindex="-1" aria-selected="false"
+                 id="cpro-style-{{id}}" data-region="tile" data-value="{{id}}"
+                 aria-describedby="cpro-style-meta-{{id}}">
+                <div class="cpro-specimen" style="background:{{paper}};border-color:{{rule}};" aria-hidden="true">
+                    {{#roles}}
+                        <div class="cpro-specimen-line cpro-specimen-{{role}}" style="{{css}}">{{text}}</div>
+                    {{/roles}}
+                </div>
+                <div class="cpro-gallery-caption">
+                    <span class="cpro-gallery-name">{{name}}</span>
+                    <span class="cpro-gallery-mood" id="cpro-style-meta-{{id}}">{{mood}}</span>
+                    {{#hassubstitution}}
+                        <span class="cpro-gallery-warning">
+                            <i class="fa fa-triangle-exclamation" aria-hidden="true"></i>
+                            {{#str}} stylesubstituted, mod_certificatepro, {{substituted}} {{/str}}
+                        </span>
+                    {{/hassubstitution}}
+                </div>
+            </div>
+        {{/combinations}}
+    </div>
+
+    <div class="cpro-library-actions">
+        <p class="cpro-library-note" data-region="note" role="status" aria-live="polite"></p>
+        <button type="button" class="btn btn-primary" data-action="apply" disabled>
+            {{#str}} stylepickerapply, mod_certificatepro {{/str}}
+        </button>
+    </div>
+</div>

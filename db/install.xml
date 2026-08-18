@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/certificatepro/db" VERSION="20260815" COMMENT="XMLDB file for Moodle mod/certificatepro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="certificatepro" COMMENT="Certificate Pro activity instances">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The course this instance belongs to"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Activity name"/>
+        <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Activity description"/>
+        <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="templateid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The design used by this activity"/>
+        <FIELD NAME="requiredtime" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Minutes required in the course before the certificate is available"/>
+        <FIELD NAME="requiregrade" TYPE="number" LENGTH="10" DECIMALS="5" NOTNULL="false" SEQUENCE="false" COMMENT="Minimum course grade required, null for none"/>
+        <FIELD NAME="requirecompletion" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Require course completion before issuing"/>
+        <FIELD NAME="autoissue" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Issue automatically when criteria are met"/>
+        <FIELD NAME="verifyany" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Allow anyone, including guests, to verify a code"/>
+        <FIELD NAME="deliveryoption" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="D" SEQUENCE="false" COMMENT="D download, I inline"/>
+        <FIELD NAME="usecustomfilename" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="customfilenamepattern" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="emailstudents" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="emailteachers" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="emailothers" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="validityperiod" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Seconds until expiry, 0 means never expires"/>
+        <FIELD NAME="expirywarndays" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Days before expiry to send a reminder, 0 disables"/>
+        <FIELD NAME="serialprefix" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="Prefix for sequential serial numbers"/>
+        <FIELD NAME="serialpadding" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="6" SEQUENCE="false"/>
+        <FIELD NAME="protection" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Comma separated TCPDF protection flags"/>
+        <FIELD NAME="revocationallowed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="templateid" UNIQUE="false" FIELDS="templateid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="certificatepro_templates" COMMENT="A certificate design, either site level or owned by an activity">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Context that owns this template"/>
+        <FIELD NAME="shared" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Available as a starting point elsewhere"/>
+        <FIELD NAME="starter" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="Identifier of the built in starter design this came from"/>
+        <FIELD NAME="themecolour" TYPE="char" LENGTH="16" NOTNULL="false" SEQUENCE="false" COMMENT="Resolved brand colour used by the design"/>
+        <FIELD NAME="accentcolour" TYPE="char" LENGTH="16" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="fontpairing" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="Identifier of the chosen font pairing preset"/>
+        <FIELD NAME="revision" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Incremented on every save, snapshotted onto issues"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="contextid" TYPE="foreign" FIELDS="contextid" REFTABLE="context" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="shared" UNIQUE="false" FIELDS="shared"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="certificatepro_pages" COMMENT="A single physical page of a certificate design">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="templateid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="width" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="297" SEQUENCE="false" COMMENT="Page width in millimetres"/>
+        <FIELD NAME="height" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="210" SEQUENCE="false" COMMENT="Page height in millimetres"/>
+        <FIELD NAME="orientation" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="L" SEQUENCE="false" COMMENT="L landscape, P portrait"/>
+        <FIELD NAME="pagesize" TYPE="char" LENGTH="32" NOTNULL="true" DEFAULT="A4" SEQUENCE="false"/>
+        <FIELD NAME="marginleft" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="15" SEQUENCE="false"/>
+        <FIELD NAME="marginright" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="15" SEQUENCE="false"/>
+        <FIELD NAME="margintop" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="15" SEQUENCE="false"/>
+        <FIELD NAME="marginbottom" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="15" SEQUENCE="false"/>
+        <FIELD NAME="backgroundcolour" TYPE="char" LENGTH="16" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="backgroundsvg" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Inline generated background artwork"/>
+        <FIELD NAME="sequence" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="templateid" TYPE="foreign" FIELDS="templateid" REFTABLE="certificatepro_templates" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="certificatepro_elements" COMMENT="A drawable item placed on a page">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="pageid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="element" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="Element type identifier"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Author facing label"/>
+        <FIELD NAME="data" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON encoded element specific configuration"/>
+        <FIELD NAME="style" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON encoded typography and colour"/>
+        <FIELD NAME="posx" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Millimetres from the left edge"/>
+        <FIELD NAME="posy" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Millimetres from the top edge"/>
+        <FIELD NAME="width" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Millimetres, 0 means auto"/>
+        <FIELD NAME="height" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Millimetres, 0 means auto"/>
+        <FIELD NAME="rotation" TYPE="number" LENGTH="10" DECIMALS="3" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Degrees anticlockwise"/>
+        <FIELD NAME="refpoint" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="tl" SEQUENCE="false" COMMENT="Anchor: tl tc tr ml mc mr bl bc br"/>
+        <FIELD NAME="alignment" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="L" SEQUENCE="false" COMMENT="Text alignment L C R J"/>
+        <FIELD NAME="valignment" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="T" SEQUENCE="false" COMMENT="Vertical alignment T M B"/>
+        <FIELD NAME="zoneid" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="Layout zone this element is docked to"/>
+        <FIELD NAME="zindex" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="sequence" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="locked" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="hidden" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="pageid" TYPE="foreign" FIELDS="pageid" REFTABLE="certificatepro_pages" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="element" UNIQUE="false" FIELDS="element"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="certificatepro_issues" COMMENT="An immutable record of a certificate issued to a user">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="certificateproid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="code" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="Human readable verification code"/>
+        <FIELD NAME="serial" TYPE="char" LENGTH="128" NOTNULL="false" SEQUENCE="false" COMMENT="Sequential serial number"/>
+        <FIELD NAME="serialnumber" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Numeric part of the serial for ordering"/>
+        <FIELD NAME="snapshot" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON of every resolved value at issue time"/>
+        <FIELD NAME="templaterevision" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="pdfhash" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false" COMMENT="SHA256 of the stored PDF"/>
+        <FIELD NAME="emailed" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="expires" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 means never expires"/>
+        <FIELD NAME="expirynotified" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="revoked" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="revokedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="revokedreason" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timerevoked" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="issuedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="0 for automatic issue, otherwise the user who issued it"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="certificateproid" TYPE="foreign" FIELDS="certificateproid" REFTABLE="certificatepro" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="code" UNIQUE="true" FIELDS="code"/>
+        <INDEX NAME="certificateproid-userid" UNIQUE="false" FIELDS="certificateproid, userid"/>
+        <INDEX NAME="expires" UNIQUE="false" FIELDS="expires"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="certificatepro_fonts" COMMENT="Fonts converted for PDF embedding by the built in font manager">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="family" TYPE="char" LENGTH="128" NOTNULL="true" SEQUENCE="false" COMMENT="TCPDF font family key"/>
+        <FIELD NAME="displayname" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="style" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="" SEQUENCE="false" COMMENT="Empty, B, I or BI"/>
+        <FIELD NAME="scripts" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Comma separated unicode script coverage"/>
+        <FIELD NAME="glyphcount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="builtin" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="uploadedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="family-style" UNIQUE="true" FIELDS="family, style"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="certificatepro_backgrounds" COMMENT="Backgrounds produced by the artwork generator">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="prompt" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="style" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="palette" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="orientation" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="L" SEQUENCE="false"/>
+        <FIELD NAME="svg" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="generator" TYPE="char" LENGTH="32" NOTNULL="true" DEFAULT="procedural" SEQUENCE="false" COMMENT="procedural, coreai or claude"/>
+        <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="contextid" TYPE="foreign" FIELDS="contextid" REFTABLE="context" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="certificatepro_serials" COMMENT="Serial number counters, one row per scope">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="scope" TYPE="char" LENGTH="128" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="counter" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="scope" UNIQUE="true" FIELDS="scope"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="certificatepro_media" COMMENT="Shared pictures every certificate on the site can draw from">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="The name authors choose it by"/>
+        <FIELD NAME="kind" TYPE="char" LENGTH="32" NOTNULL="true" DEFAULT="other" SEQUENCE="false" COMMENT="logo, signature, seal, background or other"/>
+        <FIELD NAME="pixelwidth" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="pixelheight" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="kind" UNIQUE="false" FIELDS="kind"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

@@ -1,0 +1,253 @@
+{
+  "manifest_version": 1,
+  "updated": "2026-08-16",
+  "description": "Where bundled public-domain ornament comes from, under what licence, and how the importer reaches it. Read by cli/import_pd_assets.php. Human-readable provenance lives in assets/CREDITS.md; curator rules live in tools/README.md.",
+
+  "sources": {
+    "publicdomainvectors": {
+      "name": "Public Domain Vectors",
+      "base_url": "https://publicdomainvectors.org/",
+      "licence": "PD",
+      "licence_url": "https://publicdomainvectors.org/en/license",
+      "attribution_required": false,
+      "format": "vector",
+      "import_method": "http",
+      "enabled_for_import": true,
+      "item_page_url_template": "https://publicdomainvectors.org/en/free-clipart/{slug}/{ref}.html",
+      "download_url_template": "https://publicdomainvectors.org/download/{ref}",
+      "verified_on": "2026-08-16",
+      "verified_quote": "Public Domain. You can copy, modify, distribute and perform the work, even for commercial purposes, all without asking permission.",
+      "verified_at_url": "https://publicdomainvectors.org/en/free-clipart/printing-ornament-border/22864.html",
+      "notes": "Roughly 3,301 results under the ornament-border category, already SVG. The download endpoint sometimes serves a ZIP containing AI/EPS alongside the SVG rather than a bare SVG; the importer refuses archives and asks the curator to extract by hand. The licence line is printed per item page, so a curator must read the item page, not just the category listing."
+    },
+
+    "freesvg": {
+      "name": "FreeSVG.org",
+      "base_url": "https://freesvg.org/",
+      "licence": "CC0-1.0",
+      "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attribution_required": false,
+      "format": "vector",
+      "import_method": "http",
+      "enabled_for_import": true,
+      "item_page_url_template": "https://freesvg.org/{slug}",
+      "download_url_template": "https://freesvg.org/download/{ref}",
+      "verified_on": "2026-08-16",
+      "verified_quote": "FreeSVG.org offers free vector images in SVG format with Creative Commons 0 license (public domain).",
+      "verified_at_url": "https://freesvg.org/about",
+      "notes": "Site-wide CC0, stated on the about page rather than per item. Carries guilloche rosettes and certificate-tagged ornament. The numeric {ref} is the download id shown on the item page, which is not the same as the page slug."
+    },
+
+    "openclipart": {
+      "name": "Openclipart",
+      "base_url": "https://openclipart.org/",
+      "licence": "CC0-1.0",
+      "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attribution_required": false,
+      "format": "vector",
+      "import_method": "http",
+      "enabled_for_import": true,
+      "item_page_url_template": "https://openclipart.org/detail/{ref}",
+      "download_url_template": "https://openclipart.org/download/{ref}",
+      "verified_on": "2026-08-16",
+      "verified_quote": "Each artist at Openclipart releases all rights to the images they share at Openclipart.",
+      "verified_at_url": "https://openclipart.org/share",
+      "notes": "CC0 1.0 site-wide, no citation expected: the site FAQ says 'there is no need to cite Openclipart'. We record the artist handle anyway because CREDITS.md is cheaper than goodwill. A full dump also exists as a Hugging Face dataset if bulk ingest is ever wanted."
+    },
+
+    "wikimedia-commons": {
+      "name": "Wikimedia Commons",
+      "base_url": "https://commons.wikimedia.org/",
+      "licence": "PER-FILE",
+      "licence_url": "https://commons.wikimedia.org/wiki/Commons:Licensing",
+      "attribution_required": true,
+      "format": "vector",
+      "import_method": "manual",
+      "enabled_for_import": false,
+      "item_page_url_template": "https://commons.wikimedia.org/wiki/File:{slug}",
+      "download_url_template": "",
+      "verified_on": null,
+      "verified_quote": null,
+      "verified_at_url": null,
+      "notes": "DISABLED FOR AUTOMATED IMPORT ON PURPOSE. Commons accepts CC BY and CC BY-SA as well as public domain, so the licence is a property of the file and not of the site. Categories of interest: Ornamental borders, SVG frames, Typographic ornaments. A curator must open each file page, read its licence template, and add a queue entry carrying that file's own licence, licence_url and attribution string. attribution_required defaults to true here so that a careless import cannot silently drop a credit."
+    },
+
+    "smithsonian-open-access": {
+      "name": "Smithsonian Open Access",
+      "base_url": "https://www.si.edu/openaccess",
+      "licence": "CC0-1.0",
+      "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attribution_required": false,
+      "format": "raster",
+      "import_method": "manual",
+      "enabled_for_import": false,
+      "item_page_url_template": "https://www.si.edu/object/{ref}",
+      "download_url_template": "",
+      "verified_on": "2026-08-16",
+      "verified_quote": "you may use Smithsonian Open Access assets designated as CC0 for commercial purposes without any attribution, permission, or fee paid to the Smithsonian",
+      "verified_at_url": "https://www.si.edu/openaccess/faq",
+      "notes": "Raster. Cannot enter the bundle without tracing, and tracing is a human step with node reduction, so this source is never fetched by the importer. Note the Smithsonian's own caveat that CC0 covers their copyright only and third-party rights such as trademark and publicity may still attach; ornament from printed matter is not usually exposed to that, but a curator should still check the object record."
+    },
+
+    "rijksmuseum": {
+      "name": "Rijksmuseum",
+      "base_url": "https://data.rijksmuseum.nl/",
+      "licence": "CC0-1.0",
+      "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attribution_required": false,
+      "format": "raster",
+      "import_method": "manual",
+      "enabled_for_import": false,
+      "item_page_url_template": "https://www.rijksmuseum.nl/en/collection/{ref}",
+      "download_url_template": "",
+      "verified_on": null,
+      "verified_quote": null,
+      "verified_at_url": null,
+      "notes": "UNVERIFIED BY US. Sixteenth-century grotesque ornament engravings at archival resolution, reported as CC0 with no additional rights, but we did not reach the rights page directly. A curator must confirm the rights statement on the individual object record before tracing anything from here. Raster in any case, so it never enters the automated path."
+    },
+
+    "british-library-flickr": {
+      "name": "British Library on Flickr Commons",
+      "base_url": "https://www.flickr.com/photos/britishlibrary/",
+      "licence": "NO-KNOWN-COPYRIGHT-RESTRICTIONS",
+      "licence_url": "https://www.flickr.com/commons/usage/",
+      "attribution_required": false,
+      "format": "raster",
+      "import_method": "manual",
+      "enabled_for_import": false,
+      "item_page_url_template": "https://www.flickr.com/photos/britishlibrary/{ref}",
+      "download_url_template": "",
+      "verified_on": "2026-08-16",
+      "verified_quote": "1706 photos",
+      "verified_at_url": "https://www.flickr.com/photos/britishlibrary/albums/72157638797895895/",
+      "notes": "The 'Decorations & Designs' album, 1,706 border and ornament images machine-extracted from 18th and 19th century books, part of the British Library's million-image Flickr Commons release. We confirmed the album size and that it sits in the Library's public domain upload, but we did NOT see a per-album rights statement rendered on the page, so treat 'no known copyright restrictions' as the Library's assertion rather than a licence grant. Raster; tracing required."
+    }
+  },
+
+  "denied_hosts": [
+    {
+      "host": "rawpixel.com",
+      "reason": "User terms clause 12.10 forbids compiling downloaded images into any collection, database, image gallery, template set or stock agency for distribution, and forbids automated repeated downloading. That describes this importer exactly."
+    },
+    {
+      "host": "www.rawpixel.com",
+      "reason": "Same as rawpixel.com."
+    },
+    {
+      "host": "store.doverpublications.com",
+      "reason": "Dover clip-art titles carry a per-book permission notice that caps how many designs may be reused in one work and bars redistribution as part of another clip-art collection. Dover's typesetting and selection are their own; the underlying age of the art does not launder that notice."
+    },
+    {
+      "host": "doverpublications.com",
+      "reason": "Same as store.doverpublications.com."
+    },
+    {
+      "host": "fleuron.lib.cam.ac.uk",
+      "reason": "Ornaments machine-extracted from Gale's Eighteenth Century Collections Online page scans. ECCO is a commercial subscription database and no public licence grant covers redistributing images derived from its scans. Excluded on precautionary grounds."
+    },
+    {
+      "host": "www.gale.com",
+      "reason": "Source of the ECCO scans behind Fleuron. Same reason."
+    },
+    {
+      "host": "www.vecteezy.com",
+      "reason": "Freepik group licence bars use in software that lets a third party generate on-demand designs, which is what this plugin is. Nothing from here may ever be bundled."
+    },
+    {
+      "host": "static.vecteezy.com",
+      "reason": "Same as www.vecteezy.com."
+    },
+    {
+      "host": "www.freepik.com",
+      "reason": "Same group, same clause."
+    },
+    {
+      "host": "www.flaticon.com",
+      "reason": "Same group, same clause, stated almost verbatim in their legal terms."
+    }
+  ],
+
+  "queue": [
+    {
+      "source": "publicdomainvectors",
+      "ref": "22864",
+      "slug": "printing-ornament-border",
+      "id": "pdv-22864-printing-ornament-border",
+      "title": "Printing ornament border",
+      "role": "border",
+      "style": "victorian",
+      "orientation": "both",
+      "palette_affinity": ["any"],
+      "recolourable": true,
+      "licence_verified": true,
+      "verified_on": "2026-08-16",
+      "verified_quote": "Public Domain. You can copy, modify, distribute and perform the work, even for commercial purposes, all without asking permission.",
+      "notes": "64KB SVG, published 2015-02-19. Licence line read on the item page on 2026-08-16."
+    },
+    {
+      "source": "publicdomainvectors",
+      "ref": "22863",
+      "slug": "Vector-illustration-of-shamrock-repetitive-pattern-decorative-banner",
+      "id": "pdv-22863-shamrock-repeat-banner",
+      "title": "Shamrock repetitive pattern decorative banner",
+      "role": "divider",
+      "style": "celtic",
+      "orientation": "both",
+      "palette_affinity": ["any"],
+      "recolourable": true,
+      "licence_verified": true,
+      "verified_on": "2026-08-16",
+      "verified_quote": "You can copy, modify, distribute and perform the work, even for commercial purposes, all without asking permission.",
+      "notes": "93KB SVG. A repeating band, so it suits a divider rule or a horizontal run rather than a full frame."
+    },
+    {
+      "source": "publicdomainvectors",
+      "ref": "59073",
+      "slug": "Red-ornament",
+      "id": "pdv-59073-red-ornament",
+      "title": "Red ornament",
+      "role": "corner",
+      "style": "floral",
+      "orientation": "both",
+      "palette_affinity": ["any"],
+      "recolourable": true,
+      "licence_verified": true,
+      "verified_on": "2026-08-16",
+      "verified_quote": "Public Domain",
+      "notes": "6KB SVG, small enough to mirror cleanly into four corners. Ships red; expect the painter to recolour it."
+    },
+    {
+      "source": "freesvg",
+      "ref": "83802",
+      "slug": "guilloche-rosette",
+      "id": "freesvg-83802-guilloche-rosette",
+      "title": "Guilloche rosette",
+      "role": "seal",
+      "style": "guilloche",
+      "orientation": "both",
+      "palette_affinity": ["any"],
+      "recolourable": true,
+      "licence_verified": true,
+      "verified_on": "2026-08-16",
+      "verified_quote": "FreeSVG.org offers free vector images in SVG format with Creative Commons 0 license (public domain).",
+      "notes": "Site-wide CC0. Kept as a reference rosette only; our own guilloche is generated parametrically from the tenant seed, which is the point of generating it."
+    },
+    {
+      "source": "openclipart",
+      "ref": "222491",
+      "slug": "decorative-ornamental-frame-border",
+      "id": "openclipart-222491-decorative-ornamental-frame-border",
+      "title": "Decorative Ornamental Frame Border",
+      "author": "GDJ",
+      "role": "border",
+      "style": "baroque",
+      "orientation": "both",
+      "palette_affinity": ["any"],
+      "recolourable": true,
+      "licence_verified": true,
+      "verified_on": "2026-08-16",
+      "verified_quote": "Openclipart is 100% Public Domain",
+      "notes": "Artist handle GDJ. CC0 1.0 by site policy; no citation required, credited anyway."
+    }
+  ]
+}

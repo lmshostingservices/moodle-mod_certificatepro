@@ -1,0 +1,89 @@
+{{!
+    This file is part of the Certificate Pro plugin for Moodle - https://lms-labs.com
+
+    Certificate Pro is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Certificate Pro is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Certificate Pro.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_certificatepro/background_picker
+
+    The procedural background gallery.
+
+    Previews are drawn on the server on demand rather than shipped with the
+    gallery: the whole catalogue at once is around three megabytes of vector,
+    which is not a reasonable price for looking at a list.
+
+    Context variables required for this template:
+    * families - the style families, each with family, name and a styles list
+    * width - the first page width in millimetres
+    * height - the first page height in millimetres
+
+    Example context (json):
+    {
+        "width": 297,
+        "height": 210,
+        "families": [
+            {
+                "family": "ceremonial",
+                "name": "Ceremonial",
+                "styles": [
+                    {"id": "guilloche_border", "name": "Guilloche Border",
+                     "family": "ceremonial", "presence": "full", "reversed": false}
+                ]
+            }
+        ]
+    }
+}}
+<div class="cpro-library cpro-bgpicker" data-region="backgroundpicker"
+     data-width="{{width}}" data-height="{{height}}">
+    <p class="cpro-library-lede">{{#str}} bgpickerintro, mod_certificatepro {{/str}}</p>
+
+    <div class="cpro-facets" role="group" aria-label="{{#str}} bgpickerfamilies, mod_certificatepro {{/str}}">
+        <button type="button" class="btn btn-sm btn-outline-secondary active"
+                data-action="family" data-value="" aria-pressed="true">
+            {{#str}} bgpickerallfamilies, mod_certificatepro {{/str}}
+        </button>
+        {{#families}}
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    data-action="family" data-value="{{family}}" aria-pressed="false">{{name}}</button>
+        {{/families}}
+    </div>
+
+    <div class="cpro-gallery cpro-gallery-wide" role="listbox"
+         aria-label="{{#str}} bgpickerlabel, mod_certificatepro {{/str}}" data-region="gallery" tabindex="0">
+        {{#families}}
+            {{#styles}}
+                <div class="cpro-gallery-item" role="option" tabindex="-1" aria-selected="false"
+                     id="cpro-bg-{{id}}" data-region="tile" data-value="{{id}}" data-family="{{family}}">
+                    <div class="cpro-bgthumb" data-region="thumb"
+                         style="aspect-ratio:{{width}} / {{height}};" aria-hidden="true">
+                        <span class="cpro-bgthumb-pending">{{#str}} bgpickerloading, mod_certificatepro {{/str}}</span>
+                    </div>
+                    <div class="cpro-gallery-caption">
+                        <span class="cpro-gallery-name">{{name}}</span>
+                        {{#reversed}}
+                            <span class="cpro-gallery-mood">{{#str}} bgpickerreversed, mod_certificatepro {{/str}}</span>
+                        {{/reversed}}
+                    </div>
+                </div>
+            {{/styles}}
+        {{/families}}
+    </div>
+
+    <div class="cpro-library-actions">
+        <p class="cpro-library-note" data-region="note" role="status" aria-live="polite"></p>
+        <button type="button" class="btn btn-primary" data-action="apply" disabled>
+            {{#str}} bgpickerapply, mod_certificatepro {{/str}}
+        </button>
+    </div>
+</div>
