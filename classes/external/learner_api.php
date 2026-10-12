@@ -91,6 +91,13 @@ class learner_api extends external_api {
 
         $certificates = [];
         foreach ($records as $record) {
+            if (!empty($record->cycleid) && class_exists('\\local_recertify\\cycle_service')) {
+                $cycle = $DB->get_record('local_recertify_cycles', ['id' => $record->cycleid]);
+                if ($cycle) {
+                    $record->activityname = $cycle->name;
+                    $record->coursename = $cycle->name;
+                }
+            }
             $certificates[] = [
                 'id' => (int) $record->id,
                 'code' => $record->code,

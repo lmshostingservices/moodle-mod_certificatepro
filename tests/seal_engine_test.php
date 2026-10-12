@@ -95,6 +95,7 @@ final class seal_engine_test extends \advanced_testcase {
     /**
      * Every edge, ring and mark combination draws a seal and paints valid SVG.
      *
+     * @dataProvider combination_provider
      * @param string $edge the edge treatment
      * @param string $ring the ring layout
      * @param string $mark the centre mark
@@ -133,6 +134,7 @@ final class seal_engine_test extends \advanced_testcase {
     /**
      * Clearing every string still leaves a seal rather than a crash.
      *
+     * @dataProvider combination_provider
      * @param string $edge the edge treatment
      * @param string $ring the ring layout
      * @param string $mark the centre mark

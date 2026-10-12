@@ -36,6 +36,12 @@ $context = context_module::instance($cm->id);
 
 require_login($course, true, $cm);
 require_capability('mod/certificatepro:view', $context);
+if (!empty($instance->cycleonly)) {
+    if (!class_exists('\\local_recertify\\cycle_service')) {
+        throw new moodle_exception('cycleproviderunavailable', 'mod_certificatepro');
+    }
+    redirect(new moodle_url('/local/recertify/cycles.php'));
+}
 
 $url = new moodle_url('/mod/certificatepro/view.php', ['id' => $cm->id]);
 

@@ -55,6 +55,10 @@ class issue_service {
         global $CFG, $DB;
 
         $reasons = [];
+        if ($DB->get_field('certificatepro', 'cycleonly', ['id' => $instance->id])) {
+            $reasons[] = get_string('cycleonly', 'mod_certificatepro');
+            return $reasons;
+        }
 
         if (!empty($instance->requiredtime)) {
             $spent = course_helper::time_in_course((int) $course->id, (int) $user->id);
@@ -109,6 +113,7 @@ class issue_service {
         $record = $DB->get_record('certificatepro_issues', [
             'certificateproid' => $certificateproid,
             'userid' => $userid,
+            'cycleid' => null,
         ]);
 
         return $record ?: null;
@@ -127,8 +132,66 @@ class issue_service {
     public static function issue(\stdClass $instance, \stdClass $course, \context $context,
             \stdClass $user, int $issuedby = 0): \stdClass {
         global $DB;
+        $lock = \core\lock\lock_config::get_lock_factory('mod_certificatepro')
+            ->get_lock('issuer_' . $instance->id, 10);
+        if (!$lock) {
+            throw new \moodle_exception('locktimeout');
+        }
+        try {
+            if ($DB->get_field('certificatepro', 'cycleonly', ['id' => $instance->id])) {
+                throw new \moodle_exception('cycleonly', 'mod_certificatepro');
+            }
+            return self::mint($instance, $course, $context, $user, $issuedby);
+        } finally {
+            $lock->release();
+        }
+    }
 
-        $existing = self::get_issue((int) $instance->id, (int) $user->id);
+    /** Issue exactly one document per achieved cycle; no caller-supplied award dates or evidence. */
+    public static function issue_cycle(int $cycleid): \stdClass {
+        global $DB;
+        if (!class_exists('\\local_recertify\\cycle_service')) {
+            throw new \moodle_exception('error', 'error', '', 'Course Recertification is unavailable');
+        }
+        $cycle = $DB->get_record('local_recertify_cycles', ['id' => $cycleid], '*', MUST_EXIST);
+        \local_recertify\cycle_service::require_read((int)$cycle->userid);
+        $factory = \core\lock\lock_config::get_lock_factory('local_recertify');
+        $lock = $factory->get_lock('cycle_' . $cycleid, 10);
+        if (!$lock) {
+            throw new \moodle_exception('locktimeout');
+        }
+        try {
+            $cycle = $DB->get_record('local_recertify_cycles', ['id' => $cycleid], '*', MUST_EXIST);
+            if ($cycle->status !== 'achieved' || empty($cycle->evidence)) {
+                throw new \moodle_exception('cycleincomplete', 'local_recertify');
+            }
+            $instance = $DB->get_record('certificatepro', ['id' => $cycle->certificateid], '*', MUST_EXIST);
+            $course = get_course($instance->course);
+            $cm = get_coursemodule_from_instance('certificatepro', $instance->id, $course->id, false, MUST_EXIST);
+            $context = \context_module::instance($cm->id);
+            $user = $DB->get_record('user', ['id' => $cycle->userid, 'deleted' => 0], '*', MUST_EXIST);
+            // The document's learning title is the frozen program/course title, not the hosting course.
+            $course->fullname = $cycle->name;
+            $instance->name = $cycle->name;
+            $existing = $DB->get_record('certificatepro_issues', ['cycleid' => $cycleid]);
+            if ($existing) {
+                if (!$existing->pdfhash && !$existing->revoked) {
+                    self::materialise($instance, $course, $context, $user, $existing);
+                }
+                return $DB->get_record('certificatepro_issues', ['id' => $existing->id], '*', MUST_EXIST);
+            }
+            return self::mint($instance, $course, $context, $user, 0, $cycle);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /** Internal minting; cycle eligibility is checked only by issue_cycle. */
+    private static function mint(\stdClass $instance, \stdClass $course, \context $context,
+            \stdClass $user, int $issuedby, ?\stdClass $cycle = null): \stdClass {
+        global $DB;
+
+        $existing = $cycle ? null : self::get_issue((int) $instance->id, (int) $user->id);
         if ($existing !== null) {
             return $existing;
         }
@@ -136,6 +199,7 @@ class issue_service {
         $now = time();
 
         $issue = new \stdClass();
+        $issue->cycleid = $cycle ? (int)$cycle->id : null;
         $issue->certificateproid = (int) $instance->id;
         $issue->userid = (int) $user->id;
         $issue->code = self::generate_code();
@@ -154,7 +218,10 @@ class issue_service {
         $issue->revokedreason = null;
         $issue->timerevoked = 0;
         $issue->issuedby = $issuedby;
-        $issue->timecreated = $now;
+        $issue->timecreated = $cycle ? (int)$cycle->timeachieved : $now;
+        if ($cycle) {
+            $issue->expires = (int)$cycle->expires;
+        }
 
         if (!empty($instance->serialprefix)) {
             [$issue->serial, $issue->serialnumber] = self::next_serial(
@@ -259,6 +326,10 @@ class issue_service {
             return reset($files);
         }
 
+        // A missing historical document must not be silently redrawn from today's template.
+        if (!empty($issue->pdfhash)) {
+            throw new \moodle_exception('historicaldocumentmissing', 'mod_certificatepro');
+        }
         self::materialise($instance, $course, $context, $user, $issue);
 
         $files = $fs->get_area_files($context->id, 'mod_certificatepro', self::FILEAREA,
@@ -482,7 +553,7 @@ class issue_service {
      * @return bool
      */
     public static function has_expired(\stdClass $issue): bool {
-        return !empty($issue->expires) && (int) $issue->expires < time();
+        return !empty($issue->expires) && (int) $issue->expires <= time();
     }
 
     /**
@@ -492,8 +563,24 @@ class issue_service {
      * @return string one of valid, expired or revoked
      */
     public static function status(\stdClass $issue): string {
+        global $DB;
         if (!empty($issue->revoked)) {
             return 'revoked';
+        }
+        if (!empty($issue->cycleid)) {
+            if (!class_exists('\\local_recertify\\cycle_service')) {
+                return 'unknown';
+            }
+            $cycle = $DB->get_record('local_recertify_cycles', ['id' => $issue->cycleid]);
+            if (!$cycle) {
+                return 'unknown';
+            }
+            if ($cycle->status === 'revoked') {
+                return 'revoked';
+            }
+            if (empty($issue->pdfhash) || $cycle->status !== 'achieved') {
+                return 'pending';
+            }
         }
         if (self::has_expired($issue)) {
             return 'expired';

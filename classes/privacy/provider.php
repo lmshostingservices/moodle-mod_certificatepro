@@ -45,6 +45,7 @@ class provider implements
      */
     public static function get_metadata(collection $collection): collection {
         $collection->add_database_table('certificatepro_issues', [
+            'cycleid' => 'privacy:metadata:issues:cycleid',
             'userid' => 'privacy:metadata:issues:userid',
             'certificateproid' => 'privacy:metadata:issues:certificateproid',
             'code' => 'privacy:metadata:issues:code',
@@ -155,6 +156,7 @@ class provider implements
             $exported = [];
             foreach ($issues as $issue) {
                 $exported[] = (object) [
+                    'cycleid' => $issue->cycleid,
                     'code' => $issue->code,
                     'serial' => $issue->serial,
                     'issued' => transform::datetime($issue->timecreated),

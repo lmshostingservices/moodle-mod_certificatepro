@@ -65,5 +65,29 @@ function xmldb_certificatepro_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026081502, 'certificatepro');
     }
 
+    if ($oldversion < 2026101200) {
+        $table = new xmldb_table('certificatepro_issues');
+        $field = new xmldb_field('cycleid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        $index = new xmldb_index('cycleid', XMLDB_INDEX_UNIQUE, ['cycleid']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+        upgrade_mod_savepoint(true, 2026101200, 'certificatepro');
+    }
+    if ($oldversion < 2026101201) {
+        $table = new xmldb_table('certificatepro');
+        $field = new xmldb_field('cycleonly', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        if ($dbman->table_exists(new xmldb_table('local_recertify_cycles'))) {
+            $DB->execute('UPDATE {certificatepro} SET cycleonly = 1
+                WHERE id IN (SELECT certificateid FROM {local_recertify_cycles})');
+        }
+        upgrade_mod_savepoint(true, 2026101201, 'certificatepro');
+    }
     return true;
 }

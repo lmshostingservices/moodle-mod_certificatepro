@@ -117,6 +117,7 @@ class renderer extends \plugin_renderer_base {
             'valid' => 'alert-success',
             'expired' => 'alert-warning',
             'revoked' => 'alert-danger',
+            'pending' => 'alert-warning',
         ];
 
         $lines = [

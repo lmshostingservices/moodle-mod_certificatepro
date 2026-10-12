@@ -24,7 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026081701;
+$plugin->version   = 2026101202;
 
 // Moodle 4.4. The code's own floor is lower — the newest core APIs it touches
 // are core/modal's static Modal.create() from 4.3 and the namespaced
@@ -34,9 +34,9 @@ $plugin->requires  = 2024042200;
 
 // Every branch from 4.4 to 5.1. An administrator outside this range still gets
 // the option to install, with a warning, rather than being refused outright.
-$plugin->supported = [404, 501];
+$plugin->supported = [404, 502];
 
 $plugin->component = 'mod_certificatepro';
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.1.0';
+$plugin->release   = '1.1.1';
 $plugin->cron      = 0;

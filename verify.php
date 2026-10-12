@@ -77,6 +77,13 @@ if ($code !== '') {
                 $issue = null;
             } else {
                 $result = issue_service::status($issue);
+                if (!empty($issue->cycleid) && class_exists('\\local_recertify\\cycle_service')) {
+                    $cycle = $DB->get_record('local_recertify_cycles', ['id' => $issue->cycleid]);
+                    if ($cycle) {
+                        $instance->name = $cycle->name;
+                        $instance->coursefullname = $cycle->name;
+                    }
+                }
                 $recipient = $DB->get_record('user', ['id' => $issue->userid], '*', IGNORE_MISSING);
 
                 \mod_certificatepro\event\certificate_verified::create([

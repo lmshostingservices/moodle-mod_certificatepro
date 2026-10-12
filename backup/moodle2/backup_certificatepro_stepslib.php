@@ -41,6 +41,7 @@ class backup_certificatepro_activity_structure_step extends backup_activity_stru
         $userinfo = $this->get_setting_value('userinfo');
 
         $certificatepro = new backup_nested_element('certificatepro', ['id'], [
+            'cycleonly',
             'name', 'intro', 'introformat', 'templateid', 'requiredtime', 'requiregrade',
             'requirecompletion', 'autoissue', 'verifyany', 'deliveryoption', 'usecustomfilename',
             'customfilenamepattern', 'emailstudents', 'emailteachers', 'emailothers',
@@ -69,6 +70,7 @@ class backup_certificatepro_activity_structure_step extends backup_activity_stru
 
         $issues = new backup_nested_element('issues');
         $issue = new backup_nested_element('issue', ['id'], [
+            'cycleid',
             'userid', 'code', 'serial', 'serialnumber', 'snapshot', 'templaterevision',
             'pdfhash', 'emailed', 'expires', 'expirynotified', 'revoked', 'revokedby',
             'revokedreason', 'timerevoked', 'issuedby', 'timecreated',

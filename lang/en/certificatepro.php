@@ -24,6 +24,16 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['historicaldocumentmissing'] = 'The original issued document is missing or damaged. Restore its original bytes from backup; it will not be regenerated from a changed template.';
+$string['statuspending'] = 'Document pending';
+$string['cycleonly'] = 'This activity issues certificates only from verified certification cycles. Use Certification cycles and award history.';
+$string['cycleproviderunavailable'] = 'Course Recertification must be installed and upgraded to use this cycle-only certificate activity.';
+$string['privacy:metadata:issues:cycleid'] = 'The certification renewal cycle represented by this document.';
+$string['verifypending'] = 'Document pending';
+$string['verify_pending'] = 'Document pending';
+$string['verify_pending_detail'] = 'Completion is recorded, but the certificate document has not finished issuing.';
+$string['cyclehistoryprotected'] = 'This activity holds certification-cycle history and cannot be reset or deleted. Retain it as an archive.';
+
 $string['allowhtml'] = 'Keep formatting';
 $string['allowhtml_help'] = 'Custom fields often hold formatted text such as a bulleted syllabus. With this enabled the paragraphs, lists and emphasis are kept. With it disabled the value is flattened to plain text.';
 $string['artworkchoose'] = 'Background artwork';

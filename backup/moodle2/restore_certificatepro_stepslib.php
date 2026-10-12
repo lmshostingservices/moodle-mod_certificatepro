@@ -148,6 +148,15 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
         $data = (object) $data;
         $oldid = $data->id;
         $data->certificateproid = $this->get_new_parentid('certificatepro');
+        // A course backup does not carry the site-wide cycle ledger. Retain the
+        // document but never turn an unmapped cycle into a valid course award.
+        $historicalcycle = !empty($data->cycleid);
+        if ($historicalcycle) {
+            $data->cycleid = null;
+            $data->revoked = 1;
+            $data->revokedreason = 'Restored historical cycle document: original ledger must be verified separately.';
+            $data->timerevoked = time();
+        }
         $data->userid = $this->get_mappingid('user', $data->userid);
         $data->issuedby = $this->get_mappingid('user', $data->issuedby) ?: 0;
         $data->revokedby = $this->get_mappingid('user', $data->revokedby) ?: 0;
@@ -163,6 +172,11 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
         }
 
         $newitemid = $DB->insert_record('certificatepro_issues', $data);
+        if ($historicalcycle) {
+            // Negative issue-scoped IDs cannot collide with a live ledger ID and
+            // keep restored history out of the legacy course-award lookup.
+            $DB->set_field('certificatepro_issues', 'cycleid', -$newitemid, ['id' => $newitemid]);
+        }
 
         $this->set_mapping('certificatepro_issue', $oldid, $newitemid, true);
     }

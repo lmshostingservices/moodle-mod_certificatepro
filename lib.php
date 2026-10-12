@@ -113,31 +113,43 @@ function certificatepro_update_instance($data, $mform = null) {
 function certificatepro_delete_instance($id) {
     global $DB;
 
-    $instance = $DB->get_record('certificatepro', ['id' => $id]);
-    if (!$instance) {
-        return false;
+    // Serialize with issuer binding and ordinary issuance. Checking only issued
+    // documents strands an allocated learner before their first award exists.
+    $lock = \core\lock\lock_config::get_lock_factory('mod_certificatepro')
+        ->get_lock('issuer_' . $id, 10);
+    if (!$lock) {
+        throw new moodle_exception('locktimeout');
     }
-
-    $cm = get_coursemodule_from_instance('certificatepro', $id, $instance->course, false, IGNORE_MISSING);
-    if ($cm) {
-        $context = context_module::instance($cm->id);
-
-        try {
-            $template = \mod_certificatepro\template::load((int) $instance->templateid);
-            if ($template->get_context()->id === $context->id) {
-                $template->delete();
-            }
-        } catch (Throwable $e) {
-            debugging('Certificate Pro could not delete a design: ' . $e->getMessage(), DEBUG_DEVELOPER);
+    try {
+        $instance = $DB->get_record('certificatepro', ['id' => $id]);
+        if (!$instance) {
+            return false;
         }
-
-        get_file_storage()->delete_area_files($context->id, 'mod_certificatepro');
+        $hascycles = $DB->get_manager()->table_exists(new xmldb_table('local_recertify_cycles'))
+            && $DB->record_exists('local_recertify_cycles', ['certificateid' => $id]);
+        if ($hascycles || $DB->record_exists_select('certificatepro_issues',
+                'certificateproid = :id AND cycleid IS NOT NULL', ['id' => $id])) {
+            throw new moodle_exception('cyclehistoryprotected', 'mod_certificatepro');
+        }
+        $cm = get_coursemodule_from_instance('certificatepro', $id, $instance->course, false, IGNORE_MISSING);
+        if ($cm) {
+            $context = context_module::instance($cm->id);
+            try {
+                $template = \mod_certificatepro\template::load((int) $instance->templateid);
+                if ($template->get_context()->id === $context->id) {
+                    $template->delete();
+                }
+            } catch (Throwable $e) {
+                debugging('Certificate Pro could not delete a design: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+            get_file_storage()->delete_area_files($context->id, 'mod_certificatepro');
+        }
+        $DB->delete_records('certificatepro_issues', ['certificateproid' => $id]);
+        $DB->delete_records('certificatepro', ['id' => $id]);
+        return true;
+    } finally {
+        $lock->release();
     }
-
-    $DB->delete_records('certificatepro_issues', ['certificateproid' => $id]);
-    $DB->delete_records('certificatepro', ['id' => $id]);
-
-    return true;
 }
 
 /**
@@ -204,6 +216,11 @@ function certificatepro_pluginfile($course, $cm, $context, string $filearea, arr
         $issueid = (int) ($args[0] ?? 0);
         $issue = $DB->get_record('certificatepro_issues', ['id' => $issueid]);
         if (!$issue) {
+            return false;
+        }
+        if ((int)$issue->certificateproid !== (int)$cm->instance
+                || (!empty($issue->cycleid)
+                    && !in_array(\mod_certificatepro\local\issue_service::status($issue), ['valid', 'expired'], true))) {
             return false;
         }
         if ((int) $issue->userid !== (int) $USER->id
@@ -281,6 +298,15 @@ function certificatepro_reset_userdata($data): array {
         $instances = $DB->get_records('certificatepro', ['course' => $data->courseid], '', 'id');
 
         foreach ($instances as $instance) {
+            if ($DB->record_exists_select('certificatepro_issues',
+                    'certificateproid = :id AND cycleid IS NOT NULL', ['id' => $instance->id])) {
+                $status[] = [
+                    'component' => get_string('modulenameplural', 'mod_certificatepro'),
+                    'item' => get_string('resetissues', 'mod_certificatepro'),
+                    'error' => get_string('cyclehistoryprotected', 'mod_certificatepro'),
+                ];
+                continue;
+            }
             $cm = get_coursemodule_from_instance('certificatepro', $instance->id,
                 $data->courseid, false, IGNORE_MISSING);
             if ($cm) {
