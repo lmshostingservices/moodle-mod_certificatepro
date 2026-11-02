@@ -28,7 +28,7 @@ require_once($CFG->libdir . '/adminlib.php');
 use mod_certificatepro\local\media_library;
 
 require_login();
-admin_externalpage_setup('modsettingcertificatepro');
+admin_externalpage_setup('certificatepro_media');
 
 $context = context_system::instance();
 require_capability('mod/certificatepro:managemedia', $context);
@@ -43,8 +43,12 @@ $PAGE->set_heading(get_string('mediatitle', 'mod_certificatepro'));
 if ($delete > 0) {
     require_sesskey();
     media_library::delete($delete);
-    redirect($url, get_string('mediaremoved', 'mod_certificatepro'), null,
-        \core\output\notification::NOTIFY_SUCCESS);
+    redirect(
+        $url,
+        get_string('mediaremoved', 'mod_certificatepro'),
+        null,
+        \core\output\notification::NOTIFY_SUCCESS
+    );
 }
 
 $form = new \mod_certificatepro\form\media_form($url);
@@ -56,8 +60,12 @@ if ($data = $form->get_data()) {
 
     if (!empty($files)) {
         media_library::save(reset($files), $data->medianame, $data->mediakind);
-        redirect($url, get_string('mediaadded', 'mod_certificatepro'), null,
-            \core\output\notification::NOTIFY_SUCCESS);
+        redirect(
+            $url,
+            get_string('mediaadded', 'mod_certificatepro'),
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
     }
 }
 
@@ -90,12 +98,15 @@ if (empty($records)) {
         $mediaurl = media_library::url((int) $record->id);
 
         if ($mediaurl !== null) {
-            $preview = html_writer::empty_tag('img', [
-                'src' => $mediaurl,
-                'alt' => '',
-                'style' => 'max-width:120px;max-height:60px;object-fit:contain;'
-                    . 'background:repeating-conic-gradient(#eee 0% 25%,#fff 0% 50%) 50%/10px 10px;',
-            ]);
+            $preview = html_writer::empty_tag(
+                'img',
+                [
+                    'src' => $mediaurl,
+                    'alt' => '',
+                    'style' => 'max-width:120px;max-height:60px;object-fit:contain;'
+                        . 'background:repeating-conic-gradient(#eee 0% 25%,#fff 0% 50%) 50%/10px 10px;',
+                ]
+            );
         }
 
         $table->data[] = [
@@ -105,8 +116,11 @@ if (empty($records)) {
             $record->pixelwidth > 0
                 ? $record->pixelwidth . ' x ' . $record->pixelheight
                 : '-',
-            get_string('mediausagecount', 'mod_certificatepro',
-                media_library::usage_count((int) $record->id)),
+            get_string(
+                'mediausagecount',
+                'mod_certificatepro',
+                media_library::usage_count((int) $record->id)
+            ),
             $OUTPUT->single_button(
                 new moodle_url($url, ['delete' => $record->id, 'sesskey' => sesskey()]),
                 get_string('delete'),

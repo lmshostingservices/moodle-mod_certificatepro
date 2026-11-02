@@ -32,7 +32,7 @@ require_once($CFG->libdir . '/formslib.php');
 use mod_certificatepro\local\font_manager;
 
 require_login();
-admin_externalpage_setup('modsettingcertificatepro');
+admin_externalpage_setup('certificatepro_fonts');
 
 $context = context_system::instance();
 require_capability('mod/certificatepro:managefonts', $context);
@@ -47,8 +47,12 @@ $PAGE->set_heading(get_string('fontstitle', 'mod_certificatepro'));
 if ($delete > 0) {
     require_sesskey();
     font_manager::uninstall($delete);
-    redirect($url, get_string('fontremoved', 'mod_certificatepro'), null,
-        \core\output\notification::NOTIFY_SUCCESS);
+    redirect(
+        $url,
+        get_string('fontremoved', 'mod_certificatepro'),
+        null,
+        \core\output\notification::NOTIFY_SUCCESS
+    );
 }
 
 $form = new \mod_certificatepro\form\font_form($url);
@@ -63,8 +67,12 @@ if ($data = $form->get_data()) {
         $file = reset($files);
         try {
             font_manager::install($file, $data->displayname, $data->fontstyle);
-            redirect($url, get_string('fontinstalled', 'mod_certificatepro'), null,
-                \core\output\notification::NOTIFY_SUCCESS);
+            redirect(
+                $url,
+                get_string('fontinstalled', 'mod_certificatepro'),
+                null,
+                \core\output\notification::NOTIFY_SUCCESS
+            );
         } catch (moodle_exception $e) {
             redirect($url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
         }
@@ -77,8 +85,11 @@ echo $OUTPUT->box(get_string('settings_fontsintro', 'mod_certificatepro'));
 
 if (!font_manager::can_install_fonts()) {
     echo $OUTPUT->notification(
-        get_string('settings_fontsnotwritable', 'mod_certificatepro',
-            font_manager::custom_font_directory()),
+        get_string(
+            'settings_fontsnotwritable',
+            'mod_certificatepro',
+            font_manager::custom_font_directory()
+        ),
         'warning'
     );
 } else {

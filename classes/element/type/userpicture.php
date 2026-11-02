@@ -82,8 +82,11 @@ class userpicture extends image_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('advcheckbox', 'circular',
-            get_string('picturecircular', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'circular',
+            get_string('picturecircular', 'mod_certificatepro')
+        );
         $mform->setDefault('circular', 1);
 
         $this->add_common_image_settings($mform);
@@ -96,9 +99,12 @@ class userpicture extends image_base {
      * @return array
      */
     public function save_form_data(\stdClass $data): array {
-        return array_merge($this->common_image_data($data), [
-            'circular' => !empty($data->circular) ? 1 : 0,
-        ]);
+        return array_merge(
+            $this->common_image_data($data),
+            [
+                'circular' => !empty($data->circular) ? 1 : 0,
+            ]
+        );
     }
 
     /**

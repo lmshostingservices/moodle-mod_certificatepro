@@ -72,7 +72,8 @@ class core_ai_provider implements provider {
             prompttext: $instruction
         );
 
-        $manager = new $managerclass();
+        // Moodle 5.0+ injects the database into the manager's constructor; the DI container builds it on 4.5 too.
+        $manager = \core\di::get($managerclass);
         $response = $manager->process_action($action);
 
         if (!$response || !$response->get_success()) {

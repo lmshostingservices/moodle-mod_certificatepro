@@ -26,7 +26,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 define(['core/ajax', 'core/notification', 'core/templates', 'core/modal', 'core/str'],
-function (Ajax, Notification, Templates, Modal, Str) {
+function(Ajax, Notification, Templates, Modal, Str) {
 
     'use strict';
 
@@ -53,8 +53,8 @@ function (Ajax, Notification, Templates, Modal, Str) {
      * @param {Object} response the service response
      * @return {Object} the template context
      */
-    var context = function (kind, response) {
-        var steps = response.questions.map(function (question, index) {
+    var context = function(kind, response) {
+        var steps = response.questions.map(function(question, index) {
             return {
                 index: index,
                 human: index + 1,
@@ -90,18 +90,18 @@ function (Ajax, Notification, Templates, Modal, Str) {
      * @param {Object} config templateid, pageid, and a done callback
      * @return {Promise} resolves once the dialog is on screen
      */
-    var open = function (kind, config) {
+    var open = function(kind, config) {
         var service = SERVICES[kind];
 
         return Ajax.call([{
             methodname: service.questions,
             args: {templateid: config.templateid}
-        }])[0].then(function (response) {
+        }])[0].then(function(response) {
             return Promise.all([
                 Templates.render('mod_certificatepro/brief_wizard', context(kind, response)),
                 Str.get_string(service.title, 'mod_certificatepro')
             ]);
-        }).then(function (parts) {
+        }).then(function(parts) {
             return Modal.create({
                 title: parts[1],
                 body: parts[0],
@@ -109,8 +109,8 @@ function (Ajax, Notification, Templates, Modal, Str) {
                 removeOnClose: true,
                 returnElement: config.returnElement
             });
-        }).then(function (modal) {
-            return modal.show().then(function () {
+        }).then(function(modal) {
+            return modal.show().then(function() {
                 wire(modal, kind, config);
                 return modal;
             });
@@ -125,7 +125,7 @@ function (Ajax, Notification, Templates, Modal, Str) {
      * @param {Object} config templateid, pageid, and a done callback
      * @return {void}
      */
-    var wire = function (modal, kind, config) {
+    var wire = function(modal, kind, config) {
         var service = SERVICES[kind];
         var root = modal.getBody()[0].querySelector('[data-region="wizard"]');
         if (!root) {
@@ -147,13 +147,13 @@ function (Ajax, Notification, Templates, Modal, Str) {
          *
          * @return {Object[]} name and value pairs
          */
-        var answers = function () {
+        var answers = function() {
             var out = [];
 
-            steps.forEach(function (step) {
+            steps.forEach(function(step) {
                 var name = step.getAttribute('data-name');
 
-                Array.prototype.forEach.call(step.querySelectorAll('input'), function (input) {
+                Array.prototype.forEach.call(step.querySelectorAll('input'), function(input) {
                     if (input.type === 'radio' || input.type === 'checkbox') {
                         if (input.checked) {
                             out.push({name: name, value: input.value});
@@ -173,10 +173,10 @@ function (Ajax, Notification, Templates, Modal, Str) {
          * @param {number} index the step to show
          * @return {void}
          */
-        var show = function (index) {
+        var show = function(index) {
             current = Math.max(0, Math.min(steps.length, index));
 
-            steps.forEach(function (step, i) {
+            steps.forEach(function(step, i) {
                 step.hidden = i !== current;
             });
 
@@ -190,7 +190,7 @@ function (Ajax, Notification, Templates, Modal, Str) {
             bar.style.width = Math.round((done / steps.length) * 100) + '%';
 
             Str.get_string(onresult ? 'briefstepresult' : 'briefstepof', 'mod_certificatepro',
-                {current: current + 1, total: steps.length}).then(function (message) {
+                {current: current + 1, total: steps.length}).then(function(message) {
                 progress.textContent = message;
                 return message;
             }).catch(Notification.exception);
@@ -210,10 +210,10 @@ function (Ajax, Notification, Templates, Modal, Str) {
          *
          * @return {void}
          */
-        var preview = function () {
+        var preview = function() {
             next.disabled = true;
 
-            Str.get_string('briefworking', 'mod_certificatepro').then(function (message) {
+            Str.get_string('briefworking', 'mod_certificatepro').then(function(message) {
                 note.textContent = message;
                 return message;
             }).catch(Notification.exception);
@@ -221,13 +221,13 @@ function (Ajax, Notification, Templates, Modal, Str) {
             Ajax.call([{
                 methodname: service.preview,
                 args: {templateid: config.templateid, answers: answers()}
-            }])[0].then(function (response) {
+            }])[0].then(function(response) {
                 next.disabled = false;
                 note.textContent = '';
                 render(response);
                 show(steps.length);
                 return response;
-            }).catch(function (error) {
+            }).catch(function(error) {
                 next.disabled = false;
                 Notification.exception(error);
             });
@@ -239,7 +239,7 @@ function (Ajax, Notification, Templates, Modal, Str) {
          * @param {Object} response the preview
          * @return {void}
          */
-        var render = function (response) {
+        var render = function(response) {
             root.querySelector('[data-region="preview"]').innerHTML = response.svg;
 
             var heading = root.querySelector('[data-region="resultheading"]');
@@ -256,7 +256,7 @@ function (Ajax, Notification, Templates, Modal, Str) {
                 summary.textContent = [response.edgename, response.ringname, response.markname]
                     .join(' · ');
 
-                (response.warnings || []).forEach(function (warning) {
+                (response.warnings || []).forEach(function(warning) {
                     var item = document.createElement('li');
                     item.textContent = warning.message;
                     warnings.appendChild(item);
@@ -264,11 +264,11 @@ function (Ajax, Notification, Templates, Modal, Str) {
             }
         };
 
-        back.addEventListener('click', function () {
+        back.addEventListener('click', function() {
             show(current - 1);
         });
 
-        next.addEventListener('click', function () {
+        next.addEventListener('click', function() {
             if (current >= steps.length - 1) {
                 preview();
                 return;
@@ -278,13 +278,13 @@ function (Ajax, Notification, Templates, Modal, Str) {
 
         // Answering a question in place should update the result rather than
         // making the author walk back to the end again.
-        root.addEventListener('change', function () {
+        root.addEventListener('change', function() {
             if (current >= steps.length) {
                 preview();
             }
         });
 
-        apply.addEventListener('click', function () {
+        apply.addEventListener('click', function() {
             apply.disabled = true;
 
             var args = {
@@ -300,13 +300,13 @@ function (Ajax, Notification, Templates, Modal, Str) {
                 args.elementid = config.elementid || 0;
             }
 
-            Ajax.call([{methodname: service.apply, args: args}])[0].then(function (response) {
+            Ajax.call([{methodname: service.apply, args: args}])[0].then(function(response) {
                 modal.destroy();
                 if (config.done) {
                     config.done(response);
                 }
                 return response;
-            }).catch(function (error) {
+            }).catch(function(error) {
                 apply.disabled = false;
                 Notification.exception(error);
             });
@@ -322,7 +322,7 @@ function (Ajax, Notification, Templates, Modal, Str) {
          * @param {Object} config templateid, pageid, and a done callback
          * @return {Promise} resolves once the dialog is on screen
          */
-        artwork: function (config) {
+        artwork: function(config) {
             return open('artwork', config);
         },
 
@@ -332,7 +332,7 @@ function (Ajax, Notification, Templates, Modal, Str) {
          * @param {Object} config templateid, pageid, and a done callback
          * @return {Promise} resolves once the dialog is on screen
          */
-        seal: function (config) {
+        seal: function(config) {
             return open('seal', config);
         }
     };

@@ -51,9 +51,11 @@ class library_api extends library_base {
      * @return external_function_parameters
      */
     public static function get_background_styles_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+            ]
+        );
     }
 
     /**
@@ -63,9 +65,12 @@ class library_api extends library_base {
      * @return array
      */
     public static function get_background_styles(int $templateid): array {
-        $params = self::validate_parameters(self::get_background_styles_parameters(), [
-            'templateid' => $templateid,
-        ]);
+        $params = self::validate_parameters(
+            self::get_background_styles_parameters(),
+            [
+                'templateid' => $templateid,
+            ]
+        );
 
         $template = self::require_readable($params['templateid']);
         $page = self::require_page($template, 0);
@@ -105,27 +110,37 @@ class library_api extends library_base {
      * @return external_single_structure
      */
     public static function get_background_styles_returns(): external_single_structure {
-        return new external_single_structure([
-            'families' => new external_multiple_structure(
-                new external_single_structure([
-                    'family' => new external_value(PARAM_ALPHANUMEXT, 'The family key'),
-                    'name' => new external_value(PARAM_TEXT, 'The family name'),
-                    'styles' => new external_multiple_structure(
-                        new external_single_structure([
-                            'id' => new external_value(PARAM_ALPHANUMEXT, 'The style identifier'),
-                            'name' => new external_value(PARAM_TEXT, 'The style name'),
+        return new external_single_structure(
+            [
+                'families' => new external_multiple_structure(
+                    new external_single_structure(
+                        [
                             'family' => new external_value(PARAM_ALPHANUMEXT, 'The family key'),
-                            'presence' => new external_value(PARAM_ALPHA,
-                                'How present the style is on the page'),
-                            'reversed' => new external_value(PARAM_BOOL,
-                                'Whether text must be reversed out of this ground'),
-                        ])
-                    ),
-                ])
-            ),
-            'width' => new external_value(PARAM_FLOAT, 'The first page width in millimetres'),
-            'height' => new external_value(PARAM_FLOAT, 'The first page height in millimetres'),
-        ]);
+                            'name' => new external_value(PARAM_TEXT, 'The family name'),
+                            'styles' => new external_multiple_structure(
+                                new external_single_structure(
+                                    [
+                                        'id' => new external_value(PARAM_ALPHANUMEXT, 'The style identifier'),
+                                        'name' => new external_value(PARAM_TEXT, 'The style name'),
+                                        'family' => new external_value(PARAM_ALPHANUMEXT, 'The family key'),
+                                        'presence' => new external_value(
+                                            PARAM_ALPHA,
+                                            'How present the style is on the page'
+                                        ),
+                                        'reversed' => new external_value(
+                                            PARAM_BOOL,
+                                            'Whether text must be reversed out of this ground'
+                                        ),
+                                    ]
+                                )
+                            ),
+                        ]
+                    )
+                ),
+                'width' => new external_value(PARAM_FLOAT, 'The first page width in millimetres'),
+                'height' => new external_value(PARAM_FLOAT, 'The first page height in millimetres'),
+            ]
+        );
     }
 
     /**
@@ -134,13 +149,15 @@ class library_api extends library_base {
      * @return external_function_parameters
      */
     public static function get_background_previews_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'styles' => new external_multiple_structure(
-                new external_value(PARAM_ALPHANUMEXT, 'A style identifier')
-            ),
-            'seed' => new external_value(PARAM_INT, 'The composition seed', VALUE_DEFAULT, 7),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'styles' => new external_multiple_structure(
+                    new external_value(PARAM_ALPHANUMEXT, 'A style identifier')
+                ),
+                'seed' => new external_value(PARAM_INT, 'The composition seed', VALUE_DEFAULT, 7),
+            ]
+        );
     }
 
     /**
@@ -153,19 +170,25 @@ class library_api extends library_base {
      */
     public static function get_background_previews(int $templateid, array $styles,
             int $seed = 7): array {
-        $params = self::validate_parameters(self::get_background_previews_parameters(), [
-            'templateid' => $templateid,
-            'styles' => $styles,
-            'seed' => $seed,
-        ]);
+        $params = self::validate_parameters(
+            self::get_background_previews_parameters(),
+            [
+                'templateid' => $templateid,
+                'styles' => $styles,
+                'seed' => $seed,
+            ]
+        );
 
         $template = self::require_readable($params['templateid']);
         $page = self::require_page($template, 0);
         $palette = $template->get_palette();
 
         $previews = [];
-        $requested = array_slice(array_values(array_unique($params['styles'])),
-            0, self::PREVIEW_BATCH);
+        $requested = array_slice(
+            array_values(array_unique($params['styles'])),
+            0,
+            self::PREVIEW_BATCH
+        );
 
         foreach ($requested as $style) {
             if (!background_library::exists($style)) {
@@ -173,8 +196,13 @@ class library_api extends library_base {
             }
             $previews[] = [
                 'id' => $style,
-                'svg' => background_library::svg($style, $palette,
-                    (float) $page->width, (float) $page->height, max(1, $params['seed'])),
+                'svg' => background_library::svg(
+                    $style,
+                    $palette,
+                    (float) $page->width,
+                    (float) $page->height,
+                    max(1, $params['seed'])
+                ),
             ];
         }
 
@@ -203,12 +231,14 @@ class library_api extends library_base {
      * @return external_function_parameters
      */
     public static function apply_background_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'pageid' => new external_value(PARAM_INT, 'The page to place it on'),
-            'style' => new external_value(PARAM_ALPHANUMEXT, 'The style identifier'),
-            'seed' => new external_value(PARAM_INT, 'The composition seed', VALUE_DEFAULT, 7),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'pageid' => new external_value(PARAM_INT, 'The page to place it on'),
+                'style' => new external_value(PARAM_ALPHANUMEXT, 'The style identifier'),
+                'seed' => new external_value(PARAM_INT, 'The composition seed', VALUE_DEFAULT, 7),
+            ]
+        );
     }
 
     /**
@@ -225,44 +255,62 @@ class library_api extends library_base {
      */
     public static function apply_background(int $templateid, int $pageid, string $style,
             int $seed = 7): array {
-        $params = self::validate_parameters(self::apply_background_parameters(), [
-            'templateid' => $templateid,
-            'pageid' => $pageid,
-            'style' => $style,
-            'seed' => $seed,
-        ]);
+        $params = self::validate_parameters(
+            self::apply_background_parameters(),
+            [
+                'templateid' => $templateid,
+                'pageid' => $pageid,
+                'style' => $style,
+                'seed' => $seed,
+            ]
+        );
 
         $template = self::require_editable($params['templateid']);
         $page = self::require_page($template, $params['pageid']);
 
         if (!background_library::exists($params['style'])) {
-            throw new \moodle_exception('errorunknownstyle', 'mod_certificatepro', '',
-                $params['style']);
+            throw new \moodle_exception(
+                'errorunknownstyle',
+                'mod_certificatepro',
+                '',
+                $params['style']
+            );
         }
 
         $entry = background_library::styles()[$params['style']];
-        $svg = background_library::svg($params['style'], $template->get_palette(),
-            (float) $page->width, (float) $page->height, max(1, $params['seed']));
+        $svg = background_library::svg(
+            $params['style'],
+            $template->get_palette(),
+            (float) $page->width,
+            (float) $page->height,
+            max(1, $params['seed'])
+        );
 
         if ($svg === '') {
             throw new \moodle_exception('errorbackgroundempty', 'mod_certificatepro');
         }
 
-        $backgroundid = background_repository::save($template->get_context(),
-            self::label('bgstyle_' . $params['style'], $entry['name']), $svg, [
+        $backgroundid = background_repository::save(
+            $template->get_context(),
+            self::label('bgstyle_' . $params['style'], $entry['name']),
+            $svg,
+            [
                 'prompt' => '',
                 'style' => $params['style'],
                 'palette' => $template->get_palette()['primary'] ?? '',
                 'orientation' => $page->orientation,
                 'generator' => 'procedural',
-            ]);
+            ]
+        );
 
         $elementid = self::place_artwork($template, $page, $backgroundid);
 
-        \mod_certificatepro\event\template_updated::create([
-            'objectid' => $template->get_id(),
-            'context' => $template->get_context(),
-        ])->trigger();
+        \mod_certificatepro\event\template_updated::create(
+            [
+                'objectid' => $template->get_id(),
+                'context' => $template->get_context(),
+            ]
+        )->trigger();
 
         return [
             'backgroundid' => $backgroundid,
@@ -287,15 +335,22 @@ class library_api extends library_base {
             int $backgroundid): int {
         global $DB;
 
-        $existing = $DB->get_records('certificatepro_elements',
-            ['pageid' => (int) $page->id, 'element' => 'artwork'], 'id ASC');
+        $existing = $DB->get_records(
+            'certificatepro_elements',
+            ['pageid' => (int) $page->id, 'element' => 'artwork'],
+            'id ASC'
+        );
 
         $record = reset($existing);
 
         if ($record === false) {
             $elementid = $template->add_element((int) $page->id, 'artwork');
-            $record = $DB->get_record('certificatepro_elements', ['id' => $elementid],
-                '*', MUST_EXIST);
+            $record = $DB->get_record(
+                'certificatepro_elements',
+                ['id' => $elementid],
+                '*',
+                MUST_EXIST
+            );
         }
 
         $data = json_decode((string) $record->data, true);
@@ -305,17 +360,20 @@ class library_api extends library_base {
 
         // Artwork covers the sheet: anything smaller is a mistake nobody wants
         // to fix by dragging.
-        $DB->update_record('certificatepro_elements', (object) [
-            'id' => (int) $record->id,
-            'data' => json_encode($data, JSON_PRESERVE_ZERO_FRACTION),
-            'posx' => 0,
-            'posy' => 0,
-            'width' => round((float) $page->width, 3),
-            'height' => round((float) $page->height, 3),
-            'refpoint' => 'tl',
-            'zindex' => -100,
-            'timemodified' => time(),
-        ]);
+        $DB->update_record(
+            'certificatepro_elements',
+            (object) [
+                'id' => (int) $record->id,
+                'data' => json_encode($data, JSON_PRESERVE_ZERO_FRACTION),
+                'posx' => 0,
+                'posy' => 0,
+                'width' => round((float) $page->width, 3),
+                'height' => round((float) $page->height, 3),
+                'refpoint' => 'tl',
+                'zindex' => -100,
+                'timemodified' => time(),
+            ]
+        );
 
         $template->touch();
 
@@ -328,12 +386,16 @@ class library_api extends library_base {
      * @return external_single_structure
      */
     public static function apply_background_returns(): external_single_structure {
-        return new external_single_structure([
-            'backgroundid' => new external_value(PARAM_INT, 'The stored background id'),
-            'elementid' => new external_value(PARAM_INT, 'The artwork element it was placed on'),
-            'reversed' => new external_value(PARAM_BOOL,
-                'Whether text must be reversed out of this ground'),
-        ]);
+        return new external_single_structure(
+            [
+                'backgroundid' => new external_value(PARAM_INT, 'The stored background id'),
+                'elementid' => new external_value(PARAM_INT, 'The artwork element it was placed on'),
+                'reversed' => new external_value(
+                    PARAM_BOOL,
+                    'Whether text must be reversed out of this ground'
+                ),
+            ]
+        );
     }
 
     /**
@@ -342,16 +404,30 @@ class library_api extends library_base {
      * @return external_function_parameters
      */
     public static function get_ornaments_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'role' => new external_value(PARAM_ALPHA, 'A placement role, or empty for all',
-                VALUE_DEFAULT, ''),
-            'orientation' => new external_value(PARAM_ALPHA, 'L, P or empty for both',
-                VALUE_DEFAULT, ''),
-            'palette' => new external_value(PARAM_ALPHANUMEXT, 'A palette affinity, or empty',
-                VALUE_DEFAULT, ''),
-            'q' => new external_value(PARAM_TEXT, 'A search term, or empty', VALUE_DEFAULT, ''),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'role' => new external_value(
+                    PARAM_ALPHA,
+                    'A placement role, or empty for all',
+                    VALUE_DEFAULT,
+                    ''
+                ),
+                'orientation' => new external_value(
+                    PARAM_ALPHA,
+                    'L, P or empty for both',
+                    VALUE_DEFAULT,
+                    ''
+                ),
+                'palette' => new external_value(
+                    PARAM_ALPHANUMEXT,
+                    'A palette affinity, or empty',
+                    VALUE_DEFAULT,
+                    ''
+                ),
+                'q' => new external_value(PARAM_TEXT, 'A search term, or empty', VALUE_DEFAULT, ''),
+            ]
+        );
     }
 
     /**
@@ -371,27 +447,32 @@ class library_api extends library_base {
      */
     public static function get_ornaments(int $templateid, string $role = '',
             string $orientation = '', string $palette = '', string $q = ''): array {
-        $params = self::validate_parameters(self::get_ornaments_parameters(), [
-            'templateid' => $templateid,
-            'role' => $role,
-            'orientation' => $orientation,
-            'palette' => $palette,
-            'q' => $q,
-        ]);
+        $params = self::validate_parameters(
+            self::get_ornaments_parameters(),
+            [
+                'templateid' => $templateid,
+                'role' => $role,
+                'orientation' => $orientation,
+                'palette' => $palette,
+                'q' => $q,
+            ]
+        );
 
         self::require_readable($params['templateid']);
 
         $roles = pd_library::roles();
         $wanted = in_array($params['role'], $roles, true) ? $params['role'] : '';
 
-        $items = pd_library::items([
-            'role' => $wanted,
-            'orientation' => in_array($params['orientation'], ['L', 'P'], true)
-                ? $params['orientation'] : '',
-            'palette' => $params['palette'],
-            'q' => trim($params['q']),
-            'present' => true,
-        ]);
+        $items = pd_library::items(
+            [
+                'role' => $wanted,
+                'orientation' => in_array($params['orientation'], ['L', 'P'], true)
+                    ? $params['orientation'] : '',
+                'palette' => $params['palette'],
+                'q' => trim($params['q']),
+                'present' => true,
+            ]
+        );
 
         $counts = pd_library::counts_by_role();
         $sources = pd_library::sources();
@@ -451,20 +532,25 @@ class library_api extends library_base {
                     'style' => new external_value(PARAM_TEXT, 'Its style classification'),
                     'licence' => new external_value(PARAM_TEXT, 'Its licence'),
                     'source' => new external_value(PARAM_TEXT, 'Where it came from'),
-                    'attribution' => new external_value(PARAM_BOOL,
-                        'Whether it must be credited'),
+                    'attribution' => new external_value(
+                        PARAM_BOOL,
+                        'Whether it must be credited'
+                    ),
                     'svg' => new external_value(
                         PARAM_RAW, // pipeline-ignore: PARAM_RAW - sanitised SVG
-                        'The artwork, or empty when too large'),
+                        'The artwork, or empty when too large'
+                    ),
                 ])
             ),
             'roles' => new external_multiple_structure(
-                new external_single_structure([
-                    'role' => new external_value(PARAM_ALPHA, 'The role key'),
-                    'name' => new external_value(PARAM_TEXT, 'The role name'),
-                    'count' => new external_value(PARAM_INT, 'How many items carry it'),
-                    'selected' => new external_value(PARAM_BOOL, 'Whether it is the active filter'),
-                ])
+                new external_single_structure(
+                    [
+                        'role' => new external_value(PARAM_ALPHA, 'The role key'),
+                        'name' => new external_value(PARAM_TEXT, 'The role name'),
+                        'count' => new external_value(PARAM_INT, 'How many items carry it'),
+                        'selected' => new external_value(PARAM_BOOL, 'Whether it is the active filter'),
+                    ]
+                )
             ),
             'total' => new external_value(PARAM_INT, 'How many items are bundled in total'),
             'libraryempty' => new external_value(PARAM_BOOL, 'Whether nothing is bundled at all'),
@@ -499,11 +585,14 @@ class library_api extends library_base {
     public static function place_ornament(int $templateid, int $pageid, string $assetid): array {
         global $DB;
 
-        $params = self::validate_parameters(self::place_ornament_parameters(), [
-            'templateid' => $templateid,
-            'pageid' => $pageid,
-            'assetid' => $assetid,
-        ]);
+        $params = self::validate_parameters(
+            self::place_ornament_parameters(),
+            [
+                'templateid' => $templateid,
+                'pageid' => $pageid,
+                'assetid' => $assetid,
+            ]
+        );
 
         $template = self::require_editable($params['templateid']);
         $page = self::require_page($template, $params['pageid']);
@@ -514,39 +603,51 @@ class library_api extends library_base {
         }
 
         $elementid = $template->add_element((int) $page->id, 'image');
-        $record = $DB->get_record('certificatepro_elements', ['id' => $elementid],
-            '*', MUST_EXIST);
+        $record = $DB->get_record(
+            'certificatepro_elements',
+            ['id' => $elementid],
+            '*',
+            MUST_EXIST
+        );
 
         $fs = get_file_storage();
-        $fs->create_file_from_pathname([
-            'contextid' => $template->get_context()->id,
-            'component' => 'mod_certificatepro',
-            'filearea' => 'elementimage',
-            'itemid' => $elementid,
-            'filepath' => '/',
-            'filename' => basename((string) $item['file']) ?: ($params['assetid'] . '.svg'),
-        ], $item['path']);
+        $fs->create_file_from_pathname(
+            [
+                'contextid' => $template->get_context()->id,
+                'component' => 'mod_certificatepro',
+                'filearea' => 'elementimage',
+                'itemid' => $elementid,
+                'filepath' => '/',
+                'filename' => basename((string) $item['file']) ?: ($params['assetid'] . '.svg'),
+            ],
+            $item['path']
+        );
 
         $size = self::ornament_size((string) ($item['role'] ?? ''), $page);
 
-        $DB->update_record('certificatepro_elements', (object) [
-            'id' => $elementid,
-            'name' => (string) ($item['title'] ?? $item['id']),
-            'width' => $size['width'],
-            'height' => $size['height'],
-            'posx' => $size['posx'],
-            'posy' => $size['posy'],
-            'refpoint' => $size['refpoint'],
-            'zindex' => $size['zindex'],
-            'timemodified' => time(),
-        ]);
+        $DB->update_record(
+            'certificatepro_elements',
+            (object) [
+                'id' => $elementid,
+                'name' => (string) ($item['title'] ?? $item['id']),
+                'width' => $size['width'],
+                'height' => $size['height'],
+                'posx' => $size['posx'],
+                'posy' => $size['posy'],
+                'refpoint' => $size['refpoint'],
+                'zindex' => $size['zindex'],
+                'timemodified' => time(),
+            ]
+        );
 
         $template->touch();
 
-        \mod_certificatepro\event\template_updated::create([
-            'objectid' => $template->get_id(),
-            'context' => $template->get_context(),
-        ])->trigger();
+        \mod_certificatepro\event\template_updated::create(
+            [
+                'objectid' => $template->get_id(),
+                'context' => $template->get_context(),
+            ]
+        )->trigger();
 
         return ['elementid' => $elementid];
     }
@@ -600,8 +701,10 @@ class library_api extends library_base {
      * @return external_single_structure
      */
     public static function place_ornament_returns(): external_single_structure {
-        return new external_single_structure([
-            'elementid' => new external_value(PARAM_INT, 'The new element id'),
-        ]);
+        return new external_single_structure(
+            [
+                'elementid' => new external_value(PARAM_INT, 'The new element id'),
+            ]
+        );
     }
 }

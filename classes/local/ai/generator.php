@@ -82,8 +82,10 @@ class generator {
             try {
                 $raw = $provider->compose($instruction, $context);
             } catch (\Throwable $e) {
-                debugging('Certificate Pro artwork provider failed: ' . $e->getMessage(),
-                    DEBUG_DEVELOPER);
+                debugging(
+                    'Certificate Pro artwork provider failed: ' . $e->getMessage(),
+                    DEBUG_DEVELOPER
+                );
                 continue;
             }
 
@@ -141,29 +143,32 @@ class generator {
             }
         }
 
-        return implode("\n", [
-            'Compose decorative background artwork for a printed certificate as a single SVG document.',
-            '',
-            'The author describes what they want as: ' . trim($prompt),
-            'Take stylistic guidance from the named style: ' . $style . '.',
-            '',
-            'Requirements, all of which are mandatory:',
-            '- Output nothing but the SVG document. No prose, no explanation, no code fences.',
-            '- Use exactly this root element, with no width or height attributes beyond those given:',
-            '  <svg xmlns="http://www.w3.org/2000/svg" width="' . $width . 'mm" height="'
-                . $height . 'mm" viewBox="0 0 ' . $width . ' ' . $height . '">',
-            '- Work only in these colours: ' . implode(', ', $colours) . '.',
-            '- This is a background. Nothing may compete with the text that will sit on top of it.',
-            '  Keep the central sixty percent of the page quiet: opacity below 0.12 there.',
-            '- Use only these elements: path, rect, circle, ellipse, line, polyline, polygon, g,',
-            '  defs, linearGradient, radialGradient, stop, clipPath, use.',
-            '- No script, no foreignObject, no image, no external references of any kind,',
-            '  no event handler attributes, no CSS style blocks, no embedded fonts, no text.',
-            '- Keep the whole document under 40 kilobytes and prefer few, well composed shapes',
-            '  over thousands of small ones.',
-            '- The artwork must be symmetrical or deliberately asymmetrical, never accidentally',
-            '  lopsided, and must not touch the outer 8mm of any edge.',
-        ]);
+        return implode(
+            "\n",
+            [
+                'Compose decorative background artwork for a printed certificate as a single SVG document.',
+                '',
+                'The author describes what they want as: ' . trim($prompt),
+                'Take stylistic guidance from the named style: ' . $style . '.',
+                '',
+                'Requirements, all of which are mandatory:',
+                '- Output nothing but the SVG document. No prose, no explanation, no code fences.',
+                '- Use exactly this root element, with no width or height attributes beyond those given:',
+                '  <svg xmlns="http://www.w3.org/2000/svg" width="' . $width . 'mm" height="'
+                    . $height . 'mm" viewBox="0 0 ' . $width . ' ' . $height . '">',
+                '- Work only in these colours: ' . implode(', ', $colours) . '.',
+                '- This is a background. Nothing may compete with the text that will sit on top of it.',
+                '  Keep the central sixty percent of the page quiet: opacity below 0.12 there.',
+                '- Use only these elements: path, rect, circle, ellipse, line, polyline, polygon, g,',
+                '  defs, linearGradient, radialGradient, stop, clipPath, use.',
+                '- No script, no foreignObject, no image, no external references of any kind,',
+                '  no event handler attributes, no CSS style blocks, no embedded fonts, no text.',
+                '- Keep the whole document under 40 kilobytes and prefer few, well composed shapes',
+                '  over thousands of small ones.',
+                '- The artwork must be symmetrical or deliberately asymmetrical, never accidentally',
+                '  lopsided, and must not touch the outer 8mm of any edge.',
+            ]
+        );
     }
 
     /**

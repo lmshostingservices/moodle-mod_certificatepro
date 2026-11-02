@@ -59,8 +59,13 @@ class issue_certificates extends \core\task\scheduled_task {
                 return;
             }
 
-            $cm = get_coursemodule_from_instance('certificatepro', $instance->id,
-                $instance->course, false, IGNORE_MISSING);
+            $cm = get_coursemodule_from_instance(
+                'certificatepro',
+                $instance->id,
+                $instance->course,
+                false,
+                IGNORE_MISSING
+            );
             if (!$cm) {
                 continue;
             }
@@ -71,7 +76,13 @@ class issue_certificates extends \core\task\scheduled_task {
             }
 
             $context = \context_module::instance($cm->id);
-            $candidates = get_enrolled_users($context, 'mod/certificatepro:view', 0, 'u.*');
+            $cminfo = get_fast_modinfo($course)->get_cm($cm->id);
+            if (!$cminfo->visible || !empty($cminfo->deletioninprogress)) {
+                continue;
+            }
+            // Only active enrolments of people who are meant to receive certificates and can reach the activity.
+            $candidates = get_enrolled_users($context, 'mod/certificatepro:receive', 0, 'u.*', null, 0, 0, true);
+            $candidates = (new \core_availability\info_module($cminfo))->filter_user_list($candidates);
 
             foreach ($candidates as $user) {
                 if ($issued >= self::BATCH) {
@@ -90,8 +101,10 @@ class issue_certificates extends \core\task\scheduled_task {
                     issue_service::issue($instance, $course, $context, $user);
                     $issued++;
                 } catch (\Throwable $e) {
-                    mtrace('Certificate Pro could not issue to user ' . $user->id . ': '
-                        . $e->getMessage());
+                    mtrace(
+                        'Certificate Pro could not issue to user ' . $user->id . ': '
+                            . $e->getMessage()
+                    );
                 }
             }
         }

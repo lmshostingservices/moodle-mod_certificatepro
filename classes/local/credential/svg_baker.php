@@ -154,8 +154,11 @@ class svg_baker {
 
         [$start, $length, $openlength] = $span;
 
-        $inner = substr($svg, $start + $openlength,
-            $length - $openlength - self::close_tag_length($svg, $start));
+        $inner = substr(
+            $svg,
+            $start + $openlength,
+            $length - $openlength - self::close_tag_length($svg, $start)
+        );
 
         if ($inner === '' || $inner === false) {
             return null;
@@ -358,8 +361,12 @@ class svg_baker {
     protected static function declared_prefixes(string $tag): array {
         $prefixes = [];
 
-        if (!preg_match_all('/xmlns:([A-Za-z_][\w.\-]*)\s*=\s*("|\')(.*?)\2/s', $tag, $matches,
-                PREG_SET_ORDER)) {
+        if (!preg_match_all(
+            '/xmlns:([A-Za-z_][\w.\-]*)\s*=\s*("|\')(.*?)\2/s',
+            $tag,
+            $matches,
+            PREG_SET_ORDER
+        )) {
             return $prefixes;
         }
 
@@ -415,8 +422,12 @@ class svg_baker {
         foreach (array_unique($prefixes) as $prefix) {
             $name = $prefix . ':' . self::ELEMENT;
 
-            if (!preg_match('/<' . preg_quote($name, '/') . '(?=[\s\/>])/', $svg, $matches,
-                    PREG_OFFSET_CAPTURE)) {
+            if (!preg_match(
+                '/<' . preg_quote($name, '/') . '(?=[\s\/>])/',
+                $svg,
+                $matches,
+                PREG_OFFSET_CAPTURE
+            )) {
                 continue;
             }
 
@@ -458,8 +469,11 @@ class svg_baker {
      * @return int the closing tag length, zero for a self closing element
      */
     protected static function close_tag_length(string $svg, int $start): int {
-        if (!preg_match('/^<([A-Za-z_][\w.\-]*:' . preg_quote(self::ELEMENT, '/') . ')/',
-                substr($svg, $start, 128), $matches)) {
+        if (!preg_match(
+            '/^<([A-Za-z_][\w.\-]*:' . preg_quote(self::ELEMENT, '/') . ')/',
+            substr($svg, $start, 128),
+            $matches
+        )) {
             return 0;
         }
 

@@ -61,8 +61,8 @@ class vecteezy_client {
      * @return self|null Null when the plugin has not been configured with credentials.
      */
     public static function from_config(): ?self {
-        $accountid = trim((string)get_config('certificatepro', 'vecteezy_account_id'));
-        $token = trim((string)get_config('certificatepro', 'vecteezy_api_key'));
+        $accountid = trim((string)get_config('mod_certificatepro', 'vecteezy_account_id'));
+        $token = trim((string)get_config('mod_certificatepro', 'vecteezy_api_key'));
         if ($accountid === '' || $token === '') {
             return null;
         }
@@ -112,14 +112,17 @@ class vecteezy_client {
      * @return array Decoded response.
      */
     public function search(string $term, string $contenttype = 'vector', array $filters = []): array {
-        $params = array_merge([
-            'term' => $term,
-            'content_type' => $contenttype,
-            'per_page' => 40,
-            'sort_by' => 'relevance',
-            'license_type' => 'commercial',
-            'family_friendly' => true,
-        ], $filters);
+        $params = array_merge(
+            [
+                'term' => $term,
+                'content_type' => $contenttype,
+                'per_page' => 40,
+                'sort_by' => 'relevance',
+                'license_type' => 'commercial',
+                'family_friendly' => true,
+            ],
+            $filters
+        );
         return $this->get('/resources', $params);
     }
 
@@ -282,11 +285,13 @@ class vecteezy_client {
         $curl = new \curl();
         $curl->setHeader('Authorization: Bearer ' . $this->token);
         $curl->setHeader('Accept: application/json');
-        $curl->setopt([
-            'CURLOPT_TIMEOUT' => $this->timeout,
-            'CURLOPT_CONNECTTIMEOUT' => 8,
-            'CURLOPT_FOLLOWLOCATION' => 0,
-        ]);
+        $curl->setopt(
+            [
+                'CURLOPT_TIMEOUT' => $this->timeout,
+                'CURLOPT_CONNECTTIMEOUT' => 8,
+                'CURLOPT_FOLLOWLOCATION' => 0,
+            ]
+        );
         return $curl;
     }
 

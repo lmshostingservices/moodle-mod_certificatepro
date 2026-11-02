@@ -80,17 +80,27 @@ class coursefield extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('select', 'coursefield',
+        $mform->addElement(
+            'select',
+            'coursefield',
             get_string('coursefield', 'mod_certificatepro'),
-            \mod_certificatepro\local\field_helper::course_field_menu());
+            \mod_certificatepro\local\field_helper::course_field_menu()
+        );
 
-        $mform->addElement('advcheckbox', 'allowhtml',
-            get_string('allowhtml', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'allowhtml',
+            get_string('allowhtml', 'mod_certificatepro')
+        );
         $mform->setDefault('allowhtml', 1);
         $mform->addHelpButton('allowhtml', 'allowhtml', 'mod_certificatepro');
 
-        $mform->addElement('text', 'label',
-            get_string('fieldlabel', 'mod_certificatepro'), ['size' => 40]);
+        $mform->addElement(
+            'text',
+            'label',
+            get_string('fieldlabel', 'mod_certificatepro'),
+            ['size' => 40]
+        );
         $mform->setType('label', PARAM_TEXT);
     }
 

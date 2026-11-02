@@ -49,9 +49,19 @@ if ($template->get_context()->id !== $context->id) {
 $ctx = render_context::preview($context, $course, $instance);
 $renderer = new pdf_renderer($template);
 
-$content = $renderer->render($ctx, [
-    'title' => format_string($instance->name, true, ['context' => $context]),
-]);
+$content = $renderer->render(
+    $ctx,
+    [
+        'title' => format_string($instance->name, true, ['context' => $context]),
+    ]
+);
 
-send_file($content, clean_filename(format_string($instance->name) . ' - preview.pdf'), 0,
-    0, true, false, 'application/pdf');
+send_file(
+    $content,
+    clean_filename(format_string($instance->name) . ' - preview.pdf'),
+    0,
+    0,
+    true,
+    false,
+    'application/pdf'
+);

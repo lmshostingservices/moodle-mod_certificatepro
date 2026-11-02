@@ -40,41 +40,61 @@ class backup_certificatepro_activity_structure_step extends backup_activity_stru
     protected function define_structure() {
         $userinfo = $this->get_setting_value('userinfo');
 
-        $certificatepro = new backup_nested_element('certificatepro', ['id'], [
-            'cycleonly',
-            'name', 'intro', 'introformat', 'templateid', 'requiredtime', 'requiregrade',
-            'requirecompletion', 'autoissue', 'verifyany', 'deliveryoption', 'usecustomfilename',
-            'customfilenamepattern', 'emailstudents', 'emailteachers', 'emailothers',
-            'validityperiod', 'expirywarndays', 'serialprefix', 'serialpadding', 'protection',
-            'revocationallowed', 'timecreated', 'timemodified',
-        ]);
+        $certificatepro = new backup_nested_element(
+            'certificatepro',
+            ['id'],
+            [
+                'cycleonly',
+                'name', 'intro', 'introformat', 'templateid', 'requiredtime', 'requiregrade',
+                'requirecompletion', 'autoissue', 'verifyany', 'deliveryoption', 'usecustomfilename',
+                'customfilenamepattern', 'emailstudents', 'emailteachers', 'emailothers',
+                'validityperiod', 'expirywarndays', 'serialprefix', 'serialpadding', 'protection',
+                'revocationallowed', 'timecreated', 'timemodified',
+            ]
+        );
 
-        $template = new backup_nested_element('template', ['id'], [
-            'name', 'shared', 'starter', 'themecolour', 'accentcolour', 'fontpairing',
-            'revision', 'timecreated', 'timemodified',
-        ]);
+        $template = new backup_nested_element(
+            'template',
+            ['id'],
+            [
+                'name', 'shared', 'starter', 'themecolour', 'accentcolour', 'fontpairing',
+                'revision', 'timecreated', 'timemodified',
+            ]
+        );
 
         $pages = new backup_nested_element('pages');
-        $page = new backup_nested_element('page', ['id'], [
-            'width', 'height', 'orientation', 'pagesize', 'marginleft', 'marginright',
-            'margintop', 'marginbottom', 'backgroundcolour', 'backgroundsvg', 'sequence',
-            'timecreated', 'timemodified',
-        ]);
+        $page = new backup_nested_element(
+            'page',
+            ['id'],
+            [
+                'width', 'height', 'orientation', 'pagesize', 'marginleft', 'marginright',
+                'margintop', 'marginbottom', 'backgroundcolour', 'backgroundsvg', 'sequence',
+                'timecreated', 'timemodified',
+            ]
+        );
 
         $elements = new backup_nested_element('elements');
-        $element = new backup_nested_element('element', ['id'], [
-            'element', 'name', 'data', 'style', 'posx', 'posy', 'width', 'height', 'rotation',
-            'refpoint', 'alignment', 'valignment', 'zoneid', 'zindex', 'sequence', 'locked',
-            'hidden', 'timecreated', 'timemodified',
-        ]);
+        $element = new backup_nested_element(
+            'element',
+            ['id'],
+            [
+                'element', 'name', 'data', 'style', 'posx', 'posy', 'width', 'height', 'rotation',
+                'refpoint', 'alignment', 'valignment', 'zoneid', 'zindex', 'sequence', 'locked',
+                'hidden', 'timecreated', 'timemodified',
+            ]
+        );
 
         $issues = new backup_nested_element('issues');
-        $issue = new backup_nested_element('issue', ['id'], [
-            'cycleid',
-            'userid', 'code', 'serial', 'serialnumber', 'snapshot', 'templaterevision',
-            'pdfhash', 'emailed', 'expires', 'expirynotified', 'revoked', 'revokedby',
-            'revokedreason', 'timerevoked', 'issuedby', 'timecreated',
-        ]);
+        $issue = new backup_nested_element(
+            'issue',
+            ['id'],
+            [
+                'cycleid',
+                'userid', 'code', 'serial', 'serialnumber', 'snapshot', 'templaterevision',
+                'pdfhash', 'emailed', 'expires', 'expirynotified', 'revoked', 'revokedby',
+                'revokedreason', 'timerevoked', 'issuedby', 'timecreated',
+            ]
+        );
 
         $certificatepro->add_child($template);
         $template->add_child($pages);
@@ -85,16 +105,26 @@ class backup_certificatepro_activity_structure_step extends backup_activity_stru
         $issues->add_child($issue);
 
         $certificatepro->set_source_table('certificatepro', ['id' => backup::VAR_ACTIVITYID]);
-        $template->set_source_table('certificatepro_templates',
-            ['id' => '../templateid']);
-        $page->set_source_table('certificatepro_pages',
-            ['templateid' => backup::VAR_PARENTID], 'sequence ASC, id ASC');
-        $element->set_source_table('certificatepro_elements',
-            ['pageid' => backup::VAR_PARENTID], 'zindex ASC, id ASC');
+        $template->set_source_table(
+            'certificatepro_templates',
+            ['id' => '../templateid']
+        );
+        $page->set_source_table(
+            'certificatepro_pages',
+            ['templateid' => backup::VAR_PARENTID],
+            'sequence ASC, id ASC'
+        );
+        $element->set_source_table(
+            'certificatepro_elements',
+            ['pageid' => backup::VAR_PARENTID],
+            'zindex ASC, id ASC'
+        );
 
         if ($userinfo) {
-            $issue->set_source_table('certificatepro_issues',
-                ['certificateproid' => backup::VAR_PARENTID]);
+            $issue->set_source_table(
+                'certificatepro_issues',
+                ['certificateproid' => backup::VAR_PARENTID]
+            );
             $issue->annotate_ids('user', 'userid');
             $issue->annotate_ids('user', 'issuedby');
             $issue->annotate_ids('user', 'revokedby');
@@ -107,8 +137,11 @@ class backup_certificatepro_activity_structure_step extends backup_activity_stru
         }
 
         if ($userinfo) {
-            $issue->annotate_files('mod_certificatepro',
-                \mod_certificatepro\local\issue_service::FILEAREA, 'id');
+            $issue->annotate_files(
+                'mod_certificatepro',
+                \mod_certificatepro\local\issue_service::FILEAREA,
+                'id'
+            );
         }
 
         return $this->prepare_activity_structure($certificatepro);

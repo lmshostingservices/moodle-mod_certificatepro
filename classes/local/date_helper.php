@@ -214,8 +214,10 @@ class date_helper {
                 if ($course === null || $user === null) {
                     return null;
                 }
-                $completion = $DB->get_record('course_completions',
-                    ['course' => $course->id, 'userid' => $user->id]);
+                $completion = $DB->get_record(
+                    'course_completions',
+                    ['course' => $course->id, 'userid' => $user->id]
+                );
                 if ($completion && !empty($completion->timecompleted)) {
                     return (int) $completion->timecompleted;
                 }

@@ -134,60 +134,106 @@ class seal extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('select', 'sealedge',
-            get_string('sealedge', 'mod_certificatepro'), self::edges());
+        $mform->addElement(
+            'select',
+            'sealedge',
+            get_string('sealedge', 'mod_certificatepro'),
+            self::edges()
+        );
         $mform->setDefault('sealedge', seal_engine::EDGE_DOUBLE);
         $mform->addHelpButton('sealedge', 'sealedge', 'mod_certificatepro');
 
-        $mform->addElement('select', 'sealring',
-            get_string('sealring', 'mod_certificatepro'), self::rings());
+        $mform->addElement(
+            'select',
+            'sealring',
+            get_string('sealring', 'mod_certificatepro'),
+            self::rings()
+        );
         $mform->setDefault('sealring', seal_engine::RING_BOTH);
 
-        $mform->addElement('select', 'sealmark',
-            get_string('sealmark', 'mod_certificatepro'), self::marks());
+        $mform->addElement(
+            'select',
+            'sealmark',
+            get_string('sealmark', 'mod_certificatepro'),
+            self::marks()
+        );
         $mform->setDefault('sealmark', seal_engine::MARK_MONOGRAM);
         $mform->addHelpButton('sealmark', 'sealmark', 'mod_certificatepro');
 
-        $mform->addElement('text', 'toptext',
-            get_string('sealtoptext', 'mod_certificatepro'), ['size' => 40]);
+        $mform->addElement(
+            'text',
+            'toptext',
+            get_string('sealtoptext', 'mod_certificatepro'),
+            ['size' => 40]
+        );
         $mform->setType('toptext', PARAM_TEXT);
         $mform->addHelpButton('toptext', 'sealtoptext', 'mod_certificatepro');
 
-        $mform->addElement('text', 'bottomtext',
-            get_string('sealbottomtext', 'mod_certificatepro'), ['size' => 40]);
+        $mform->addElement(
+            'text',
+            'bottomtext',
+            get_string('sealbottomtext', 'mod_certificatepro'),
+            ['size' => 40]
+        );
         $mform->setType('bottomtext', PARAM_TEXT);
 
-        $mform->addElement('text', 'centretext',
-            get_string('sealcentretext', 'mod_certificatepro'), ['size' => 24]);
+        $mform->addElement(
+            'text',
+            'centretext',
+            get_string('sealcentretext', 'mod_certificatepro'),
+            ['size' => 24]
+        );
         $mform->setType('centretext', PARAM_TEXT);
         $mform->addHelpButton('centretext', 'sealcentretext', 'mod_certificatepro');
 
-        $mform->addElement('text', 'yeartext',
-            get_string('sealyeartext', 'mod_certificatepro'), ['size' => 24]);
+        $mform->addElement(
+            'text',
+            'yeartext',
+            get_string('sealyeartext', 'mod_certificatepro'),
+            ['size' => 24]
+        );
         $mform->setType('yeartext', PARAM_TEXT);
 
-        $mform->addElement('text', 'mottotext',
-            get_string('sealmottotext', 'mod_certificatepro'), ['size' => 30]);
+        $mform->addElement(
+            'text',
+            'mottotext',
+            get_string('sealmottotext', 'mod_certificatepro'),
+            ['size' => 30]
+        );
         $mform->setType('mottotext', PARAM_TEXT);
         $mform->hideIf('mottotext', 'sealmark', 'neq', seal_engine::MARK_CREST);
 
-        $mform->addElement('text', 'colour',
-            get_string('elementcolour', 'mod_certificatepro'), ['size' => 12]);
+        $mform->addElement(
+            'text',
+            'colour',
+            get_string('elementcolour', 'mod_certificatepro'),
+            ['size' => 12]
+        );
         $mform->setType('colour', PARAM_TEXT);
         $mform->setDefault('colour', 'primary');
 
-        $mform->addElement('text', 'metal',
-            get_string('sealmetal', 'mod_certificatepro'), ['size' => 12]);
+        $mform->addElement(
+            'text',
+            'metal',
+            get_string('sealmetal', 'mod_certificatepro'),
+            ['size' => 12]
+        );
         $mform->setType('metal', PARAM_TEXT);
         $mform->setDefault('metal', 'accent');
         $mform->addHelpButton('metal', 'sealmetal', 'mod_certificatepro');
 
-        $mform->addElement('advcheckbox', 'sealdivider',
-            get_string('sealdivider', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'sealdivider',
+            get_string('sealdivider', 'mod_certificatepro')
+        );
         $mform->setDefault('sealdivider', 1);
 
-        $mform->addElement('advcheckbox', 'sealkeyline',
-            get_string('sealkeyline', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'sealkeyline',
+            get_string('sealkeyline', 'mod_certificatepro')
+        );
         $mform->setDefault('sealkeyline', 1);
     }
 

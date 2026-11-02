@@ -59,23 +59,25 @@ if ($unrecognised) {
 }
 
 if ($options['help']) {
-    cli_writeln("
-Generate the bundled ornament library.
+    cli_writeln(
+        "
+    Generate the bundled ornament library.
 
-Draws every ornament with the plugin's own engine and writes it to
-mod/certificatepro/assets/ornament/, then rebuilds pd_manifest.json.
+    Draws every ornament with the plugin's own engine and writes it to
+    mod/certificatepro/assets/ornament/, then rebuilds pd_manifest.json.
 
-Everything written is the plugin's own work under GPL v3. No third party
-artwork is fetched, so there is no licence to check and nothing to credit.
+    Everything written is the plugin's own work under GPL v3. No third party
+    artwork is fetched, so there is no licence to check and nothing to credit.
 
-Options:
-  -h, --help     Print this help.
-  -n, --dry-run  List what would be written without writing anything.
-  -f, --force    Overwrite assets marked hand_curated in the manifest.
+    Options:
+      -h, --help     Print this help.
+      -n, --dry-run  List what would be written without writing anything.
+      -f, --force    Overwrite assets marked hand_curated in the manifest.
 
-Usage:
-  php mod/certificatepro/cli/generate_ornaments.php
-");
+    Usage:
+      php mod/certificatepro/cli/generate_ornaments.php
+    "
+    );
     exit(0);
 }
 
@@ -343,10 +345,16 @@ function cpo_catalogue(): array {
         $items[] = ['id' => $id, 'role' => 'seal', 'style' => 'ceremonial',
             'title' => $title, 'size' => $square, 'seed' => 51 + $index,
             'draw' => function (canvas $c) use ($edge, $mark) {
-                seal_engine::draw($c, 0.5, 0.5, 27.0, [
-                    'edge' => $edge, 'mark' => $mark, 'ring' => seal_engine::RING_NONE,
-                    'ink' => CPO_INK, 'metal' => '#ffffff', 'innerkeyline' => true,
-                ]);
+                seal_engine::draw(
+                    $c,
+                    0.5,
+                    0.5,
+                    27.0,
+                    [
+                        'edge' => $edge, 'mark' => $mark, 'ring' => seal_engine::RING_NONE,
+                        'ink' => CPO_INK, 'metal' => '#ffffff', 'innerkeyline' => true,
+                    ]
+                );
             }];
     }
 
@@ -374,14 +382,17 @@ function cpo_greek_key(canvas $c, float $inset, float $bandmm): void {
         unset($axis);
         $x = $left;
         while ($x + $unit * 4 <= $right) {
-            $c->polyline_mm([
-                $x, $fixed + $dir * $unit,
-                $x, $fixed,
-                $x + $unit * 3, $fixed,
-                $x + $unit * 3, $fixed + $dir * $unit * 0.66,
-                $x + $unit, $fixed + $dir * $unit * 0.66,
-                $x + $unit, $fixed + $dir * $unit * 0.33,
-            ], 'D');
+            $c->polyline_mm(
+                [
+                    $x, $fixed + $dir * $unit,
+                    $x, $fixed,
+                    $x + $unit * 3, $fixed,
+                    $x + $unit * 3, $fixed + $dir * $unit * 0.66,
+                    $x + $unit, $fixed + $dir * $unit * 0.66,
+                    $x + $unit, $fixed + $dir * $unit * 0.33,
+                ],
+                'D'
+            );
             $x += $unit * 4;
         }
     }
@@ -390,14 +401,17 @@ function cpo_greek_key(canvas $c, float $inset, float $bandmm): void {
         unset($axis);
         $y = $top;
         while ($y + $unit * 4 <= $bottom) {
-            $c->polyline_mm([
-                $fixed + $dir * $unit, $y,
-                $fixed, $y,
-                $fixed, $y + $unit * 3,
-                $fixed + $dir * $unit * 0.66, $y + $unit * 3,
-                $fixed + $dir * $unit * 0.66, $y + $unit,
-                $fixed + $dir * $unit * 0.33, $y + $unit,
-            ], 'D');
+            $c->polyline_mm(
+                [
+                    $fixed + $dir * $unit, $y,
+                    $fixed, $y,
+                    $fixed, $y + $unit * 3,
+                    $fixed + $dir * $unit * 0.66, $y + $unit * 3,
+                    $fixed + $dir * $unit * 0.66, $y + $unit,
+                    $fixed + $dir * $unit * 0.33, $y + $unit,
+                ],
+                'D'
+            );
             $y += $unit * 4;
         }
     }
@@ -621,12 +635,16 @@ $manifest = [
 ];
 
 if (!$options['dry-run']) {
-    file_put_contents(pd_library::manifest_path(),
-        json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    file_put_contents(
+        pd_library::manifest_path(),
+        json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
+    );
     pd_library::reset_cache();
 }
 
 cli_writeln('');
-cli_writeln($options['dry-run']
-    ? 'Dry run. Nothing written.'
-    : "Wrote {$written} ornaments, kept {$skipped} hand curated. Manifest rebuilt.");
+cli_writeln(
+    $options['dry-run']
+        ? 'Dry run. Nothing written.'
+        : "Wrote {$written} ornaments, kept {$skipped} hand curated. Manifest rebuilt."
+);

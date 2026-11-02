@@ -50,25 +50,37 @@ class renderer extends \plugin_renderer_base {
             $output .= $this->status_panel($status, $issue);
 
             if ($status === 'valid' || $status === 'expired') {
-                $download = new \moodle_url('/mod/certificatepro/view.php', [
-                    'id' => $cm->id,
-                    'download' => 1,
-                    'sesskey' => sesskey(),
-                ]);
-                $badge = new \moodle_url('/mod/certificatepro/view.php', [
-                    'id' => $cm->id,
-                    'badge' => 1,
-                    'sesskey' => sesskey(),
-                ]);
+                $download = new \moodle_url(
+                    '/mod/certificatepro/view.php',
+                    [
+                        'id' => $cm->id,
+                        'download' => 1,
+                        'sesskey' => sesskey(),
+                    ]
+                );
+                $badge = new \moodle_url(
+                    '/mod/certificatepro/view.php',
+                    [
+                        'id' => $cm->id,
+                        'badge' => 1,
+                        'sesskey' => sesskey(),
+                    ]
+                );
                 // Deliberately the plain three-argument form. The typed
                 // button constants are a newer core addition, and depending on
                 // them would raise this plugin's minimum Moodle for nothing —
                 // the default styling is already what these two buttons want.
                 $output .= \html_writer::div(
-                    $this->output->single_button($download,
-                        get_string('downloadcertificate', 'mod_certificatepro'), 'get')
-                    . $this->output->single_button($badge,
-                        get_string('downloadbadge', 'mod_certificatepro'), 'get'),
+                    $this->output->single_button(
+                        $download,
+                        get_string('downloadcertificate', 'mod_certificatepro'),
+                        'get'
+                    )
+                    . $this->output->single_button(
+                        $badge,
+                        get_string('downloadbadge', 'mod_certificatepro'),
+                        'get'
+                    ),
                     'certificatepro-actions mt-3'
                 );
                 $output .= \html_writer::div(
@@ -79,10 +91,14 @@ class renderer extends \plugin_renderer_base {
 
             $verify = new \moodle_url('/mod/certificatepro/verify.php', ['code' => $issue->code]);
             $output .= \html_writer::div(
-                get_string('verifyhint', 'mod_certificatepro', [
-                    'code' => \html_writer::tag('code', s($issue->code)),
-                    'url' => \html_writer::link($verify, $verify->out(false)),
-                ]),
+                get_string(
+                    'verifyhint',
+                    'mod_certificatepro',
+                    [
+                        'code' => \html_writer::tag('code', s($issue->code)),
+                        'url' => \html_writer::link($verify, $verify->out(false)),
+                    ]
+                ),
                 'certificatepro-verifyhint text-muted mt-3'
             );
         } else if (!empty($unmet)) {
@@ -97,7 +113,9 @@ class renderer extends \plugin_renderer_base {
             );
         } else {
             $output .= $this->output->notification(
-                get_string('notissuedyet', 'mod_certificatepro'), 'info');
+                get_string('notissuedyet', 'mod_certificatepro'),
+                'info'
+            );
         }
 
         $output .= \html_writer::end_div();
@@ -124,15 +142,21 @@ class renderer extends \plugin_renderer_base {
             \html_writer::tag('strong', get_string('status_' . $status, 'mod_certificatepro')),
         ];
 
-        $lines[] = get_string('issuedon', 'mod_certificatepro',
-            userdate($issue->timecreated, get_string('strftimedaydate', 'langconfig')));
+        $lines[] = get_string(
+            'issuedon',
+            'mod_certificatepro',
+            userdate($issue->timecreated, get_string('strftimedaydate', 'langconfig'))
+        );
 
         if (!empty($issue->serial)) {
             $lines[] = get_string('serialis', 'mod_certificatepro', s($issue->serial));
         }
         if (!empty($issue->expires)) {
-            $lines[] = get_string('expireson', 'mod_certificatepro',
-                userdate($issue->expires, get_string('strftimedaydate', 'langconfig')));
+            $lines[] = get_string(
+                'expireson',
+                'mod_certificatepro',
+                userdate($issue->expires, get_string('strftimedaydate', 'langconfig'))
+            );
         }
         if ($status === 'revoked' && !empty($issue->revokedreason)) {
             $lines[] = get_string('revokedbecause', 'mod_certificatepro', s($issue->revokedreason));
@@ -158,29 +182,43 @@ class renderer extends \plugin_renderer_base {
             ?\stdClass $instance, ?\stdClass $recipient): string {
         $output = \html_writer::start_div('certificatepro-verify container');
 
-        $form = \html_writer::start_tag('form', [
-            'method' => 'get',
-            'action' => (new \moodle_url('/mod/certificatepro/verify.php'))->out(false),
-            'class' => 'certificatepro-verify-form mb-4',
-        ]);
-        $form .= \html_writer::tag('label', get_string('verifycodelabel', 'mod_certificatepro'), [
-            'for' => 'certificatepro-code',
-            'class' => 'form-label',
-        ]);
-        $form .= \html_writer::empty_tag('input', [
-            'type' => 'text',
-            'id' => 'certificatepro-code',
-            'name' => 'code',
-            'value' => s($code),
-            'class' => 'form-control form-control-lg',
-            'placeholder' => 'CP-0000-0000-0000',
-            'autocomplete' => 'off',
-            'spellcheck' => 'false',
-        ]);
-        $form .= \html_writer::tag('button', get_string('verifysubmit', 'mod_certificatepro'), [
-            'type' => 'submit',
-            'class' => 'btn btn-primary mt-2',
-        ]);
+        $form = \html_writer::start_tag(
+            'form',
+            [
+                'method' => 'get',
+                'action' => (new \moodle_url('/mod/certificatepro/verify.php'))->out(false),
+                'class' => 'certificatepro-verify-form mb-4',
+            ]
+        );
+        $form .= \html_writer::tag(
+            'label',
+            get_string('verifycodelabel', 'mod_certificatepro'),
+            [
+                'for' => 'certificatepro-code',
+                'class' => 'form-label',
+            ]
+        );
+        $form .= \html_writer::empty_tag(
+            'input',
+            [
+                'type' => 'text',
+                'id' => 'certificatepro-code',
+                'name' => 'code',
+                'value' => s($code),
+                'class' => 'form-control form-control-lg',
+                'placeholder' => 'CP-0000-0000-0000',
+                'autocomplete' => 'off',
+                'spellcheck' => 'false',
+            ]
+        );
+        $form .= \html_writer::tag(
+            'button',
+            get_string('verifysubmit', 'mod_certificatepro'),
+            [
+                'type' => 'submit',
+                'class' => 'btn btn-primary mt-2',
+            ]
+        );
         $form .= \html_writer::end_tag('form');
 
         $output .= $form;
@@ -248,8 +286,13 @@ class renderer extends \plugin_renderer_base {
 
         return \html_writer::div(
             \html_writer::tag('h3', get_string('verify_' . $result, 'mod_certificatepro'))
-                . \html_writer::tag('p', get_string('verify_' . $result . '_detail',
-                    'mod_certificatepro'))
+                . \html_writer::tag(
+                    'p',
+                    get_string(
+                        'verify_' . $result . '_detail',
+                        'mod_certificatepro'
+                    )
+                )
                 . \html_writer::table($table),
             'alert ' . ($classes[$result] ?? 'alert-info')
         );
@@ -279,21 +322,30 @@ class renderer extends \plugin_renderer_base {
             'pageid' => (int) $firstpage,
         ];
 
-        $this->page->requires->js_call_amd('mod_certificatepro/designer', 'init',
-            ['#certificatepro-designer']);
-        $this->page->requires->js_call_amd('mod_certificatepro/library', 'init',
-            ['#certificatepro-designer']);
+        $this->page->requires->js_call_amd(
+            'mod_certificatepro/designer',
+            'init',
+            ['#certificatepro-designer']
+        );
+        $this->page->requires->js_call_amd(
+            'mod_certificatepro/library',
+            'init',
+            ['#certificatepro-designer']
+        );
 
         // Serving the real font files to the browser is what makes the canvas
         // and the PDF agree about how wide a word is.
         $fontcss = font_manager::web_font_css();
         $output = $fontcss !== '' ? \html_writer::tag('style', $fontcss) : '';
 
-        $output .= \html_writer::start_div('certificatepro-designer', [
-            'id' => 'certificatepro-designer',
-            'tabindex' => '-1',
-            'data-cpro-bootstrap' => json_encode($bootstrap, JSON_PRESERVE_ZERO_FRACTION),
-        ]);
+        $output .= \html_writer::start_div(
+            'certificatepro-designer',
+            [
+                'id' => 'certificatepro-designer',
+                'tabindex' => '-1',
+                'data-cpro-bootstrap' => json_encode($bootstrap, JSON_PRESERVE_ZERO_FRACTION),
+            ]
+        );
 
         $output .= $this->designer_toolbar($cm);
         $output .= $this->designer_library_bar();
@@ -356,8 +408,10 @@ class renderer extends \plugin_renderer_base {
             ],
         ];
 
-        $output = \html_writer::start_div('certificatepro-toolbar',
-            ['role' => 'toolbar', 'data-region' => 'toolbar']);
+        $output = \html_writer::start_div(
+            'certificatepro-toolbar',
+            ['role' => 'toolbar', 'data-region' => 'toolbar']
+        );
 
         foreach ($groups as $group) {
             $output .= \html_writer::start_div('certificatepro-toolbar-group');
@@ -372,22 +426,32 @@ class renderer extends \plugin_renderer_base {
                 if (isset($button['value'])) {
                     $attributes['data-value'] = $button['value'];
                 }
-                $output .= \html_writer::tag('button',
-                    \html_writer::tag('i', '', ['class' => 'fa ' . $button['icon'],
-                        'aria-hidden' => 'true']),
-                    $attributes);
+                $output .= \html_writer::tag(
+                    'button',
+                    \html_writer::tag(
+                        'i',
+                        '',
+                        ['class' => 'fa ' . $button['icon'],
+                            'aria-hidden' => 'true']
+                    ),
+                    $attributes
+                );
             }
             $output .= \html_writer::end_div();
         }
 
         $output .= \html_writer::start_div('certificatepro-toolbar-group ms-auto');
         foreach ([0.5, 0.75, 1, 1.5, 2] as $zoom) {
-            $output .= \html_writer::tag('button', ((int) ($zoom * 100)) . '%', [
-                'type' => 'button',
-                'class' => 'btn btn-sm btn-outline-secondary',
-                'data-action' => 'zoom',
-                'data-value' => (string) $zoom,
-            ]);
+            $output .= \html_writer::tag(
+                'button',
+                ((int) ($zoom * 100)) . '%',
+                [
+                    'type' => 'button',
+                    'class' => 'btn btn-sm btn-outline-secondary',
+                    'data-action' => 'zoom',
+                    'data-value' => (string) $zoom,
+                ]
+            );
         }
         $output .= \html_writer::link(
             new \moodle_url('/mod/certificatepro/preview.php', ['id' => $cm->id]),
@@ -419,24 +483,33 @@ class renderer extends \plugin_renderer_base {
             ['action' => 'sealbrief', 'icon' => 'fa-award', 'label' => 'librarysealbrief'],
         ];
 
-        $output = \html_writer::start_div('certificatepro-librarybar', [
-            'role' => 'group',
-            'aria-label' => get_string('librarybar', 'mod_certificatepro'),
-            'data-region' => 'librarybar',
-        ]);
+        $output = \html_writer::start_div(
+            'certificatepro-librarybar',
+            [
+                'role' => 'group',
+                'aria-label' => get_string('librarybar', 'mod_certificatepro'),
+                'data-region' => 'librarybar',
+            ]
+        );
 
         foreach ($buttons as $button) {
             $label = get_string($button['label'], 'mod_certificatepro');
-            $output .= \html_writer::tag('button',
-                \html_writer::tag('i', '', ['class' => 'fa ' . $button['icon'],
-                    'aria-hidden' => 'true'])
+            $output .= \html_writer::tag(
+                'button',
+                \html_writer::tag(
+                    'i',
+                    '',
+                    ['class' => 'fa ' . $button['icon'],
+                        'aria-hidden' => 'true']
+                )
                     . \html_writer::tag('span', $label),
                 [
                     'type' => 'button',
                     'class' => 'btn btn-sm btn-outline-primary',
                     'data-library-action' => $button['action'],
                     'title' => get_string($button['label'] . 'desc', 'mod_certificatepro'),
-                ]);
+                ]
+            );
         }
 
         $output .= \html_writer::end_div();
@@ -451,25 +524,37 @@ class renderer extends \plugin_renderer_base {
      */
     protected function designer_picker(): string {
         $output = \html_writer::start_div('certificatepro-picker', ['data-region' => 'picker']);
-        $output .= \html_writer::tag('h3', get_string('designer_addelement', 'mod_certificatepro'),
-            ['class' => 'certificatepro-panel-heading']);
+        $output .= \html_writer::tag(
+            'h3',
+            get_string('designer_addelement', 'mod_certificatepro'),
+            ['class' => 'certificatepro-panel-heading']
+        );
 
         foreach (registry::picker_catalogue() as $category) {
-            $output .= \html_writer::tag('h4', $category['name'],
-                ['class' => 'certificatepro-picker-category']);
+            $output .= \html_writer::tag(
+                'h4',
+                $category['name'],
+                ['class' => 'certificatepro-picker-category']
+            );
             $output .= \html_writer::start_div('certificatepro-picker-items');
 
             foreach ($category['elements'] as $element) {
-                $output .= \html_writer::tag('button',
-                    \html_writer::tag('i', '', ['class' => 'fa ' . $element['icon'],
-                        'aria-hidden' => 'true'])
+                $output .= \html_writer::tag(
+                    'button',
+                    \html_writer::tag(
+                        'i',
+                        '',
+                        ['class' => 'fa ' . $element['icon'],
+                            'aria-hidden' => 'true']
+                    )
                         . \html_writer::tag('span', $element['name']),
                     [
                         'type' => 'button',
                         'class' => 'certificatepro-picker-item',
                         'data-element-type' => $element['type'],
                         'title' => $element['description'],
-                    ]);
+                    ]
+                );
             }
 
             $output .= \html_writer::end_div();
@@ -492,13 +577,16 @@ class renderer extends \plugin_renderer_base {
         if (count($data['pages']) > 1) {
             $output .= \html_writer::start_div('certificatepro-pagetabs');
             foreach ($data['pages'] as $index => $page) {
-                $output .= \html_writer::tag('button',
-                    get_string('pagenumber', 'mod_certificatepro', $index + 1), [
+                $output .= \html_writer::tag(
+                    'button',
+                    get_string('pagenumber', 'mod_certificatepro', $index + 1),
+                    [
                         'type' => 'button',
                         'class' => 'btn btn-sm btn-outline-secondary',
                         'data-action' => 'page',
                         'data-value' => (string) $index,
-                    ]);
+                    ]
+                );
             }
             $output .= \html_writer::end_div();
         }
@@ -524,32 +612,44 @@ class renderer extends \plugin_renderer_base {
     protected function designer_sidebar(array $data, \cm_info $cm): string {
         $output = \html_writer::start_div('certificatepro-sidebar');
 
-        $output .= \html_writer::start_div('certificatepro-inspector',
-            ['data-region' => 'inspector', 'data-count' => '0']);
-        $output .= \html_writer::tag('h3', get_string('designer_inspector', 'mod_certificatepro'),
-            ['class' => 'certificatepro-panel-heading']);
+        $output .= \html_writer::start_div(
+            'certificatepro-inspector',
+            ['data-region' => 'inspector', 'data-count' => '0']
+        );
+        $output .= \html_writer::tag(
+            'h3',
+            get_string('designer_inspector', 'mod_certificatepro'),
+            ['class' => 'certificatepro-panel-heading']
+        );
         $output .= \html_writer::div('', 'certificatepro-inspector-name', ['data-field' => 'name']);
         $output .= \html_writer::div('', 'certificatepro-inspector-zone', ['data-field' => 'zone']);
 
         foreach (['posx', 'posy', 'width', 'height', 'rotation'] as $field) {
             $output .= \html_writer::start_div('certificatepro-inspector-row');
-            $output .= \html_writer::tag('label',
+            $output .= \html_writer::tag(
+                'label',
                 get_string('designer_' . $field, 'mod_certificatepro'),
-                ['for' => 'certificatepro-field-' . $field]);
-            $output .= \html_writer::empty_tag('input', [
-                'type' => 'number',
-                'step' => '0.01',
-                'id' => 'certificatepro-field-' . $field,
-                'class' => 'form-control form-control-sm',
-                'data-field' => $field,
-                'readonly' => 'readonly',
-            ]);
+                ['for' => 'certificatepro-field-' . $field]
+            );
+            $output .= \html_writer::empty_tag(
+                'input',
+                [
+                    'type' => 'number',
+                    'step' => '0.01',
+                    'id' => 'certificatepro-field-' . $field,
+                    'class' => 'form-control form-control-sm',
+                    'data-field' => $field,
+                    'readonly' => 'readonly',
+                ]
+            );
             $output .= \html_writer::end_div();
         }
 
         $output .= \html_writer::link(
-            new \moodle_url('/mod/certificatepro/edit.php',
-                ['id' => $cm->id, 'action' => 'editelement']),
+            new \moodle_url(
+                '/mod/certificatepro/edit.php',
+                ['id' => $cm->id, 'action' => 'editelement']
+            ),
             get_string('designer_editsettings', 'mod_certificatepro'),
             ['class' => 'btn btn-sm btn-outline-primary mt-2',
              'data-region' => 'editelementlink']
@@ -558,8 +658,11 @@ class renderer extends \plugin_renderer_base {
         $output .= \html_writer::end_div();
 
         $output .= \html_writer::start_div('certificatepro-layers-panel');
-        $output .= \html_writer::tag('h3', get_string('designer_layers', 'mod_certificatepro'),
-            ['class' => 'certificatepro-panel-heading']);
+        $output .= \html_writer::tag(
+            'h3',
+            get_string('designer_layers', 'mod_certificatepro'),
+            ['class' => 'certificatepro-panel-heading']
+        );
         $output .= \html_writer::div('', 'certificatepro-layers', ['data-region' => 'layers']);
         $output .= \html_writer::end_div();
 

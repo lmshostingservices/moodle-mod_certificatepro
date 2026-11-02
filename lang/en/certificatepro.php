@@ -687,7 +687,7 @@ $string['settings_fontsnotwritable'] = 'The font directory is not writable, so f
 $string['settings_fontswritable'] = 'The font directory is writable, so fonts can be installed from this page.';
 $string['settings_general'] = 'General';
 $string['settings_logofile'] = 'Logo {$a} image';
-$string['settings_logofile_desc'] = 'PNG, JPG or SVG. Transparent PNG and SVG files both work well on a certificate. The image keeps its own proportions wherever it is placed.';
+$string['settings_logofile_desc'] = 'A .png, .jpg or .svg image. Transparent .png and .svg files both work well on a certificate. The image keeps its own proportions wherever it is placed.';
 $string['settings_logoname'] = 'Logo {$a} name';
 $string['settings_logoname_desc'] = 'What authors will see this slot called when they choose it.';
 $string['settings_logos'] = 'Logo slots';
@@ -900,3 +900,37 @@ $string['zoneband_meta'] = 'Details';
 $string['zoneband_recipient'] = 'Recipient';
 $string['zoneband_signature'] = 'Signatures';
 $string['zoneband_top'] = 'Top of the page';
+$string['certificatepro:receive'] = 'Receive a certificate';
+$string['notenrolledreceive'] = 'This user is not enrolled in the course as someone who can receive this certificate.';
+$string['status_pending'] = 'Document pending';
+$string['status_unknown'] = 'Unknown';
+$string['settings_vecteezy'] = 'Vecteezy artwork library';
+$string['settings_vecteezy_desc'] = 'Optional credentials for searching the Vecteezy artwork library from the designer.';
+$string['settings_vecteezy_account'] = 'Vecteezy account ID';
+$string['settings_vecteezy_key'] = 'Vecteezy API key';
+$string['issuedemailsubject'] = 'Certificate issued: {$a->certificate}';
+$string['issuedemailbody_learner'] = 'Hello {$a->learner},
+
+Your certificate "{$a->certificate}" for {$a->course} has been issued.
+
+Verification code: {$a->code}
+
+You can view and download it here: {$a->url}';
+$string['issuedemailbody_staff'] = 'The certificate "{$a->certificate}" for {$a->course} has been issued to {$a->learner}.
+
+Verification code: {$a->code}
+
+{$a->url}';
+$string['privacy:metadata:issues:issuedby'] = 'The user who issued the certificate manually, if any.';
+$string['privacy:metadata:issues:revokedby'] = 'The user who revoked the certificate, if any.';
+$string['privacy:metadata:issues:revokedreason'] = 'The reason given for revoking the certificate.';
+$string['privacy:metadata:issues:pdfhash'] = 'A fingerprint of the stored certificate document.';
+$string['privacy:metadata:issues:emailed'] = 'Whether the issue notification was sent.';
+$string['privacy:metadata:authoring:createdby'] = 'The user who created or uploaded the item.';
+$string['privacy:metadata:backgrounds'] = 'Background artwork created for certificate designs.';
+$string['privacy:metadata:media'] = 'Images uploaded to the certificate media library.';
+$string['privacy:metadata:fonts'] = 'Fonts uploaded for certificate designs.';
+$string['privacy:metadata:core_message'] = 'Certificate Pro sends notifications when a certificate is issued or about to expire.';
+$string['settings'] = 'Certificate Pro settings';
+$string['settings_publicverify'] = 'Public verification page';
+$string['settings_publicverify_desc'] = 'Let anyone with a certificate code or QR code check it without logging in, even when "Force users to log in" is on. Each activity can still switch verification off. Untick to require a login for the verification page.';

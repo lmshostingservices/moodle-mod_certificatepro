@@ -361,7 +361,8 @@ class render_context {
             'site.fullname' => format_string(get_site()->fullname, true, ['context' => \context_system::instance()]),
             'site.shortname' => format_string(get_site()->shortname, true, ['context' => \context_system::instance()]),
             'site.initials' => \mod_certificatepro\local\art\seal_engine::initials(
-                format_string(get_site()->fullname, true, ['context' => \context_system::instance()])),
+                format_string(get_site()->fullname, true, ['context' => \context_system::instance()])
+            ),
             'cert.code' => $issue->code ?? '',
             'cert.serial' => $issue->serial ?? '',
             'cert.date' => userdate($issue->timecreated ?? time(), get_string('strftimedate', 'langconfig')),
@@ -402,10 +403,13 @@ class render_context {
             return $text;
         }
         $tokens = $this->tokens();
-        return preg_replace_callback('/\{\{\s*([a-z]+\.[a-z]+)\s*\}\}/i',
+        return preg_replace_callback(
+            '/\{\{\s*([a-z]+\.[a-z]+)\s*\}\}/i',
             static function (array $matches) use ($tokens): string {
                 $key = strtolower($matches[1]);
                 return array_key_exists($key, $tokens) ? (string) $tokens[$key] : $matches[0];
-            }, $text) ?? $text;
+            },
+            $text
+        ) ?? $text;
     }
 }

@@ -25,7 +25,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 define(['jquery', 'core/ajax', 'core/notification', 'core/str'],
-function ($, Ajax, Notification, Str) {
+function($, Ajax, Notification, Str) {
 
     'use strict';
 
@@ -56,7 +56,7 @@ function ($, Ajax, Notification, Str) {
      * @param {HTMLElement} root the designer root element
      * (the bootstrap payload is read from the root element)
      */
-    var Designer = function (root, config) {
+    var Designer = function(root, config) {
         this.root = root;
         this.config = config;
         this.template = config.template;
@@ -84,7 +84,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.init = function () {
+    Designer.prototype.init = function() {
         var self = this;
 
         Str.get_strings([
@@ -94,7 +94,7 @@ function ($, Ajax, Notification, Str) {
             {key: 'designer_savefailed', component: 'mod_certificatepro'},
             {key: 'designer_selected', component: 'mod_certificatepro'},
             {key: 'designer_free', component: 'mod_certificatepro'}
-        ]).then(function (strings) {
+        ]).then(function(strings) {
             self.strings = {
                 snapped: strings[0],
                 saved: strings[1],
@@ -118,7 +118,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {Object} the page record
      */
-    Designer.prototype.page = function () {
+    Designer.prototype.page = function() {
         return this.template.pages[this.pageIndex];
     };
 
@@ -127,7 +127,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {number} pixels per millimetre
      */
-    Designer.prototype.scale = function () {
+    Designer.prototype.scale = function() {
         var page = this.page();
         if (!page || !this.canvas) {
             return 3;
@@ -142,7 +142,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} mm the value in millimetres
      * @return {number} the value in pixels
      */
-    Designer.prototype.px = function (mm) {
+    Designer.prototype.px = function(mm) {
         return mm * this.scale();
     };
 
@@ -152,7 +152,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} px the value in pixels
      * @return {number} the value in millimetres
      */
-    Designer.prototype.mm = function (px) {
+    Designer.prototype.mm = function(px) {
         return px / this.scale();
     };
 
@@ -162,7 +162,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} value the value to round
      * @return {number} the rounded value
      */
-    Designer.prototype.round = function (value) {
+    Designer.prototype.round = function(value) {
         return Math.round(value * 1000) / 1000;
     };
 
@@ -173,7 +173,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.render = function () {
+    Designer.prototype.render = function() {
         this.renderStage();
         this.renderElements();
         this.renderLayers();
@@ -185,7 +185,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.renderStage = function () {
+    Designer.prototype.renderStage = function() {
         var page = this.page();
         if (!page || !this.stage) {
             return;
@@ -210,7 +210,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.renderElements = function () {
+    Designer.prototype.renderElements = function() {
         var self = this;
         var page = this.page();
         var host = this.stage.querySelector('[data-region="elements"]');
@@ -221,7 +221,7 @@ function ($, Ajax, Notification, Str) {
 
         host.innerHTML = '';
 
-        page.elements.forEach(function (element) {
+        page.elements.forEach(function(element) {
             host.appendChild(self.buildElementNode(element));
         });
 
@@ -234,7 +234,7 @@ function ($, Ajax, Notification, Str) {
      * @param {Object} element the element record
      * @return {HTMLElement} the node
      */
-    Designer.prototype.buildElementNode = function (element) {
+    Designer.prototype.buildElementNode = function(element) {
         var box = this.boxFor(element);
         var node = document.createElement('div');
 
@@ -263,11 +263,19 @@ function ($, Ajax, Notification, Str) {
 
         var content = document.createElement('div');
         content.className = 'cpro-element-content';
+        // Render physical pt/mm units at their CSS reference size, then scale
+        // the whole content with its selection box. Scaling only the box
+        // clipped fixed-size text whenever the canvas fitted a narrow screen.
+        var pixelsPerMm = 96 / 25.4;
+        content.style.width = (box.width * pixelsPerMm) + 'px';
+        content.style.height = (box.height * pixelsPerMm) + 'px';
+        content.style.transformOrigin = 'top left';
+        content.style.transform = 'scale(' + (this.scale() / pixelsPerMm) + ')';
         content.innerHTML = element.html || '';
         node.appendChild(content);
 
         var handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
-        handles.forEach(function (position) {
+        handles.forEach(function(position) {
             var handle = document.createElement('span');
             handle.className = 'cpro-handle cpro-handle-' + position;
             handle.setAttribute('data-handle', position);
@@ -288,7 +296,7 @@ function ($, Ajax, Notification, Str) {
      * @param {Object} element the element record
      * @return {Object} left, top, width and height in millimetres
      */
-    Designer.prototype.boxFor = function (element) {
+    Designer.prototype.boxFor = function(element) {
         var width = element.width > 0 ? element.width : 40;
         var height = element.height > 0 ? element.height : 10;
         var refpoint = element.refpoint || 'tl';
@@ -319,7 +327,7 @@ function ($, Ajax, Notification, Str) {
      * @param {Object} box left, top, width and height in millimetres
      * @return {Object} posx and posy in millimetres
      */
-    Designer.prototype.anchorFor = function (element, box) {
+    Designer.prototype.anchorFor = function(element, box) {
         var refpoint = element.refpoint || 'tl';
         var vertical = refpoint.charAt(0);
         var horizontal = refpoint.charAt(1);
@@ -350,13 +358,13 @@ function ($, Ajax, Notification, Str) {
      * @param {Object} box its current box in millimetres
      * @return {Array} candidate zones, each with a distance
      */
-    Designer.prototype.candidateZones = function (element, box) {
+    Designer.prototype.candidateZones = function(element, box) {
         var page = this.page();
         var centreX = box.left + (box.width / 2);
         var centreY = box.top + (box.height / 2);
         var candidates = [];
 
-        page.zones.forEach(function (zone) {
+        page.zones.forEach(function(zone) {
             if (!zone.snappable) {
                 return;
             }
@@ -378,7 +386,7 @@ function ($, Ajax, Notification, Str) {
             }
         });
 
-        candidates.sort(function (a, b) {
+        candidates.sort(function(a, b) {
             return a.effective - b.effective;
         });
 
@@ -392,12 +400,12 @@ function ($, Ajax, Notification, Str) {
      * @param {Object|null} active the zone that would capture on release
      * @return {void}
      */
-    Designer.prototype.paintZones = function (candidates, active) {
+    Designer.prototype.paintZones = function(candidates, active) {
         var self = this;
 
         this.clearLayer('zones');
 
-        candidates.forEach(function (candidate) {
+        candidates.forEach(function(candidate) {
             var zone = candidate.zone;
             var node = document.createElement('div');
             var isActive = active && active.id === zone.id;
@@ -426,7 +434,7 @@ function ($, Ajax, Notification, Str) {
      * @param {Object} box its proposed box in millimetres
      * @return {Object} the adjusted box plus the guides that caused the adjustment
      */
-    Designer.prototype.applyGuides = function (element, box) {
+    Designer.prototype.applyGuides = function(element, box) {
         var page = this.page();
         var result = {box: {left: box.left, top: box.top, width: box.width, height: box.height},
             vertical: [], horizontal: []};
@@ -434,16 +442,16 @@ function ($, Ajax, Notification, Str) {
         var verticals = [];
         var horizontals = [];
 
-        page.guides.vertical.forEach(function (guide) {
+        page.guides.vertical.forEach(function(guide) {
             verticals.push({pos: guide.pos, type: guide.type, strength: guide.strength});
         });
-        page.guides.horizontal.forEach(function (guide) {
+        page.guides.horizontal.forEach(function(guide) {
             horizontals.push({pos: guide.pos, type: guide.type, strength: guide.strength});
         });
 
         // Every other element's edges and centres are guides too.
         var self = this;
-        page.elements.forEach(function (other) {
+        page.elements.forEach(function(other) {
             if (other.id === element.id || self.selection.indexOf(other.id) !== -1) {
                 return;
             }
@@ -468,8 +476,8 @@ function ($, Ajax, Notification, Str) {
         ];
 
         var bestX = null;
-        candidatesX.forEach(function (candidate) {
-            verticals.forEach(function (guide) {
+        candidatesX.forEach(function(candidate) {
+            verticals.forEach(function(guide) {
                 var delta = Math.abs(candidate.value - guide.pos);
                 if (delta > GUIDE_THRESHOLD) {
                     return;
@@ -482,8 +490,8 @@ function ($, Ajax, Notification, Str) {
         });
 
         var bestY = null;
-        candidatesY.forEach(function (candidate) {
-            horizontals.forEach(function (guide) {
+        candidatesY.forEach(function(candidate) {
+            horizontals.forEach(function(guide) {
                 var delta = Math.abs(candidate.value - guide.pos);
                 if (delta > GUIDE_THRESHOLD) {
                     return;
@@ -514,19 +522,19 @@ function ($, Ajax, Notification, Str) {
      * @param {Array} horizontal horizontal guides that are active
      * @return {void}
      */
-    Designer.prototype.paintGuides = function (vertical, horizontal) {
+    Designer.prototype.paintGuides = function(vertical, horizontal) {
         var self = this;
 
         this.clearLayer('guides');
 
-        vertical.forEach(function (guide) {
+        vertical.forEach(function(guide) {
             var node = document.createElement('div');
             node.className = 'cpro-guide cpro-guide-v cpro-guide-' + guide.type;
             node.style.left = self.px(guide.pos) + 'px';
             self.layer('guides').appendChild(node);
         });
 
-        horizontal.forEach(function (guide) {
+        horizontal.forEach(function(guide) {
             var node = document.createElement('div');
             node.className = 'cpro-guide cpro-guide-h cpro-guide-' + guide.type;
             node.style.top = self.px(guide.pos) + 'px';
@@ -540,7 +548,7 @@ function ($, Ajax, Notification, Str) {
      * @param {string} name the layer name
      * @return {HTMLElement} the layer node
      */
-    Designer.prototype.layer = function (name) {
+    Designer.prototype.layer = function(name) {
         var node = this.overlay.querySelector('[data-layer="' + name + '"]');
         if (!node) {
             node = document.createElement('div');
@@ -557,7 +565,7 @@ function ($, Ajax, Notification, Str) {
      * @param {string} name the layer name
      * @return {void}
      */
-    Designer.prototype.clearLayer = function (name) {
+    Designer.prototype.clearLayer = function(name) {
         this.layer(name).innerHTML = '';
     };
 
@@ -568,10 +576,10 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.bindCanvas = function () {
+    Designer.prototype.bindCanvas = function() {
         var self = this;
 
-        this.stage.addEventListener('pointerdown', function (event) {
+        this.stage.addEventListener('pointerdown', function(event) {
             var handle = event.target.closest('[data-handle]');
             var node = event.target.closest('.cpro-element');
 
@@ -599,15 +607,15 @@ function ($, Ajax, Notification, Str) {
             event.preventDefault();
         });
 
-        window.addEventListener('pointermove', function (event) {
+        window.addEventListener('pointermove', function(event) {
             self.continueDrag(event);
         });
 
-        window.addEventListener('pointerup', function (event) {
+        window.addEventListener('pointerup', function(event) {
             self.endDrag(event);
         });
 
-        window.addEventListener('resize', function () {
+        window.addEventListener('resize', function() {
             self.render();
         });
     };
@@ -620,7 +628,7 @@ function ($, Ajax, Notification, Str) {
      * @param {string} mode move, rotate or a resize handle name
      * @return {void}
      */
-    Designer.prototype.beginDrag = function (event, element, mode) {
+    Designer.prototype.beginDrag = function(event, element, mode) {
         var self = this;
         var rect = this.stage.getBoundingClientRect();
 
@@ -635,7 +643,7 @@ function ($, Ajax, Notification, Str) {
             origins: {}
         };
 
-        this.selection.forEach(function (id) {
+        this.selection.forEach(function(id) {
             var selected = self.elementById(id);
             if (selected) {
                 self.drag.origins[id] = self.boxFor(selected);
@@ -655,7 +663,7 @@ function ($, Ajax, Notification, Str) {
      * @param {PointerEvent} event the pointer event
      * @return {void}
      */
-    Designer.prototype.continueDrag = function (event) {
+    Designer.prototype.continueDrag = function(event) {
         if (!this.drag) {
             return;
         }
@@ -705,7 +713,7 @@ function ($, Ajax, Notification, Str) {
         var deltaX = guided.box.left - origin.left;
         var deltaY = guided.box.top - origin.top;
 
-        this.selection.forEach(function (id) {
+        this.selection.forEach(function(id) {
             var selected = self.elementById(id);
             var selectedOrigin = self.drag.origins[id];
             if (!selected || !selectedOrigin) {
@@ -742,7 +750,7 @@ function ($, Ajax, Notification, Str) {
      * @param {boolean} keepRatio whether to preserve the aspect ratio
      * @return {Object} the proposed box
      */
-    Designer.prototype.resizeBox = function (origin, handle, dx, dy, keepRatio) {
+    Designer.prototype.resizeBox = function(origin, handle, dx, dy, keepRatio) {
         var box = {
             left: origin.left,
             top: origin.top,
@@ -788,7 +796,7 @@ function ($, Ajax, Notification, Str) {
      * @param {Object} origin the box when the drag started
      * @return {void}
      */
-    Designer.prototype.applyRotation = function (event, element, origin) {
+    Designer.prototype.applyRotation = function(event, element, origin) {
         var rect = this.drag.stageRect;
         var centreX = rect.left + this.px(origin.left + (origin.width / 2));
         var centreY = rect.top + this.px(origin.top + (origin.height / 2));
@@ -816,7 +824,7 @@ function ($, Ajax, Notification, Str) {
      * @param {Object} box the new box in millimetres
      * @return {void}
      */
-    Designer.prototype.applyBox = function (element, box) {
+    Designer.prototype.applyBox = function(element, box) {
         var anchor = this.anchorFor(element, box);
 
         element.posx = anchor.posx;
@@ -840,7 +848,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.endDrag = function () {
+    Designer.prototype.endDrag = function() {
         if (!this.drag) {
             return;
         }
@@ -870,7 +878,7 @@ function ($, Ajax, Notification, Str) {
      * @param {Object} zone the zone to dock into
      * @return {void}
      */
-    Designer.prototype.dockIntoZone = function (element, zone) {
+    Designer.prototype.dockIntoZone = function(element, zone) {
         var width = Math.min(element.width > 0 ? element.width : zone.w, zone.w);
         var height = Math.min(element.height > 0 ? element.height : zone.h, zone.h);
 
@@ -909,7 +917,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} id the element id
      * @return {Object|null} the element record
      */
-    Designer.prototype.elementById = function (id) {
+    Designer.prototype.elementById = function(id) {
         var page = this.page();
         for (var i = 0; i < page.elements.length; i++) {
             if (page.elements[i].id === id) {
@@ -925,7 +933,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} id the element id
      * @return {HTMLElement|null} the node
      */
-    Designer.prototype.nodeFor = function (id) {
+    Designer.prototype.nodeFor = function(id) {
         return this.stage.querySelector('[data-element-id="' + id + '"]');
     };
 
@@ -935,7 +943,7 @@ function ($, Ajax, Notification, Str) {
      * @param {Array} ids the element ids to select
      * @return {void}
      */
-    Designer.prototype.select = function (ids) {
+    Designer.prototype.select = function(ids) {
         this.selection = ids.slice();
         this.refreshSelectionVisuals();
         this.renderInspector();
@@ -948,7 +956,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} id the element id
      * @return {void}
      */
-    Designer.prototype.toggleSelection = function (id) {
+    Designer.prototype.toggleSelection = function(id) {
         var index = this.selection.indexOf(id);
         if (index === -1) {
             this.selection.push(id);
@@ -964,11 +972,11 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.refreshSelectionVisuals = function () {
+    Designer.prototype.refreshSelectionVisuals = function() {
         var self = this;
         var nodes = this.stage.querySelectorAll('.cpro-element');
 
-        Array.prototype.forEach.call(nodes, function (node) {
+        Array.prototype.forEach.call(nodes, function(node) {
             var id = parseInt(node.getAttribute('data-element-id'), 10);
             node.classList.toggle('cpro-selected', self.selection.indexOf(id) !== -1);
         });
@@ -981,10 +989,10 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.bindKeyboard = function () {
+    Designer.prototype.bindKeyboard = function() {
         var self = this;
 
-        this.root.addEventListener('keydown', function (event) {
+        this.root.addEventListener('keydown', function(event) {
             if (event.target.matches('input, textarea, select')) {
                 return;
             }
@@ -1031,7 +1039,7 @@ function ($, Ajax, Notification, Str) {
                     break;
                 case 'a':
                     if (meta) {
-                        self.select(self.page().elements.map(function (element) {
+                        self.select(self.page().elements.map(function(element) {
                             return element.id;
                         }));
                     } else {
@@ -1055,7 +1063,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} dy the vertical movement in millimetres
      * @return {void}
      */
-    Designer.prototype.nudge = function (dx, dy) {
+    Designer.prototype.nudge = function(dx, dy) {
         var self = this;
 
         if (!this.selection.length) {
@@ -1064,7 +1072,7 @@ function ($, Ajax, Notification, Str) {
 
         this.pushHistory();
 
-        this.selection.forEach(function (id) {
+        this.selection.forEach(function(id) {
             var element = self.elementById(id);
             if (!element || element.locked) {
                 return;
@@ -1087,10 +1095,10 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.bindToolbar = function () {
+    Designer.prototype.bindToolbar = function() {
         var self = this;
 
-        this.root.addEventListener('click', function (event) {
+        this.root.addEventListener('click', function(event) {
             var trigger = event.target.closest('[data-action]');
             if (!trigger) {
                 return;
@@ -1166,7 +1174,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.previewZones = function () {
+    Designer.prototype.previewZones = function() {
         if (!this.root.classList.contains('cpro-show-zones')) {
             this.clearLayer('zones');
             return;
@@ -1177,7 +1185,7 @@ function ($, Ajax, Notification, Str) {
 
         this.clearLayer('zones');
 
-        page.zones.forEach(function (zone) {
+        page.zones.forEach(function(zone) {
             if (!zone.snappable) {
                 return;
             }
@@ -1203,7 +1211,7 @@ function ($, Ajax, Notification, Str) {
      * @param {string} how left, centre, right, top, middle or bottom
      * @return {void}
      */
-    Designer.prototype.align = function (how) {
+    Designer.prototype.align = function(how) {
         var self = this;
         var page = this.page();
 
@@ -1213,7 +1221,7 @@ function ($, Ajax, Notification, Str) {
 
         this.pushHistory();
 
-        var boxes = this.selection.map(function (id) {
+        var boxes = this.selection.map(function(id) {
             return {id: id, box: self.boxFor(self.elementById(id))};
         });
 
@@ -1222,22 +1230,22 @@ function ($, Ajax, Notification, Str) {
             bounds = {left: 0, top: 0, right: page.width, bottom: page.height};
         } else {
             bounds = {
-                left: Math.min.apply(null, boxes.map(function (entry) {
+                left: Math.min.apply(null, boxes.map(function(entry) {
                     return entry.box.left;
                 })),
-                top: Math.min.apply(null, boxes.map(function (entry) {
+                top: Math.min.apply(null, boxes.map(function(entry) {
                     return entry.box.top;
                 })),
-                right: Math.max.apply(null, boxes.map(function (entry) {
+                right: Math.max.apply(null, boxes.map(function(entry) {
                     return entry.box.left + entry.box.width;
                 })),
-                bottom: Math.max.apply(null, boxes.map(function (entry) {
+                bottom: Math.max.apply(null, boxes.map(function(entry) {
                     return entry.box.top + entry.box.height;
                 }))
             };
         }
 
-        boxes.forEach(function (entry) {
+        boxes.forEach(function(entry) {
             var element = self.elementById(entry.id);
             var box = entry.box;
 
@@ -1277,7 +1285,7 @@ function ($, Ajax, Notification, Str) {
      * @param {string} axis horizontal or vertical
      * @return {void}
      */
-    Designer.prototype.distribute = function (axis) {
+    Designer.prototype.distribute = function(axis) {
         var self = this;
 
         if (this.selection.length < 3) {
@@ -1286,11 +1294,11 @@ function ($, Ajax, Notification, Str) {
 
         this.pushHistory();
 
-        var entries = this.selection.map(function (id) {
+        var entries = this.selection.map(function(id) {
             return {id: id, box: self.boxFor(self.elementById(id))};
         });
 
-        entries.sort(function (a, b) {
+        entries.sort(function(a, b) {
             return axis === 'horizontal' ? a.box.left - b.box.left : a.box.top - b.box.top;
         });
 
@@ -1301,14 +1309,14 @@ function ($, Ajax, Notification, Str) {
             ? (last.left + last.width) - first.left
             : (last.top + last.height) - first.top;
 
-        var used = entries.reduce(function (total, entry) {
+        var used = entries.reduce(function(total, entry) {
             return total + (axis === 'horizontal' ? entry.box.width : entry.box.height);
         }, 0);
 
         var gap = (span - used) / (entries.length - 1);
         var cursor = axis === 'horizontal' ? first.left : first.top;
 
-        entries.forEach(function (entry) {
+        entries.forEach(function(entry) {
             var element = self.elementById(entry.id);
             if (axis === 'horizontal') {
                 entry.box.left = cursor;
@@ -1330,7 +1338,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} delta how far to move, where large values mean front or back
      * @return {void}
      */
-    Designer.prototype.reorder = function (delta) {
+    Designer.prototype.reorder = function(delta) {
         var self = this;
 
         if (!this.selection.length) {
@@ -1339,18 +1347,18 @@ function ($, Ajax, Notification, Str) {
 
         this.pushHistory();
 
-        this.selection.forEach(function (id) {
+        this.selection.forEach(function(id) {
             var element = self.elementById(id);
             if (element) {
                 element.zindex = Math.max(0, (element.zindex || 0) + delta);
             }
         });
 
-        this.page().elements.sort(function (a, b) {
+        this.page().elements.sort(function(a, b) {
             return (a.zindex || 0) - (b.zindex || 0);
         });
 
-        this.page().elements.forEach(function (element, index) {
+        this.page().elements.forEach(function(element, index) {
             element.zindex = index;
         });
 
@@ -1365,7 +1373,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} id the element id
      * @return {void}
      */
-    Designer.prototype.toggleVisibility = function (id) {
+    Designer.prototype.toggleVisibility = function(id) {
         var element = this.elementById(id);
         if (!element) {
             return;
@@ -1383,7 +1391,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} id the element id
      * @return {void}
      */
-    Designer.prototype.toggleLock = function (id) {
+    Designer.prototype.toggleLock = function(id) {
         var element = this.elementById(id);
         if (!element) {
             return;
@@ -1400,7 +1408,7 @@ function ($, Ajax, Notification, Str) {
      * @param {number} zoom the new zoom factor
      * @return {void}
      */
-    Designer.prototype.setZoom = function (zoom) {
+    Designer.prototype.setZoom = function(zoom) {
         this.zoom = Math.max(0.25, Math.min(4, zoom));
         this.render();
     };
@@ -1412,7 +1420,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.pushHistory = function () {
+    Designer.prototype.pushHistory = function() {
         this.history.push(JSON.stringify(this.page().elements));
         if (this.history.length > HISTORY_LIMIT) {
             this.history.shift();
@@ -1425,7 +1433,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.undo = function () {
+    Designer.prototype.undo = function() {
         if (!this.history.length) {
             return;
         }
@@ -1440,7 +1448,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.redo = function () {
+    Designer.prototype.redo = function() {
         if (!this.future.length) {
             return;
         }
@@ -1457,7 +1465,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.queueSave = function () {
+    Designer.prototype.queueSave = function() {
         var self = this;
 
         if (this.saveTimer) {
@@ -1466,7 +1474,7 @@ function ($, Ajax, Notification, Str) {
 
         this.setStatus(this.strings.saving || '');
 
-        this.saveTimer = window.setTimeout(function () {
+        this.saveTimer = window.setTimeout(function() {
             self.save();
         }, SAVE_DELAY);
     };
@@ -1480,11 +1488,11 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {Promise} resolves when the save has been acknowledged
      */
-    Designer.prototype.save = function () {
+    Designer.prototype.save = function() {
         var self = this;
         var page = this.page();
 
-        var payload = page.elements.map(function (element) {
+        var payload = page.elements.map(function(element) {
             return {
                 id: element.id,
                 posx: element.posx,
@@ -1509,10 +1517,10 @@ function ($, Ajax, Notification, Str) {
                 pageid: page.id,
                 elements: payload
             }
-        }])[0].then(function () {
+        }])[0].then(function() {
             self.setStatus(self.strings.saved || '');
             return true;
-        }).catch(function (error) {
+        }).catch(function(error) {
             self.setStatus(self.strings.savefailed || '');
             Notification.exception(error);
         });
@@ -1524,7 +1532,7 @@ function ($, Ajax, Notification, Str) {
      * @param {string} message the message to show
      * @return {void}
      */
-    Designer.prototype.setStatus = function (message) {
+    Designer.prototype.setStatus = function(message) {
         if (this.statusbar) {
             this.statusbar.textContent = message;
         }
@@ -1536,7 +1544,7 @@ function ($, Ajax, Notification, Str) {
      * @param {Object|null} zone the zone that would capture on release
      * @return {void}
      */
-    Designer.prototype.updateStatus = function (zone) {
+    Designer.prototype.updateStatus = function(zone) {
         if (!this.statusbar) {
             return;
         }
@@ -1561,7 +1569,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.renderLayers = function () {
+    Designer.prototype.renderLayers = function() {
         if (!this.layers) {
             return;
         }
@@ -1572,7 +1580,7 @@ function ($, Ajax, Notification, Str) {
 
         list.className = 'cpro-layer-list';
 
-        page.elements.slice().reverse().forEach(function (element) {
+        page.elements.slice().reverse().forEach(function(element) {
             var item = document.createElement('li');
             item.className = 'cpro-layer-item'
                 + (self.selection.indexOf(element.id) !== -1 ? ' cpro-layer-selected' : '');
@@ -1582,8 +1590,14 @@ function ($, Ajax, Notification, Str) {
             button.className = 'cpro-layer-name';
             button.setAttribute('data-action', 'selectelement');
             button.setAttribute('data-value', String(element.id));
-            button.innerHTML = '<i class="fa ' + element.icon + '" aria-hidden="true"></i> '
-                + '<span>' + element.name + '</span>';
+            var icon = document.createElement('i');
+            icon.className = 'fa ' + element.icon;
+            icon.setAttribute('aria-hidden', 'true');
+            var label = document.createElement('span');
+            label.textContent = element.name;
+            button.appendChild(icon);
+            button.appendChild(document.createTextNode(' '));
+            button.appendChild(label);
             item.appendChild(button);
 
             var visibility = document.createElement('button');
@@ -1616,7 +1630,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.renderInspector = function () {
+    Designer.prototype.renderInspector = function() {
         if (!this.inspector) {
             return;
         }
@@ -1636,7 +1650,7 @@ function ($, Ajax, Notification, Str) {
         this.inspector.setAttribute('data-count', '1');
         this.inspector.setAttribute('data-element-id', String(element.id));
 
-        ['posx', 'posy', 'width', 'height', 'rotation'].forEach(function (field) {
+        ['posx', 'posy', 'width', 'height', 'rotation'].forEach(function(field) {
             var input = self.inspector.querySelector('[data-field="' + field + '"]');
             if (input) {
                 input.value = (element[field] || 0).toFixed(2);
@@ -1646,7 +1660,7 @@ function ($, Ajax, Notification, Str) {
         var zoneLabel = this.inspector.querySelector('[data-field="zone"]');
         if (zoneLabel) {
             var zone = null;
-            this.page().zones.forEach(function (candidate) {
+            this.page().zones.forEach(function(candidate) {
                 if (candidate.id === element.zoneid) {
                     zone = candidate;
                 }
@@ -1665,7 +1679,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.bindPicker = function () {
+    Designer.prototype.bindPicker = function() {
         var self = this;
         var picker = this.root.querySelector('[data-region="picker"]');
 
@@ -1673,7 +1687,7 @@ function ($, Ajax, Notification, Str) {
             return;
         }
 
-        picker.addEventListener('click', function (event) {
+        picker.addEventListener('click', function(event) {
             var trigger = event.target.closest('[data-element-type]');
             if (!trigger) {
                 return;
@@ -1692,7 +1706,7 @@ function ($, Ajax, Notification, Str) {
      * @param {string|null} zoneid the zone to dock into
      * @return {void}
      */
-    Designer.prototype.addElement = function (type, zoneid) {
+    Designer.prototype.addElement = function(type, zoneid) {
         var self = this;
 
         Ajax.call([{
@@ -1703,7 +1717,7 @@ function ($, Ajax, Notification, Str) {
                 elementtype: type,
                 zoneid: zoneid || ''
             }
-        }])[0].then(function (response) {
+        }])[0].then(function(response) {
             var element = JSON.parse(response.element);
             self.page().elements.push(element);
             self.renderElements();
@@ -1718,7 +1732,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.duplicateSelection = function () {
+    Designer.prototype.duplicateSelection = function() {
         var self = this;
 
         if (!this.selection.length) {
@@ -1732,14 +1746,14 @@ function ($, Ajax, Notification, Str) {
                 pageid: this.page().id,
                 elementids: this.selection
             }
-        }])[0].then(function (response) {
+        }])[0].then(function(response) {
             var created = JSON.parse(response.elements);
-            created.forEach(function (element) {
+            created.forEach(function(element) {
                 self.page().elements.push(element);
             });
             self.renderElements();
             self.renderLayers();
-            self.select(created.map(function (element) {
+            self.select(created.map(function(element) {
                 return element.id;
             }));
             return true;
@@ -1751,7 +1765,7 @@ function ($, Ajax, Notification, Str) {
      *
      * @return {void}
      */
-    Designer.prototype.deleteSelection = function () {
+    Designer.prototype.deleteSelection = function() {
         var self = this;
 
         if (!this.selection.length) {
@@ -1766,9 +1780,9 @@ function ($, Ajax, Notification, Str) {
                 templateid: this.template.id,
                 elementids: ids
             }
-        }])[0].then(function () {
+        }])[0].then(function() {
             var page = self.page();
-            page.elements = page.elements.filter(function (element) {
+            page.elements = page.elements.filter(function(element) {
                 return ids.indexOf(element.id) === -1;
             });
             self.select([]);
@@ -1786,7 +1800,7 @@ function ($, Ajax, Notification, Str) {
          * @param {Object} config the bootstrap configuration
          * @return {void}
          */
-        init: function (selector) {
+        init: function(selector) {
             var root = document.querySelector(selector);
             if (root) {
                 var config;

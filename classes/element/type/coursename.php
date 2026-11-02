@@ -69,14 +69,17 @@ class coursename extends text_base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(parent::default_style(), [
-            'font' => 'heading',
-            'scalerole' => 'course',
-            'size' => null,
-            'colour' => 'ink',
-            'maxlines' => 2,
-            'fit' => true,
-        ]);
+        return array_merge(
+            parent::default_style(),
+            [
+                'font' => 'heading',
+                'scalerole' => 'course',
+                'size' => null,
+                'colour' => 'ink',
+                'maxlines' => 2,
+                'fit' => true,
+            ]
+        );
     }
 
     /**
@@ -87,12 +90,16 @@ class coursename extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('select', 'coursenamefield',
-            get_string('coursenamefield', 'mod_certificatepro'), [
+        $mform->addElement(
+            'select',
+            'coursenamefield',
+            get_string('coursenamefield', 'mod_certificatepro'),
+            [
                 'fullname' => get_string('fullnamecourse'),
                 'shortname' => get_string('shortnamecourse'),
                 'idnumber' => get_string('idnumbercourse'),
-            ]);
+            ]
+        );
         $mform->setDefault('coursenamefield', 'fullname');
     }
 

@@ -69,13 +69,16 @@ class code extends text_base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(parent::default_style(), [
-            'font' => 'accent',
-            'scalerole' => 'code',
-            'size' => null,
-            'colour' => 'muted',
-            'tracking' => 0.8,
-        ]);
+        return array_merge(
+            parent::default_style(),
+            [
+                'font' => 'accent',
+                'scalerole' => 'code',
+                'size' => null,
+                'colour' => 'muted',
+                'tracking' => 0.8,
+            ]
+        );
     }
 
     /**
@@ -86,13 +89,20 @@ class code extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('text', 'label',
-            get_string('codelabel', 'mod_certificatepro'), ['size' => 40]);
+        $mform->addElement(
+            'text',
+            'label',
+            get_string('codelabel', 'mod_certificatepro'),
+            ['size' => 40]
+        );
         $mform->setType('label', PARAM_TEXT);
         $mform->setDefault('label', get_string('codelabeldefault', 'mod_certificatepro'));
 
-        $mform->addElement('advcheckbox', 'showurl',
-            get_string('codeshowurl', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'showurl',
+            get_string('codeshowurl', 'mod_certificatepro')
+        );
     }
 
     /**

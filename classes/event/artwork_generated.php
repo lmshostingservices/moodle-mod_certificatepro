@@ -61,4 +61,23 @@ class artwork_generated extends \core\event\base {
     public function get_url() {
         return new \moodle_url('/mod/certificatepro/edit.php', ['id' => $this->contextinstanceid]);
     }
+
+    /**
+     * Mapping used when logs are restored.
+     *
+     * @return array|int
+     */
+    public static function get_objectid_mapping() {
+        // Site-level design records are not part of a course backup.
+        return \core\event\base::NOT_MAPPED;
+    }
+
+    /**
+     * Other data needs no mapping on restore.
+     *
+     * @return bool
+     */
+    public static function get_other_mapping() {
+        return false;
+    }
 }

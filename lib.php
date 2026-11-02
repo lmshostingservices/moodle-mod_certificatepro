@@ -118,7 +118,7 @@ function certificatepro_delete_instance($id) {
     $lock = \core\lock\lock_config::get_lock_factory('mod_certificatepro')
         ->get_lock('issuer_' . $id, 10);
     if (!$lock) {
-        throw new moodle_exception('locktimeout');
+        throw new moodle_exception('locktimeout', 'moodle');
     }
     try {
         $instance = $DB->get_record('certificatepro', ['id' => $id]);
@@ -127,8 +127,11 @@ function certificatepro_delete_instance($id) {
         }
         $hascycles = $DB->get_manager()->table_exists(new xmldb_table('local_recertify_cycles'))
             && $DB->record_exists('local_recertify_cycles', ['certificateid' => $id]);
-        if ($hascycles || $DB->record_exists_select('certificatepro_issues',
-                'certificateproid = :id AND cycleid IS NOT NULL', ['id' => $id])) {
+        if ($hascycles || $DB->record_exists_select(
+            'certificatepro_issues',
+            'certificateproid = :id AND cycleid IS NOT NULL',
+            ['id' => $id]
+        )) {
             throw new moodle_exception('cyclehistoryprotected', 'mod_certificatepro');
         }
         $cm = get_coursemodule_from_instance('certificatepro', $id, $instance->course, false, IGNORE_MISSING);
@@ -213,14 +216,18 @@ function certificatepro_pluginfile($course, $cm, $context, string $filearea, arr
 
     // A rendered certificate belongs to one person.
     if ($filearea === \mod_certificatepro\local\issue_service::FILEAREA) {
+        if ($context->contextlevel !== CONTEXT_MODULE || empty($cm->instance)) {
+            return false;
+        }
         $issueid = (int) ($args[0] ?? 0);
         $issue = $DB->get_record('certificatepro_issues', ['id' => $issueid]);
         if (!$issue) {
             return false;
         }
+        // Revocation applies to ordinary awards as well as certification cycles.
+        // A copied URL must not bypass the download controls in the interface.
         if ((int)$issue->certificateproid !== (int)$cm->instance
-                || (!empty($issue->cycleid)
-                    && !in_array(\mod_certificatepro\local\issue_service::status($issue), ['valid', 'expired'], true))) {
+                || !in_array(\mod_certificatepro\local\issue_service::status($issue), ['valid', 'expired'], true)) {
             return false;
         }
         if ((int) $issue->userid !== (int) $USER->id
@@ -298,8 +305,11 @@ function certificatepro_reset_userdata($data): array {
         $instances = $DB->get_records('certificatepro', ['course' => $data->courseid], '', 'id');
 
         foreach ($instances as $instance) {
-            if ($DB->record_exists_select('certificatepro_issues',
-                    'certificateproid = :id AND cycleid IS NOT NULL', ['id' => $instance->id])) {
+            if ($DB->record_exists_select(
+                'certificatepro_issues',
+                'certificateproid = :id AND cycleid IS NOT NULL',
+                ['id' => $instance->id]
+            )) {
                 $status[] = [
                     'component' => get_string('modulenameplural', 'mod_certificatepro'),
                     'item' => get_string('resetissues', 'mod_certificatepro'),
@@ -307,8 +317,13 @@ function certificatepro_reset_userdata($data): array {
                 ];
                 continue;
             }
-            $cm = get_coursemodule_from_instance('certificatepro', $instance->id,
-                $data->courseid, false, IGNORE_MISSING);
+            $cm = get_coursemodule_from_instance(
+                'certificatepro',
+                $instance->id,
+                $data->courseid,
+                false,
+                IGNORE_MISSING
+            );
             if ($cm) {
                 get_file_storage()->delete_area_files(
                     context_module::instance($cm->id)->id,
@@ -336,10 +351,16 @@ function certificatepro_reset_userdata($data): array {
  * @return void
  */
 function certificatepro_reset_course_form_definition(&$mform): void {
-    $mform->addElement('header', 'certificateproheader',
-        get_string('modulenameplural', 'mod_certificatepro'));
-    $mform->addElement('advcheckbox', 'reset_certificatepro_issues',
-        get_string('resetissues', 'mod_certificatepro'));
+    $mform->addElement(
+        'header',
+        'certificateproheader',
+        get_string('modulenameplural', 'mod_certificatepro')
+    );
+    $mform->addElement(
+        'advcheckbox',
+        'reset_certificatepro_issues',
+        get_string('resetissues', 'mod_certificatepro')
+    );
 }
 
 /**
@@ -362,8 +383,11 @@ function certificatepro_scale_used_anywhere($scaleid): bool {
 function certificatepro_get_coursemodule_info($coursemodule) {
     global $DB;
 
-    $instance = $DB->get_record('certificatepro', ['id' => $coursemodule->instance],
-        'id, name, intro, introformat');
+    $instance = $DB->get_record(
+        'certificatepro',
+        ['id' => $coursemodule->instance],
+        'id, name, intro, introformat'
+    );
 
     if (!$instance) {
         return null;
@@ -389,10 +413,12 @@ function certificatepro_get_coursemodule_info($coursemodule) {
  * @return void
  */
 function certificatepro_view($instance, $course, $cm, $context): void {
-    \mod_certificatepro\event\course_module_viewed::create([
-        'objectid' => $instance->id,
-        'context' => $context,
-    ])->trigger();
+    \mod_certificatepro\event\course_module_viewed::create(
+        [
+            'objectid' => $instance->id,
+            'context' => $context,
+        ]
+    )->trigger();
 
     $completion = new completion_info($course);
     $completion->set_module_viewed($cm);

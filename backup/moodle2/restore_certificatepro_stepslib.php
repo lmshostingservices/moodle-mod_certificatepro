@@ -42,16 +42,24 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
         $userinfo = $this->get_setting_value('userinfo');
 
         $paths[] = new restore_path_element('certificatepro', '/activity/certificatepro');
-        $paths[] = new restore_path_element('certificatepro_template',
-            '/activity/certificatepro/template');
-        $paths[] = new restore_path_element('certificatepro_page',
-            '/activity/certificatepro/template/pages/page');
-        $paths[] = new restore_path_element('certificatepro_element',
-            '/activity/certificatepro/template/pages/page/elements/element');
+        $paths[] = new restore_path_element(
+            'certificatepro_template',
+            '/activity/certificatepro/template'
+        );
+        $paths[] = new restore_path_element(
+            'certificatepro_page',
+            '/activity/certificatepro/template/pages/page'
+        );
+        $paths[] = new restore_path_element(
+            'certificatepro_element',
+            '/activity/certificatepro/template/pages/page/elements/element'
+        );
 
         if ($userinfo) {
-            $paths[] = new restore_path_element('certificatepro_issue',
-                '/activity/certificatepro/issues/issue');
+            $paths[] = new restore_path_element(
+                'certificatepro_issue',
+                '/activity/certificatepro/issues/issue'
+            );
         }
 
         return $this->prepare_activity_structure($paths);
@@ -94,8 +102,12 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
 
         $this->set_mapping('certificatepro_template', $oldid, $newitemid);
 
-        $DB->set_field('certificatepro', 'templateid', $newitemid,
-            ['id' => $this->get_new_parentid('certificatepro')]);
+        $DB->set_field(
+            'certificatepro',
+            'templateid',
+            $newitemid,
+            ['id' => $this->get_new_parentid('certificatepro')]
+        );
     }
 
     /**
@@ -193,7 +205,10 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
             $this->add_related_files('mod_certificatepro', $area, 'certificatepro_element');
         }
 
-        $this->add_related_files('mod_certificatepro',
-            \mod_certificatepro\local\issue_service::FILEAREA, 'certificatepro_issue');
+        $this->add_related_files(
+            'mod_certificatepro',
+            \mod_certificatepro\local\issue_service::FILEAREA,
+            'certificatepro_issue'
+        );
     }
 }

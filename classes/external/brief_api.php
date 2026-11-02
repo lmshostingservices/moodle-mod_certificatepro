@@ -82,10 +82,12 @@ class brief_api extends library_base {
      */
     protected static function answers_structure(): external_multiple_structure {
         return new external_multiple_structure(
-            new external_single_structure([
-                'name' => new external_value(PARAM_ALPHANUMEXT, 'The question'),
-                'value' => new external_value(PARAM_TEXT, 'The answer'),
-            ])
+            new external_single_structure(
+                [
+                    'name' => new external_value(PARAM_ALPHANUMEXT, 'The question'),
+                    'value' => new external_value(PARAM_TEXT, 'The answer'),
+                ]
+            )
         );
     }
 
@@ -107,7 +109,8 @@ class brief_api extends library_base {
                     new external_single_structure([
                         'value' => new external_value(
                             PARAM_RAW, // pipeline-ignore: PARAM_RAW - opaque catalogue id
-                            'The option value'),
+                            'The option value'
+                        ),
                         'label' => new external_value(PARAM_TEXT, 'The option text'),
                         'selected' => new external_value(PARAM_BOOL, 'Whether it is the default'),
                     ])
@@ -169,9 +172,11 @@ class brief_api extends library_base {
      * @return external_function_parameters
      */
     public static function get_artwork_brief_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+            ]
+        );
     }
 
     /**
@@ -181,16 +186,21 @@ class brief_api extends library_base {
      * @return array
      */
     public static function get_artwork_brief(int $templateid): array {
-        $params = self::validate_parameters(self::get_artwork_brief_parameters(), [
-            'templateid' => $templateid,
-        ]);
+        $params = self::validate_parameters(
+            self::get_artwork_brief_parameters(),
+            [
+                'templateid' => $templateid,
+            ]
+        );
 
         $template = self::require_readable($params['templateid']);
 
         return [
             'questions' => self::questions(artwork_brief::fields(), 'briefopt_'),
-            'canusemodel' => has_capability('mod/certificatepro:generateartwork',
-                $template->get_context()),
+            'canusemodel' => has_capability(
+                'mod/certificatepro:generateartwork',
+                $template->get_context()
+            ),
         ];
     }
 
@@ -200,11 +210,15 @@ class brief_api extends library_base {
      * @return external_single_structure
      */
     public static function get_artwork_brief_returns(): external_single_structure {
-        return new external_single_structure([
-            'questions' => self::questions_structure(),
-            'canusemodel' => new external_value(PARAM_BOOL,
-                'Whether this author may ask a model for artwork'),
-        ]);
+        return new external_single_structure(
+            [
+                'questions' => self::questions_structure(),
+                'canusemodel' => new external_value(
+                    PARAM_BOOL,
+                    'Whether this author may ask a model for artwork'
+                ),
+            ]
+        );
     }
 
     /**
@@ -213,10 +227,12 @@ class brief_api extends library_base {
      * @return external_function_parameters
      */
     public static function preview_artwork_brief_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'answers' => self::answers_structure(),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'answers' => self::answers_structure(),
+            ]
+        );
     }
 
     /**
@@ -231,16 +247,20 @@ class brief_api extends library_base {
      * @return array
      */
     public static function preview_artwork_brief(int $templateid, array $answers): array {
-        $params = self::validate_parameters(self::preview_artwork_brief_parameters(), [
-            'templateid' => $templateid,
-            'answers' => $answers,
-        ]);
+        $params = self::validate_parameters(
+            self::preview_artwork_brief_parameters(),
+            [
+                'templateid' => $templateid,
+                'answers' => $answers,
+            ]
+        );
 
         $template = self::require_readable($params['templateid']);
         $page = self::require_page($template, 0);
 
         $brief = artwork_brief::from_input(
-            self::collect($params['answers'], artwork_brief::fields()));
+            self::collect($params['answers'], artwork_brief::fields())
+        );
         $style = $brief->to_procedural_style();
         $entry = background_library::styles()[$style] ?? null;
 
@@ -250,8 +270,13 @@ class brief_api extends library_base {
                 ? $style
                 : self::label('bgstyle_' . $style, $entry['name']),
             'summary' => $brief->summary(),
-            'svg' => background_library::svg($style, $template->get_palette(),
-                (float) $page->width, (float) $page->height, 7),
+            'svg' => background_library::svg(
+                $style,
+                $template->get_palette(),
+                (float) $page->width,
+                (float) $page->height,
+                7
+            ),
         ];
     }
 
@@ -275,13 +300,19 @@ class brief_api extends library_base {
      * @return external_function_parameters
      */
     public static function apply_artwork_brief_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'pageid' => new external_value(PARAM_INT, 'The page to place it on'),
-            'answers' => self::answers_structure(),
-            'usemodel' => new external_value(PARAM_BOOL, 'Whether a model may be asked',
-                VALUE_DEFAULT, true),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'pageid' => new external_value(PARAM_INT, 'The page to place it on'),
+                'answers' => self::answers_structure(),
+                'usemodel' => new external_value(
+                    PARAM_BOOL,
+                    'Whether a model may be asked',
+                    VALUE_DEFAULT,
+                    true
+                ),
+            ]
+        );
     }
 
     /**
@@ -295,12 +326,15 @@ class brief_api extends library_base {
      */
     public static function apply_artwork_brief(int $templateid, int $pageid, array $answers,
             bool $usemodel = true): array {
-        $params = self::validate_parameters(self::apply_artwork_brief_parameters(), [
-            'templateid' => $templateid,
-            'pageid' => $pageid,
-            'answers' => $answers,
-            'usemodel' => $usemodel,
-        ]);
+        $params = self::validate_parameters(
+            self::apply_artwork_brief_parameters(),
+            [
+                'templateid' => $templateid,
+                'pageid' => $pageid,
+                'answers' => $answers,
+                'usemodel' => $usemodel,
+            ]
+        );
 
         $template = self::require_editable($params['templateid']);
         $page = self::require_page($template, $params['pageid']);
@@ -309,7 +343,8 @@ class brief_api extends library_base {
         require_capability('mod/certificatepro:generateartwork', $context);
 
         $brief = artwork_brief::from_input(
-            self::collect($params['answers'], artwork_brief::fields()));
+            self::collect($params['answers'], artwork_brief::fields())
+        );
         $style = $brief->to_procedural_style();
         $palette = $template->get_palette();
         $name = $brief->summary();
@@ -342,10 +377,12 @@ class brief_api extends library_base {
 
         $elementid = self::place_artwork($template, $page, (int) $result['id']);
 
-        \mod_certificatepro\event\artwork_generated::create([
-            'objectid' => (int) $result['id'],
-            'context' => $context,
-        ])->trigger();
+        \mod_certificatepro\event\artwork_generated::create(
+            [
+                'objectid' => (int) $result['id'],
+                'context' => $context,
+            ]
+        )->trigger();
 
         return [
             'backgroundid' => (int) $result['id'],
@@ -379,8 +416,13 @@ class brief_api extends library_base {
             return $result;
         }
 
-        $svg = background_library::svg($style, $palette,
-            (float) $page->width, (float) $page->height, 7);
+        $svg = background_library::svg(
+            $style,
+            $palette,
+            (float) $page->width,
+            (float) $page->height,
+            7
+        );
 
         if ($svg === '') {
             // An unknown style. Whatever the generator produced is still better
@@ -391,13 +433,18 @@ class brief_api extends library_base {
         if ((int) $result['id'] > 0) {
             $DB->set_field('certificatepro_backgrounds', 'svg', $svg, ['id' => (int) $result['id']]);
         } else {
-            $result['id'] = background_repository::save($context, $name, $svg, [
-                'prompt' => '',
-                'style' => $style,
-                'palette' => $palette['primary'] ?? '',
-                'orientation' => $page->orientation,
-                'generator' => generator::SOURCE_PROCEDURAL,
-            ]);
+            $result['id'] = background_repository::save(
+                $context,
+                $name,
+                $svg,
+                [
+                    'prompt' => '',
+                    'style' => $style,
+                    'palette' => $palette['primary'] ?? '',
+                    'orientation' => $page->orientation,
+                    'generator' => generator::SOURCE_PROCEDURAL,
+                ]
+            );
         }
 
         $result['svg'] = $svg;
@@ -417,15 +464,22 @@ class brief_api extends library_base {
             int $backgroundid): int {
         global $DB;
 
-        $existing = $DB->get_records('certificatepro_elements',
-            ['pageid' => (int) $page->id, 'element' => 'artwork'], 'id ASC');
+        $existing = $DB->get_records(
+            'certificatepro_elements',
+            ['pageid' => (int) $page->id, 'element' => 'artwork'],
+            'id ASC'
+        );
 
         $record = reset($existing);
 
         if ($record === false) {
             $elementid = $template->add_element((int) $page->id, 'artwork');
-            $record = $DB->get_record('certificatepro_elements', ['id' => $elementid],
-                '*', MUST_EXIST);
+            $record = $DB->get_record(
+                'certificatepro_elements',
+                ['id' => $elementid],
+                '*',
+                MUST_EXIST
+            );
         }
 
         $data = json_decode((string) $record->data, true);
@@ -433,17 +487,20 @@ class brief_api extends library_base {
         $data['backgroundid'] = $backgroundid;
         $data['opacity'] = isset($data['opacity']) ? (float) $data['opacity'] : 1.0;
 
-        $DB->update_record('certificatepro_elements', (object) [
-            'id' => (int) $record->id,
-            'data' => json_encode($data, JSON_PRESERVE_ZERO_FRACTION),
-            'posx' => 0,
-            'posy' => 0,
-            'width' => round((float) $page->width, 3),
-            'height' => round((float) $page->height, 3),
-            'refpoint' => 'tl',
-            'zindex' => -100,
-            'timemodified' => time(),
-        ]);
+        $DB->update_record(
+            'certificatepro_elements',
+            (object) [
+                'id' => (int) $record->id,
+                'data' => json_encode($data, JSON_PRESERVE_ZERO_FRACTION),
+                'posx' => 0,
+                'posy' => 0,
+                'width' => round((float) $page->width, 3),
+                'height' => round((float) $page->height, 3),
+                'refpoint' => 'tl',
+                'zindex' => -100,
+                'timemodified' => time(),
+            ]
+        );
 
         $template->touch();
 
@@ -475,9 +532,11 @@ class brief_api extends library_base {
      * @return external_function_parameters
      */
     public static function get_seal_brief_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+            ]
+        );
     }
 
     /**
@@ -487,9 +546,12 @@ class brief_api extends library_base {
      * @return array
      */
     public static function get_seal_brief(int $templateid): array {
-        $params = self::validate_parameters(self::get_seal_brief_parameters(), [
-            'templateid' => $templateid,
-        ]);
+        $params = self::validate_parameters(
+            self::get_seal_brief_parameters(),
+            [
+                'templateid' => $templateid,
+            ]
+        );
 
         self::require_readable($params['templateid']);
 
@@ -502,9 +564,11 @@ class brief_api extends library_base {
      * @return external_single_structure
      */
     public static function get_seal_brief_returns(): external_single_structure {
-        return new external_single_structure([
-            'questions' => self::questions_structure(),
-        ]);
+        return new external_single_structure(
+            [
+                'questions' => self::questions_structure(),
+            ]
+        );
     }
 
     /**
@@ -513,10 +577,12 @@ class brief_api extends library_base {
      * @return external_function_parameters
      */
     public static function preview_seal_brief_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'answers' => self::answers_structure(),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'answers' => self::answers_structure(),
+            ]
+        );
     }
 
     /**
@@ -527,22 +593,29 @@ class brief_api extends library_base {
      * @return array
      */
     public static function preview_seal_brief(int $templateid, array $answers): array {
-        $params = self::validate_parameters(self::preview_seal_brief_parameters(), [
-            'templateid' => $templateid,
-            'answers' => $answers,
-        ]);
+        $params = self::validate_parameters(
+            self::preview_seal_brief_parameters(),
+            [
+                'templateid' => $templateid,
+                'answers' => $answers,
+            ]
+        );
 
         $template = self::require_readable($params['templateid']);
         $palette = $template->get_palette();
 
         $brief = seal_brief::from_input(
-            self::collect($params['answers'], seal_brief::fields()));
+            self::collect($params['answers'], seal_brief::fields())
+        );
         $data = self::seal_data($brief);
 
         $warnings = [];
         foreach ($brief->warnings() as $warning) {
-            $warnings[] = ['message' => get_string($warning['key'], 'mod_certificatepro',
-                $warning['a'])];
+            $warnings[] = ['message' => get_string(
+                $warning['key'],
+                'mod_certificatepro',
+                $warning['a']
+            )];
         }
 
         return [
@@ -572,9 +645,11 @@ class brief_api extends library_base {
             'ringname' => new external_value(PARAM_TEXT, 'The ring layout name'),
             'markname' => new external_value(PARAM_TEXT, 'The centre mark name'),
             'warnings' => new external_multiple_structure(
-                new external_single_structure([
-                    'message' => new external_value(PARAM_TEXT, 'What the author should know'),
-                ])
+                new external_single_structure(
+                    [
+                        'message' => new external_value(PARAM_TEXT, 'What the author should know'),
+                    ]
+                )
             ),
         ]);
     }
@@ -585,13 +660,19 @@ class brief_api extends library_base {
      * @return external_function_parameters
      */
     public static function apply_seal_brief_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'pageid' => new external_value(PARAM_INT, 'The page to place it on'),
-            'answers' => self::answers_structure(),
-            'elementid' => new external_value(PARAM_INT,
-                'An existing seal element to restyle, or 0 to add one', VALUE_DEFAULT, 0),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'pageid' => new external_value(PARAM_INT, 'The page to place it on'),
+                'answers' => self::answers_structure(),
+                'elementid' => new external_value(
+                    PARAM_INT,
+                    'An existing seal element to restyle, or 0 to add one',
+                    VALUE_DEFAULT,
+                    0
+                ),
+            ]
+        );
     }
 
     /**
@@ -607,35 +688,48 @@ class brief_api extends library_base {
             int $elementid = 0): array {
         global $DB;
 
-        $params = self::validate_parameters(self::apply_seal_brief_parameters(), [
-            'templateid' => $templateid,
-            'pageid' => $pageid,
-            'answers' => $answers,
-            'elementid' => $elementid,
-        ]);
+        $params = self::validate_parameters(
+            self::apply_seal_brief_parameters(),
+            [
+                'templateid' => $templateid,
+                'pageid' => $pageid,
+                'answers' => $answers,
+                'elementid' => $elementid,
+            ]
+        );
 
         $template = self::require_editable($params['templateid']);
         $page = self::require_page($template, $params['pageid']);
 
         $brief = seal_brief::from_input(
-            self::collect($params['answers'], seal_brief::fields()));
+            self::collect($params['answers'], seal_brief::fields())
+        );
         $data = self::seal_data($brief);
 
         $record = false;
         if ($params['elementid'] > 0) {
-            $record = $DB->get_record('certificatepro_elements', [
-                'id' => $params['elementid'],
-                'pageid' => (int) $page->id,
-                'element' => 'seal',
-            ]);
+            $record = $DB->get_record(
+                'certificatepro_elements',
+                [
+                    'id' => $params['elementid'],
+                    'pageid' => (int) $page->id,
+                    'element' => 'seal',
+                ]
+            );
         }
 
         if ($record === false) {
             // Starter designs already carry a seal, and a wizard that adds a
             // second one on top of it produces a design that looks broken and
             // an author who cannot see why. Restyle the seal that is there.
-            $existing = $DB->get_records('certificatepro_elements',
-                ['pageid' => (int) $page->id, 'element' => 'seal'], 'id ASC', '*', 0, 1);
+            $existing = $DB->get_records(
+                'certificatepro_elements',
+                ['pageid' => (int) $page->id, 'element' => 'seal'],
+                'id ASC',
+                '*',
+                0,
+                1
+            );
             $record = reset($existing);
         }
 
@@ -643,8 +737,12 @@ class brief_api extends library_base {
 
         if ($added) {
             $newid = $template->add_element((int) $page->id, 'seal');
-            $record = $DB->get_record('certificatepro_elements', ['id' => $newid],
-                '*', MUST_EXIST);
+            $record = $DB->get_record(
+                'certificatepro_elements',
+                ['id' => $newid],
+                '*',
+                MUST_EXIST
+            );
             $record->posy = round((float) $page->height * 0.78, 3);
             $record->posx = round((float) $page->width * 0.5, 3);
             $record->width = self::SEAL_DIAMETER;
@@ -657,24 +755,29 @@ class brief_api extends library_base {
         // An existing seal keeps where it sits and how big it is. The wizard
         // decides what the seal says and how it is drawn, not where the author
         // put it.
-        $DB->update_record('certificatepro_elements', (object) [
-            'id' => (int) $record->id,
-            'name' => $name !== '' ? $name : get_string('sealbriefdefaultname', 'mod_certificatepro'),
-            'data' => json_encode($data, JSON_PRESERVE_ZERO_FRACTION),
-            'width' => (float) $record->width,
-            'height' => (float) $record->height,
-            'posx' => (float) $record->posx,
-            'posy' => (float) $record->posy,
-            'refpoint' => $record->refpoint,
-            'timemodified' => time(),
-        ]);
+        $DB->update_record(
+            'certificatepro_elements',
+            (object) [
+                'id' => (int) $record->id,
+                'name' => $name !== '' ? $name : get_string('sealbriefdefaultname', 'mod_certificatepro'),
+                'data' => json_encode($data, JSON_PRESERVE_ZERO_FRACTION),
+                'width' => (float) $record->width,
+                'height' => (float) $record->height,
+                'posx' => (float) $record->posx,
+                'posy' => (float) $record->posy,
+                'refpoint' => $record->refpoint,
+                'timemodified' => time(),
+            ]
+        );
 
         $template->touch();
 
-        \mod_certificatepro\event\template_updated::create([
-            'objectid' => $template->get_id(),
-            'context' => $template->get_context(),
-        ])->trigger();
+        \mod_certificatepro\event\template_updated::create(
+            [
+                'objectid' => $template->get_id(),
+                'context' => $template->get_context(),
+            ]
+        )->trigger();
 
         return ['elementid' => (int) $record->id, 'added' => $added];
     }
@@ -685,11 +788,15 @@ class brief_api extends library_base {
      * @return external_single_structure
      */
     public static function apply_seal_brief_returns(): external_single_structure {
-        return new external_single_structure([
-            'elementid' => new external_value(PARAM_INT, 'The seal element id'),
-            'added' => new external_value(PARAM_BOOL,
-                'Whether a seal was added, rather than an existing one restyled'),
-        ]);
+        return new external_single_structure(
+            [
+                'elementid' => new external_value(PARAM_INT, 'The seal element id'),
+                'added' => new external_value(
+                    PARAM_BOOL,
+                    'Whether a seal was added, rather than an existing one restyled'
+                ),
+            ]
+        );
     }
 
     /**
@@ -890,23 +997,29 @@ class brief_api extends library_base {
         $size = self::SEAL_DIAMETER;
         $canvas = new canvas($size, $size, $palette, 7);
 
-        seal_engine::draw($canvas, 0.5, 0.5, $size / 2.0, [
-            'edge' => $data['sealedge'],
-            'ring' => $data['sealring'],
-            'mark' => $data['sealmark'],
-            'top' => $data['toptext'],
-            'bottom' => $data['bottomtext'],
-            'centre' => $data['centretext'],
-            'year' => $data['yeartext'],
-            'motto' => $data['mottotext'],
-            'ink' => $palette[$data['colour']] ?? ($palette['primary'] ?? '#1b3a5c'),
-            'metal' => $palette[$data['metal']] ?? ($palette['accent'] ?? '#b08432'),
-            'paper' => $palette['paper'] ?? '#ffffff',
-            'family' => 'helvetica',
-            'divider' => (bool) $data['sealdivider'],
-            'innerkeyline' => (bool) $data['sealkeyline'],
-            'weight' => 1.0,
-        ]);
+        seal_engine::draw(
+            $canvas,
+            0.5,
+            0.5,
+            $size / 2.0,
+            [
+                'edge' => $data['sealedge'],
+                'ring' => $data['sealring'],
+                'mark' => $data['sealmark'],
+                'top' => $data['toptext'],
+                'bottom' => $data['bottomtext'],
+                'centre' => $data['centretext'],
+                'year' => $data['yeartext'],
+                'motto' => $data['mottotext'],
+                'ink' => $palette[$data['colour']] ?? ($palette['primary'] ?? '#1b3a5c'),
+                'metal' => $palette[$data['metal']] ?? ($palette['accent'] ?? '#b08432'),
+                'paper' => $palette['paper'] ?? '#ffffff',
+                'family' => 'helvetica',
+                'divider' => (bool) $data['sealdivider'],
+                'innerkeyline' => (bool) $data['sealkeyline'],
+                'weight' => 1.0,
+            ]
+        );
 
         return (new svg_painter('cpseal'))->render($canvas->ops(), $size, $size);
     }

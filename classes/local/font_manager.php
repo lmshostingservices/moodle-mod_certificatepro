@@ -182,8 +182,14 @@ class font_manager {
         $contextid = \context_system::instance()->id;
 
         foreach ($records as $record) {
-            $files = $fs->get_area_files($contextid, 'mod_certificatepro', self::FILEAREA,
-                $record->id, 'filename', false);
+            $files = $fs->get_area_files(
+                $contextid,
+                'mod_certificatepro',
+                self::FILEAREA,
+                $record->id,
+                'filename',
+                false
+            );
             if (empty($files)) {
                 continue;
             }
@@ -265,16 +271,23 @@ class font_manager {
 
         // Keep the original file so the designer can load it as a web font.
         $fs = get_file_storage();
-        $fs->delete_area_files(\context_system::instance()->id, 'mod_certificatepro',
-            self::FILEAREA, $record->id);
-        $fs->create_file_from_storedfile([
-            'contextid' => \context_system::instance()->id,
-            'component' => 'mod_certificatepro',
-            'filearea' => self::FILEAREA,
-            'itemid' => $record->id,
-            'filepath' => '/',
-            'filename' => $file->get_filename(),
-        ], $file);
+        $fs->delete_area_files(
+            \context_system::instance()->id,
+            'mod_certificatepro',
+            self::FILEAREA,
+            $record->id
+        );
+        $fs->create_file_from_storedfile(
+            [
+                'contextid' => \context_system::instance()->id,
+                'component' => 'mod_certificatepro',
+                'filearea' => self::FILEAREA,
+                'itemid' => $record->id,
+                'filepath' => '/',
+                'filename' => $file->get_filename(),
+            ],
+            $file
+        );
 
         self::purge_cache();
 
@@ -348,8 +361,12 @@ class font_manager {
         }
 
         $fs = get_file_storage();
-        $fs->delete_area_files(\context_system::instance()->id, 'mod_certificatepro',
-            self::FILEAREA, $record->id);
+        $fs->delete_area_files(
+            \context_system::instance()->id,
+            'mod_certificatepro',
+            self::FILEAREA,
+            $record->id
+        );
 
         $DB->delete_records('certificatepro_fonts', ['id' => $fontid]);
 

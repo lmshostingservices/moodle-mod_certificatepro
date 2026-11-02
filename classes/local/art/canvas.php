@@ -262,10 +262,12 @@ class canvas {
         $a = self::to_rgb($this->colour($rolea));
         $b = self::to_rgb($this->colour($roleb));
         $t = max(0.0, min(1.0, $t));
-        return sprintf('#%02x%02x%02x',
+        return sprintf(
+            '#%02x%02x%02x',
             (int) round($a[0] + ($b[0] - $a[0]) * $t),
             (int) round($a[1] + ($b[1] - $a[1]) * $t),
-            (int) round($a[2] + ($b[2] - $a[2]) * $t));
+            (int) round($a[2] + ($b[2] - $a[2]) * $t)
+        );
     }
 
     /**
@@ -502,8 +504,10 @@ class canvas {
      */
     public function ellipse(float $u, float $v, float $rxmm, float $rymm, float $rot = 0.0,
             float $from = 0.0, float $to = 360.0, string $mode = 'D'): void {
-        $this->push(['ellipse', $this->x($u), $this->y($v), max(0.01, $rxmm), max(0.01, $rymm),
-            $rot, $from, $to, $mode]);
+        $this->push(
+            ['ellipse', $this->x($u), $this->y($v), max(0.01, $rxmm), max(0.01, $rymm),
+                $rot, $from, $to, $mode]
+        );
     }
 
     /**
@@ -537,8 +541,10 @@ class canvas {
      */
     public function ellipse_mm(float $xmm, float $ymm, float $rxmm, float $rymm,
             float $rot = 0.0, float $from = 0.0, float $to = 360.0, string $mode = 'D'): void {
-        $this->push(['ellipse', $xmm, $ymm, max(0.01, $rxmm), max(0.01, $rymm),
-            $rot, $from, $to, $mode]);
+        $this->push(
+            ['ellipse', $xmm, $ymm, max(0.01, $rxmm), max(0.01, $rymm),
+                $rot, $from, $to, $mode]
+        );
     }
 
     /**
@@ -684,8 +690,10 @@ class canvas {
      */
     public function linear_gradient(float $u, float $v, float $uw, float $vh, string $from,
             string $to, array $coords = [0.0, 0.0, 1.0, 0.0]): void {
-        $this->push(['lgrad', $this->x($u), $this->y($v), $this->x($uw), $this->y($vh),
-            $from, $to, array_map('floatval', $coords)]);
+        $this->push(
+            ['lgrad', $this->x($u), $this->y($v), $this->x($uw), $this->y($vh),
+                $from, $to, array_map('floatval', $coords)]
+        );
     }
 
     /**
@@ -702,8 +710,10 @@ class canvas {
      */
     public function radial_gradient(float $u, float $v, float $uw, float $vh, string $from,
             string $to, array $coords = [0.5, 0.5, 0.0, 0.5, 0.5, 0.5]): void {
-        $this->push(['rgrad', $this->x($u), $this->y($v), $this->x($uw), $this->y($vh),
-            $from, $to, array_map('floatval', $coords)]);
+        $this->push(
+            ['rgrad', $this->x($u), $this->y($v), $this->x($uw), $this->y($vh),
+                $from, $to, array_map('floatval', $coords)]
+        );
     }
 
     /**

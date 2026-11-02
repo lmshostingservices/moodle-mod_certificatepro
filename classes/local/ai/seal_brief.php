@@ -289,9 +289,13 @@ class seal_brief {
         $lines[] = 'Hard constraints. A seal that breaks any of these is discarded:';
         $lines[] = '1. Vector only. No <image>, no raster, no external references, no <filter>, '
             . 'no blur, no drop shadow, no CSS.';
-        $lines[] = sprintf('2. No lettering below %.1fmm cap height. At this diameter that means '
-            . 'ring text of roughly %.1fmm and never smaller — small type fills in on a laser '
-            . 'printer and disappears on a photocopier.', 1.6, max(1.8, $diameter * 0.058));
+        $lines[] = sprintf(
+            '2. No lettering below %.1fmm cap height. At this diameter that means '
+                . 'ring text of roughly %.1fmm and never smaller — small type fills in on a laser '
+                . 'printer and disappears on a photocopier.',
+            1.6,
+            max(1.8, $diameter * 0.058)
+        );
         $lines[] = '3. No gold, no metallic effect, no gradient meant to imitate foil or emboss. '
             . 'This is printed flat in the brand colour.';
         $lines[] = '4. No laurel wreaths, no ribbon banners, no rope borders, no eagles, no '

@@ -155,15 +155,17 @@ class pd_library {
         }
 
         $roles = self::roles();
-        $decoded['items'] = array_values(array_filter(
-            $decoded['items'] ?? [],
-            function ($item) use ($roles) {
-                return is_array($item)
-                    && !empty($item['id'])
-                    && !empty($item['file'])
-                    && in_array($item['role'] ?? null, $roles, true);
-            }
-        ));
+        $decoded['items'] = array_values(
+            array_filter(
+                $decoded['items'] ?? [],
+                function ($item) use ($roles) {
+                    return is_array($item)
+                        && !empty($item['id'])
+                        && !empty($item['file'])
+                        && in_array($item['role'] ?? null, $roles, true);
+                }
+            )
+        );
         $decoded['roles'] = $roles;
 
         self::$manifest = $decoded;
@@ -200,10 +202,13 @@ class pd_library {
         }
         if (!empty($filters['orientation'])) {
             $want = $filters['orientation'];
-            $items = array_filter($items, function ($i) use ($want) {
-                $has = $i['orientation'] ?? 'both';
-                return $has === 'both' || $has === $want;
-            });
+            $items = array_filter(
+                $items,
+                function ($i) use ($want) {
+                    $has = $i['orientation'] ?? 'both';
+                    return $has === 'both' || $has === $want;
+                }
+            );
         }
         if (!empty($filters['style'])) {
             $want = \core_text::strtolower($filters['style']);
@@ -236,12 +241,15 @@ class pd_library {
         }
         if (!empty($filters['q'])) {
             $needle = \core_text::strtolower(trim($filters['q']));
-            $items = array_filter($items, function ($i) use ($needle) {
-                $hay = \core_text::strtolower(
-                    ($i['title'] ?? '') . ' ' . ($i['id'] ?? '') . ' ' . ($i['style'] ?? '')
-                );
-                return \core_text::strpos($hay, $needle) !== false;
-            });
+            $items = array_filter(
+                $items,
+                function ($i) use ($needle) {
+                    $hay = \core_text::strtolower(
+                        ($i['title'] ?? '') . ' ' . ($i['id'] ?? '') . ' ' . ($i['style'] ?? '')
+                    );
+                    return \core_text::strpos($hay, $needle) !== false;
+                }
+            );
         }
 
         $items = array_map([self::class, 'decorate'], array_values($items));

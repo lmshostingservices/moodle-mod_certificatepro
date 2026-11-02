@@ -332,8 +332,10 @@ class artwork_engine {
                     $size = (1.6 - ($t * 0.7)) * (min($w, $h) / 90);
                     $body .= '<ellipse cx="' . round($lx, 2) . '" cy="' . round($ly, 2)
                         . '" rx="' . round($size * 2.1, 2) . '" ry="' . round($size, 2)
-                        . '" transform="rotate(' . round(rad2deg($angle) * $corner['dx'] * -1, 1)
-                        . ' ' . round($lx, 2) . ' ' . round($ly, 2) . ')" fill="' . $light
+                        . '" transform="rotate(
+                            ' . round(rad2deg($angle) * $corner['dx'] * -1, 1)
+                            . ' ' . round($lx, 2) . ' ' . round($ly, 2) . '
+                        )" fill="' . $light
                         . '" fill-opacity="' . round($opacity * 0.9, 3) . '"/>';
                 }
             }
@@ -581,9 +583,11 @@ class artwork_engine {
                         $lx = 50 + ($side * 40 * cos($angle));
                         $ly = 50 - (40 * sin($angle));
                         $body .= '<ellipse cx="' . round($lx, 2) . '" cy="' . round($ly, 2)
-                            . '" rx="5.2" ry="2.2" transform="rotate('
-                            . round(rad2deg($angle) * $side, 1) . ' ' . round($lx, 2) . ' '
-                            . round($ly, 2) . ')" fill="' . $dark . '" fill-opacity="0.85"/>';
+                            . '" rx="5.2" ry="2.2" transform="rotate(
+                                '
+                                . round(rad2deg($angle) * $side, 1) . ' ' . round($lx, 2) . ' '
+                                . round($ly, 2) . '
+                            )" fill="' . $dark . '" fill-opacity="0.85"/>';
                     }
                 }
                 break;
@@ -705,8 +709,13 @@ class artwork_engine {
                 $body = $rect($x, $y, $iw, $ih, $thickness);
                 for ($i = 1; $i <= 3; $i++) {
                     $offset = $i * 2.2;
-                    $body .= $rect($x + $offset, $y + $offset, $iw - (2 * $offset),
-                        $ih - (2 * $offset), max(0.1, $thickness - ($i * 0.18)));
+                    $body .= $rect(
+                        $x + $offset,
+                        $y + $offset,
+                        $iw - (2 * $offset),
+                        $ih - (2 * $offset),
+                        max(0.1, $thickness - ($i * 0.18))
+                    );
                 }
                 break;
 

@@ -118,31 +118,40 @@ class direct_provider implements provider {
             return null;
         }
 
-        $payload = json_encode([
-            'model' => $this->model(),
-            'max_tokens' => 8000,
-            'system' => 'You compose decorative vector artwork. You reply with one SVG document '
-                . 'and nothing else: no prose, no explanation, no code fences.',
-            'messages' => [
-                ['role' => 'user', 'content' => $instruction],
+        $payload = json_encode(
+            [
+                'model' => $this->model(),
+                'max_tokens' => 8000,
+                'system' => 'You compose decorative vector artwork. You reply with one SVG document '
+                    . 'and nothing else: no prose, no explanation, no code fences.',
+                'messages' => [
+                    ['role' => 'user', 'content' => $instruction],
+                ],
             ],
-        ], JSON_UNESCAPED_SLASHES);
+            JSON_UNESCAPED_SLASHES
+        );
 
         if ($payload === false) {
             return null;
         }
 
         $curl = new \curl();
-        $curl->setHeader([
-            'Content-Type: application/json',
-            'x-api-key: ' . $key,
-            'anthropic-version: ' . self::API_VERSION,
-        ]);
+        $curl->setHeader(
+            [
+                'Content-Type: application/json',
+                'x-api-key: ' . $key,
+                'anthropic-version: ' . self::API_VERSION,
+            ]
+        );
 
-        $response = $curl->post($this->endpoint(), $payload, [
-            'CURLOPT_TIMEOUT' => self::TIMEOUT,
-            'CURLOPT_CONNECTTIMEOUT' => 15,
-        ]);
+        $response = $curl->post(
+            $this->endpoint(),
+            $payload,
+            [
+                'CURLOPT_TIMEOUT' => self::TIMEOUT,
+                'CURLOPT_CONNECTTIMEOUT' => 15,
+            ]
+        );
 
         $info = $curl->get_info();
         $status = (int) ($info['http_code'] ?? 0);

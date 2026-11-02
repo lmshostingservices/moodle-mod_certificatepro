@@ -34,13 +34,17 @@ require_capability('mod/certificatepro:view', $context);
 
 $PAGE->set_url('/mod/certificatepro/index.php', ['id' => $course->id]);
 $PAGE->set_context($context);
-$PAGE->set_title(format_string($course->shortname) . ': '
-    . get_string('modulenameplural', 'mod_certificatepro'));
+$PAGE->set_title(
+    format_string($course->shortname) . ': '
+        . get_string('modulenameplural', 'mod_certificatepro')
+);
 $PAGE->set_heading(format_string($course->fullname));
 
-\mod_certificatepro\event\course_module_instance_list_viewed::create([
-    'context' => $context,
-])->trigger();
+\mod_certificatepro\event\course_module_instance_list_viewed::create(
+    [
+        'context' => $context,
+    ]
+)->trigger();
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('modulenameplural', 'mod_certificatepro'));
@@ -75,8 +79,10 @@ foreach ($instances as $instance) {
     $table->data[] = [
         $link,
         $issue
-            ? get_string('status_' . \mod_certificatepro\local\issue_service::status($issue),
-                'mod_certificatepro')
+            ? get_string(
+                'status_' . \mod_certificatepro\local\issue_service::status($issue),
+                'mod_certificatepro'
+            )
             : get_string('status_notissued', 'mod_certificatepro'),
         $issue ? userdate($issue->timecreated, get_string('strftimedate', 'langconfig')) : '-',
     ];

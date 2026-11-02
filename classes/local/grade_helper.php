@@ -160,8 +160,8 @@ class grade_helper {
                     return '';
                 }
                 return $final >= $passmark
-                    ? ($wording['pass'] ?? get_string('gradepassdefault', 'mod_certificatepro'))
-                    : ($wording['fail'] ?? get_string('gradefaildefault', 'mod_certificatepro'));
+                    ? self::word($wording, 'pass')
+                    : self::word($wording, 'fail');
 
             default:
                 $range = $max - $min;
@@ -186,7 +186,19 @@ class grade_helper {
             'points' => format_float(87, $decimals),
             'pointsmax' => format_float(87, $decimals) . ' / ' . format_float(100, $decimals),
             'letter' => 'A',
-            'passfail' => $wording['pass'] ?? get_string('gradepassdefault', 'mod_certificatepro'),
+            'passfail' => self::word($wording, 'pass'),
             default => format_float(87, $decimals) . '%',
         };
-    }}
+    }
+    /**
+     * Configured pass/fail wording, falling back to the defaults when left blank.
+     *
+     * @param array $wording
+     * @param string $key pass or fail
+     * @return string
+     */
+    protected static function word(array $wording, string $key): string {
+        $value = trim((string)($wording[$key] ?? ''));
+        return $value !== '' ? $value : get_string('grade' . $key . 'default', 'mod_certificatepro');
+    }
+}

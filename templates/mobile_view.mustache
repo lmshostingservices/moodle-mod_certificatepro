@@ -46,7 +46,7 @@
 }}
 <div class="certificatepro-mobile">
     {{#intro}}
-        <core-course-module-description description="{{{intro}}}"></core-course-module-description>
+        <core-course-module-description description="{{intro}}"></core-course-module-description>
     {{/intro}}
 
     {{#hasissue}}
@@ -58,9 +58,11 @@
             <ion-card-content>
                 <p><code>{{code}}</code></p>
                 {{#serial}}<p>{{serial}}</p>{{/serial}}
-                <ion-button expand="block" href="{{downloadurl}}" core-link>
+                {{#downloadurl}}
+                <ion-button expand="block" href="{{downloadurl}}" core-link [capture]="false">
                     {{ 'plugin.mod_certificatepro.downloadcertificate' | translate }}
                 </ion-button>
+                {{/downloadurl}}
                 <ion-button expand="block" fill="outline" href="{{verifyurl}}" core-link>
                     {{ 'plugin.mod_certificatepro.verifytitle' | translate }}
                 </ion-button>

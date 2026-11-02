@@ -88,27 +88,47 @@ class shape extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('select', 'shape',
-            get_string('shape', 'mod_certificatepro'), self::shapes());
+        $mform->addElement(
+            'select',
+            'shape',
+            get_string('shape', 'mod_certificatepro'),
+            self::shapes()
+        );
         $mform->setDefault('shape', 'rounded');
 
-        $mform->addElement('text', 'fillcolour',
-            get_string('fillcolour', 'mod_certificatepro'), ['size' => 12]);
+        $mform->addElement(
+            'text',
+            'fillcolour',
+            get_string('fillcolour', 'mod_certificatepro'),
+            ['size' => 12]
+        );
         $mform->setType('fillcolour', PARAM_TEXT);
         $mform->setDefault('fillcolour', 'primarywash');
 
-        $mform->addElement('text', 'strokecolour',
-            get_string('strokecolour', 'mod_certificatepro'), ['size' => 12]);
+        $mform->addElement(
+            'text',
+            'strokecolour',
+            get_string('strokecolour', 'mod_certificatepro'),
+            ['size' => 12]
+        );
         $mform->setType('strokecolour', PARAM_TEXT);
         $mform->setDefault('strokecolour', '');
 
-        $mform->addElement('text', 'thickness',
-            get_string('linethickness', 'mod_certificatepro'), ['size' => 6]);
+        $mform->addElement(
+            'text',
+            'thickness',
+            get_string('linethickness', 'mod_certificatepro'),
+            ['size' => 6]
+        );
         $mform->setType('thickness', PARAM_FLOAT);
         $mform->setDefault('thickness', 0.4);
 
-        $mform->addElement('text', 'radius',
-            get_string('cornerradius', 'mod_certificatepro'), ['size' => 6]);
+        $mform->addElement(
+            'text',
+            'radius',
+            get_string('cornerradius', 'mod_certificatepro'),
+            ['size' => 6]
+        );
         $mform->setType('radius', PARAM_FLOAT);
         $mform->setDefault('radius', 3);
         $mform->hideIf('radius', 'shape', 'neq', 'rounded');
@@ -199,14 +219,30 @@ class shape extends base {
         switch ($this->config('shape', 'rounded')) {
             case 'circle':
                 $radius = min($width, $height) / 2;
-                $pdf->Circle($left + ($width / 2), $top + ($height / 2), $radius, 0, 360,
-                    $mode, $border['all'] ?? [], $fillcolour);
+                $pdf->Circle(
+                    $left + ($width / 2),
+                    $top + ($height / 2),
+                    $radius,
+                    0,
+                    360,
+                    $mode,
+                    $border['all'] ?? [],
+                    $fillcolour
+                );
                 break;
 
             case 'rounded':
-                $pdf->RoundedRect($left, $top, $width, $height,
-                    (float) $this->config('radius', 3), '1111', $mode, $border['all'] ?? [],
-                    $fillcolour);
+                $pdf->RoundedRect(
+                    $left,
+                    $top,
+                    $width,
+                    $height,
+                    (float) $this->config('radius', 3),
+                    '1111',
+                    $mode,
+                    $border['all'] ?? [],
+                    $fillcolour
+                );
                 break;
 
             case 'ribbon':
@@ -284,7 +320,11 @@ class shape extends base {
                 break;
         }
 
-        return \html_writer::div('', 'certificatepro-element-shape', [
-            'style' => implode(';', $styles),
-        ]);
+        return \html_writer::div(
+            '',
+            'certificatepro-element-shape',
+            [
+                'style' => implode(';', $styles),
+            ]
+        );
     }}

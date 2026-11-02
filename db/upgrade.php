@@ -84,10 +84,25 @@ function xmldb_certificatepro_upgrade($oldversion) {
             $dbman->add_field($table, $field);
         }
         if ($dbman->table_exists(new xmldb_table('local_recertify_cycles'))) {
-            $DB->execute('UPDATE {certificatepro} SET cycleonly = 1
-                WHERE id IN (SELECT certificateid FROM {local_recertify_cycles})');
+            $DB->execute(
+                'UPDATE {certificatepro} SET cycleonly = 1
+                    WHERE id IN (SELECT certificateid FROM {local_recertify_cycles})'
+            );
         }
         upgrade_mod_savepoint(true, 2026101201, 'certificatepro');
+    }
+    if ($oldversion < 2026110200) {
+        // The settings form used to save a blank "required grade" as 0, which silently required every
+        // learner to hold a course grade. A 0% threshold has no other meaning, so treat it as "no requirement".
+        $DB->set_field('certificatepro', 'requiregrade', null, ['requiregrade' => 0]);
+        upgrade_mod_savepoint(true, 2026110200, 'certificatepro');
+    }
+    if ($oldversion < 2026110201) {
+        // Keep verification public on sites with forcelogin (the default on Moodle 5.0+), matching core badges.
+        if (get_config('mod_certificatepro', 'publicverify') === false) {
+            set_config('publicverify', 1, 'mod_certificatepro');
+        }
+        upgrade_mod_savepoint(true, 2026110201, 'certificatepro');
     }
     return true;
 }

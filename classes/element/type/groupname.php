@@ -71,11 +71,15 @@ class groupname extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('select', 'groupmode',
-            get_string('groupdisplay', 'mod_certificatepro'), [
+        $mform->addElement(
+            'select',
+            'groupmode',
+            get_string('groupdisplay', 'mod_certificatepro'),
+            [
                 'first' => get_string('groupdisplay_first', 'mod_certificatepro'),
                 'all' => get_string('groupdisplay_all', 'mod_certificatepro'),
-            ]);
+            ]
+        );
         $mform->setDefault('groupmode', 'first');
     }
 

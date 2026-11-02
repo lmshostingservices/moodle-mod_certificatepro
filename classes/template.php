@@ -153,8 +153,11 @@ class template {
     public function get_pages(): array {
         global $DB;
 
-        return $DB->get_records('certificatepro_pages', ['templateid' => $this->get_id()],
-            'sequence ASC, id ASC');
+        return $DB->get_records(
+            'certificatepro_pages',
+            ['templateid' => $this->get_id()],
+            'sequence ASC, id ASC'
+        );
     }
 
     /**
@@ -166,8 +169,11 @@ class template {
     public function get_elements(int $pageid): array {
         global $DB;
 
-        $records = $DB->get_records('certificatepro_elements', ['pageid' => $pageid],
-            'zindex ASC, sequence ASC, id ASC');
+        $records = $DB->get_records(
+            'certificatepro_elements',
+            ['pageid' => $pageid],
+            'zindex ASC, sequence ASC, id ASC'
+        );
 
         $elements = [];
         foreach ($records as $record) {
@@ -257,8 +263,12 @@ class template {
     public function add_element(int $pageid, string $type, ?string $zoneid = null): int {
         global $DB;
 
-        $page = $DB->get_record('certificatepro_pages',
-            ['id' => $pageid, 'templateid' => $this->get_id()], '*', MUST_EXIST);
+        $page = $DB->get_record(
+            'certificatepro_pages',
+            ['id' => $pageid, 'templateid' => $this->get_id()],
+            '*',
+            MUST_EXIST
+        );
 
         $element = registry::create($type, $pageid);
         $record = $element->get_record();
@@ -408,8 +418,11 @@ class template {
             $pagecopy->timemodified = time();
             $newpageid = (int) $DB->insert_record('certificatepro_pages', $pagecopy);
 
-            $elements = $DB->get_records('certificatepro_elements', ['pageid' => $page->id],
-                'zindex ASC, id ASC');
+            $elements = $DB->get_records(
+                'certificatepro_elements',
+                ['pageid' => $page->id],
+                'zindex ASC, id ASC'
+            );
 
             foreach ($elements as $element) {
                 $oldid = (int) $element->id;
@@ -421,13 +434,22 @@ class template {
                 $newid = (int) $DB->insert_record('certificatepro_elements', $elementcopy);
 
                 foreach ($areas as $area) {
-                    $files = $fs->get_area_files($this->context->id, 'mod_certificatepro',
-                        $area, $oldid, 'id', false);
+                    $files = $fs->get_area_files(
+                        $this->context->id,
+                        'mod_certificatepro',
+                        $area,
+                        $oldid,
+                        'id',
+                        false
+                    );
                     foreach ($files as $file) {
-                        $fs->create_file_from_storedfile([
-                            'contextid' => $target->id,
-                            'itemid' => $newid,
-                        ], $file);
+                        $fs->create_file_from_storedfile(
+                            [
+                                'contextid' => $target->id,
+                                'itemid' => $newid,
+                            ],
+                            $file
+                        );
                     }
                 }
             }
@@ -447,11 +469,14 @@ class template {
         $this->record->revision = (int) $this->record->revision + 1;
         $this->record->timemodified = time();
 
-        $DB->update_record('certificatepro_templates', (object) [
-            'id' => $this->record->id,
-            'revision' => $this->record->revision,
-            'timemodified' => $this->record->timemodified,
-        ]);
+        $DB->update_record(
+            'certificatepro_templates',
+            (object) [
+                'id' => $this->record->id,
+                'revision' => $this->record->revision,
+                'timemodified' => $this->record->timemodified,
+            ]
+        );
     }
 
     /**
@@ -538,8 +563,13 @@ class template {
                 ],
                 'backgroundcolour' => $page->backgroundcolour,
                 'sequence' => (int) $page->sequence,
-                'zones' => array_values(zone_library::resolve(
-                    $page->orientation, (float) $page->width, (float) $page->height)),
+                'zones' => array_values(
+                    zone_library::resolve(
+                        $page->orientation,
+                        (float) $page->width,
+                        (float) $page->height
+                    )
+                ),
                 'guides' => zone_library::guides(
                     (float) $page->width,
                     (float) $page->height,

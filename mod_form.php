@@ -56,102 +56,174 @@ class mod_certificatepro_mod_form extends moodleform_mod {
             foreach (\mod_certificatepro\local\starter_templates::catalogue() as $id => $starter) {
                 $starters[$id] = $starter['name'];
             }
-            $mform->addElement('select', 'starter',
-                get_string('startingdesign', 'mod_certificatepro'), $starters);
+            $mform->addElement(
+                'select',
+                'starter',
+                get_string('startingdesign', 'mod_certificatepro'),
+                $starters
+            );
             $mform->setDefault('starter', 'classic');
             $mform->addHelpButton('starter', 'startingdesign', 'mod_certificatepro');
         }
 
         // Availability.
-        $mform->addElement('header', 'availabilityheader',
-            get_string('availabilityheader', 'mod_certificatepro'));
+        $mform->addElement(
+            'header',
+            'availabilityheader',
+            get_string('availabilityheader', 'mod_certificatepro')
+        );
 
-        $mform->addElement('duration', 'requiredtime',
-            get_string('requiredtime', 'mod_certificatepro'), ['units' => [MINSECS, HOURSECS]]);
+        $mform->addElement(
+            'duration',
+            'requiredtime',
+            get_string('requiredtime', 'mod_certificatepro'),
+            ['units' => [MINSECS, HOURSECS], 'defaultunit' => MINSECS]
+        );
         $mform->setType('requiredtime', PARAM_INT);
         $mform->addHelpButton('requiredtime', 'requiredtime', 'mod_certificatepro');
 
-        $mform->addElement('text', 'requiregrade',
-            get_string('requiregrade', 'mod_certificatepro'), ['size' => 6]);
-        $mform->setType('requiregrade', PARAM_FLOAT);
+        $mform->addElement(
+            'text',
+            'requiregrade',
+            get_string('requiregrade', 'mod_certificatepro'),
+            ['size' => 6]
+        );
+        $mform->setType('requiregrade', PARAM_TEXT);
         $mform->addHelpButton('requiregrade', 'requiregrade', 'mod_certificatepro');
 
-        $mform->addElement('advcheckbox', 'requirecompletion',
-            get_string('requirecompletion', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'requirecompletion',
+            get_string('requirecompletion', 'mod_certificatepro')
+        );
         $mform->addHelpButton('requirecompletion', 'requirecompletion', 'mod_certificatepro');
 
-        $mform->addElement('advcheckbox', 'autoissue',
-            get_string('autoissue', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'autoissue',
+            get_string('autoissue', 'mod_certificatepro')
+        );
         $mform->setDefault('autoissue', 1);
         $mform->addHelpButton('autoissue', 'autoissue', 'mod_certificatepro');
 
         // Validity.
-        $mform->addElement('header', 'validityheader',
-            get_string('validityheader', 'mod_certificatepro'));
+        $mform->addElement(
+            'header',
+            'validityheader',
+            get_string('validityheader', 'mod_certificatepro')
+        );
 
-        $mform->addElement('duration', 'validityperiod',
+        $mform->addElement(
+            'duration',
+            'validityperiod',
             get_string('validityperiod', 'mod_certificatepro'),
-            ['units' => [DAYSECS, WEEKSECS], 'optional' => true]);
+            // Moodle 5.1+ requires the default unit to be one of the allowed units.
+            ['units' => [DAYSECS, WEEKSECS], 'defaultunit' => DAYSECS, 'optional' => true]
+        );
         $mform->setType('validityperiod', PARAM_INT);
         $mform->addHelpButton('validityperiod', 'validityperiod', 'mod_certificatepro');
 
-        $mform->addElement('text', 'expirywarndays',
-            get_string('expirywarndays', 'mod_certificatepro'), ['size' => 6]);
+        $mform->addElement(
+            'text',
+            'expirywarndays',
+            get_string('expirywarndays', 'mod_certificatepro'),
+            ['size' => 6]
+        );
         $mform->setType('expirywarndays', PARAM_INT);
         $mform->setDefault('expirywarndays', 0);
         $mform->hideIf('expirywarndays', 'validityperiod[enabled]', 'notchecked');
 
-        $mform->addElement('text', 'serialprefix',
-            get_string('serialprefix', 'mod_certificatepro'), ['size' => 24]);
+        $mform->addElement(
+            'text',
+            'serialprefix',
+            get_string('serialprefix', 'mod_certificatepro'),
+            ['size' => 24]
+        );
         $mform->setType('serialprefix', PARAM_TEXT);
         $mform->addHelpButton('serialprefix', 'serialprefix', 'mod_certificatepro');
 
-        $mform->addElement('select', 'serialpadding',
+        $mform->addElement(
+            'select',
+            'serialpadding',
             get_string('serialpadding', 'mod_certificatepro'),
-            array_combine(range(3, 10), range(3, 10)));
+            array_combine(range(3, 10), range(3, 10))
+        );
         $mform->setDefault('serialpadding', 6);
         $mform->hideIf('serialpadding', 'serialprefix', 'eq', '');
 
-        $mform->addElement('advcheckbox', 'revocationallowed',
-            get_string('revocationallowed', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'revocationallowed',
+            get_string('revocationallowed', 'mod_certificatepro')
+        );
         $mform->setDefault('revocationallowed', 1);
 
         // Delivery.
-        $mform->addElement('header', 'deliveryheader',
-            get_string('deliveryheader', 'mod_certificatepro'));
+        $mform->addElement(
+            'header',
+            'deliveryheader',
+            get_string('deliveryheader', 'mod_certificatepro')
+        );
 
-        $mform->addElement('select', 'deliveryoption',
-            get_string('deliveryoption', 'mod_certificatepro'), [
+        $mform->addElement(
+            'select',
+            'deliveryoption',
+            get_string('deliveryoption', 'mod_certificatepro'),
+            [
                 'D' => get_string('deliveryoption_download', 'mod_certificatepro'),
                 'I' => get_string('deliveryoption_inline', 'mod_certificatepro'),
-            ]);
+            ]
+        );
         $mform->setDefault('deliveryoption', 'D');
 
-        $mform->addElement('advcheckbox', 'usecustomfilename',
-            get_string('usecustomfilename', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'usecustomfilename',
+            get_string('usecustomfilename', 'mod_certificatepro')
+        );
 
-        $mform->addElement('text', 'customfilenamepattern',
-            get_string('customfilenamepattern', 'mod_certificatepro'), ['size' => 60]);
+        $mform->addElement(
+            'text',
+            'customfilenamepattern',
+            get_string('customfilenamepattern', 'mod_certificatepro'),
+            ['size' => 60]
+        );
         $mform->setType('customfilenamepattern', PARAM_TEXT);
         $mform->setDefault('customfilenamepattern', '{fullname} - {coursefullname}');
         $mform->hideIf('customfilenamepattern', 'usecustomfilename', 'notchecked');
         $mform->addHelpButton('customfilenamepattern', 'customfilenamepattern', 'mod_certificatepro');
 
-        $mform->addElement('advcheckbox', 'emailstudents',
-            get_string('emailstudents', 'mod_certificatepro'));
-        $mform->addElement('advcheckbox', 'emailteachers',
-            get_string('emailteachers', 'mod_certificatepro'));
-        $mform->addElement('text', 'emailothers',
-            get_string('emailothers', 'mod_certificatepro'), ['size' => 60]);
+        $mform->addElement(
+            'advcheckbox',
+            'emailstudents',
+            get_string('emailstudents', 'mod_certificatepro')
+        );
+        $mform->addElement(
+            'advcheckbox',
+            'emailteachers',
+            get_string('emailteachers', 'mod_certificatepro')
+        );
+        $mform->addElement(
+            'text',
+            'emailothers',
+            get_string('emailothers', 'mod_certificatepro'),
+            ['size' => 60]
+        );
         $mform->setType('emailothers', PARAM_TEXT);
         $mform->addHelpButton('emailothers', 'emailothers', 'mod_certificatepro');
 
         // Verification and protection.
-        $mform->addElement('header', 'verificationheader',
-            get_string('verificationheader', 'mod_certificatepro'));
+        $mform->addElement(
+            'header',
+            'verificationheader',
+            get_string('verificationheader', 'mod_certificatepro')
+        );
 
-        $mform->addElement('advcheckbox', 'verifyany',
-            get_string('verifyany', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'verifyany',
+            get_string('verifyany', 'mod_certificatepro')
+        );
         $mform->setDefault('verifyany', 1);
         $mform->addHelpButton('verifyany', 'verifyany', 'mod_certificatepro');
 
@@ -164,8 +236,13 @@ class mod_certificatepro_mod_form extends moodleform_mod {
         foreach ($protection as $key => $label) {
             $checkboxes[] = $mform->createElement('advcheckbox', $key, '', $label);
         }
-        $mform->addGroup($checkboxes, 'protectiongroup',
-            get_string('protection', 'mod_certificatepro'), '<br />', true);
+        $mform->addGroup(
+            $checkboxes,
+            'protectiongroup',
+            get_string('protection', 'mod_certificatepro'),
+            '<br />',
+            true
+        );
         $mform->addHelpButton('protectiongroup', 'protection', 'mod_certificatepro');
 
         $this->standard_coursemodule_elements();
@@ -195,9 +272,8 @@ class mod_certificatepro_mod_form extends moodleform_mod {
         $data->protection = implode(',', $flags);
         unset($data->protectiongroup);
 
-        if ($data->requiregrade === '' || $data->requiregrade === null) {
-            $data->requiregrade = null;
-        }
+        $requiregrade = trim((string)($data->requiregrade ?? ''));
+        $data->requiregrade = $requiregrade === '' ? null : unformat_float($requiregrade);
 
         return $data;
     }
@@ -230,9 +306,10 @@ class mod_certificatepro_mod_form extends moodleform_mod {
     public function validation($data, $files) {
         $errors = parent::validation($data, $files);
 
-        if ($data['requiregrade'] !== '' && $data['requiregrade'] !== null) {
-            $grade = (float) $data['requiregrade'];
-            if ($grade < 0 || $grade > 100) {
+        $requiregrade = trim((string)($data['requiregrade'] ?? ''));
+        if ($requiregrade !== '') {
+            $grade = unformat_float($requiregrade, true);
+            if ($grade === false || $grade === null || $grade < 0 || $grade > 100) {
                 $errors['requiregrade'] = get_string('errorgraderange', 'mod_certificatepro');
             }
         }
@@ -241,8 +318,11 @@ class mod_certificatepro_mod_form extends moodleform_mod {
             foreach (explode(',', $data['emailothers']) as $address) {
                 $address = trim($address);
                 if ($address !== '' && !validate_email($address)) {
-                    $errors['emailothers'] = get_string('erroremailaddress', 'mod_certificatepro',
-                        s($address));
+                    $errors['emailothers'] = get_string(
+                        'erroremailaddress',
+                        'mod_certificatepro',
+                        s($address)
+                    );
                     break;
                 }
             }

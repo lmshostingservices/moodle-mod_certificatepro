@@ -26,7 +26,7 @@
  */
 define(['core/ajax', 'core/notification', 'core/templates', 'core/modal', 'core/str',
     'mod_certificatepro/gallery'],
-function (Ajax, Notification, Templates, Modal, Str, Gallery) {
+function(Ajax, Notification, Templates, Modal, Str, Gallery) {
 
     'use strict';
 
@@ -39,16 +39,16 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
      * @param {Object} config templateid, pageid, and a done callback
      * @return {Promise} resolves once the dialog is on screen
      */
-    var open = function (config) {
+    var open = function(config) {
         return Ajax.call([{
             methodname: 'mod_certificatepro_get_background_styles',
             args: {templateid: config.templateid}
-        }])[0].then(function (response) {
+        }])[0].then(function(response) {
             return Promise.all([
                 Templates.render('mod_certificatepro/background_picker', response),
                 Str.get_string('bgpickertitle', 'mod_certificatepro')
             ]);
-        }).then(function (parts) {
+        }).then(function(parts) {
             return Modal.create({
                 title: parts[1],
                 body: parts[0],
@@ -56,8 +56,8 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
                 removeOnClose: true,
                 returnElement: config.returnElement
             });
-        }).then(function (modal) {
-            return modal.show().then(function () {
+        }).then(function(modal) {
+            return modal.show().then(function() {
                 wire(modal, config);
                 return modal;
             });
@@ -71,7 +71,7 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
      * @param {Object} config templateid, pageid, and a done callback
      * @return {void}
      */
-    var wire = function (modal, config) {
+    var wire = function(modal, config) {
         var root = modal.getBody()[0].querySelector('[data-region="backgroundpicker"]');
         if (!root) {
             return;
@@ -82,7 +82,7 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
         var note = root.querySelector('[data-region="note"]');
         var loading = false;
 
-        var handle = Gallery.attach(gallery, function (value, tile) {
+        var handle = Gallery.attach(gallery, function(value, tile) {
             apply.disabled = !value;
             var name = tile.querySelector('.cpro-gallery-name');
             note.textContent = name ? name.textContent : '';
@@ -94,8 +94,8 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
          * @param {HTMLElement[]} tiles the tiles wanting a preview
          * @return {void}
          */
-        var fetch = function (tiles) {
-            var wanted = tiles.filter(function (tile) {
+        var fetch = function(tiles) {
+            var wanted = tiles.filter(function(tile) {
                 return !tile.hasAttribute('data-loaded');
             }).slice(0, BATCH);
 
@@ -104,7 +104,7 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
             }
 
             loading = true;
-            wanted.forEach(function (tile) {
+            wanted.forEach(function(tile) {
                 tile.setAttribute('data-loaded', 'pending');
             });
 
@@ -112,13 +112,13 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
                 methodname: 'mod_certificatepro_get_background_previews',
                 args: {
                     templateid: config.templateid,
-                    styles: wanted.map(function (tile) {
+                    styles: wanted.map(function(tile) {
                         return tile.getAttribute('data-value');
                     }),
                     seed: 7
                 }
-            }])[0].then(function (response) {
-                response.previews.forEach(function (preview) {
+            }])[0].then(function(response) {
+                response.previews.forEach(function(preview) {
                     var tile = root.querySelector('[data-value="' + preview.id + '"]');
                     var thumb = tile ? tile.querySelector('[data-region="thumb"]') : null;
                     if (thumb) {
@@ -129,7 +129,7 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
                 loading = false;
                 queue();
                 return response;
-            }).catch(function (error) {
+            }).catch(function(error) {
                 loading = false;
                 Notification.exception(error);
             });
@@ -145,7 +145,7 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
          * @param {HTMLElement} tile the tile to test
          * @return {boolean} true when it is on screen or nearly so
          */
-        var isNear = function (tile) {
+        var isNear = function(tile) {
             var view = gallery.getBoundingClientRect();
             var box = tile.getBoundingClientRect();
             return box.bottom > view.top - 240 && box.top < view.bottom + 240;
@@ -156,8 +156,8 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
          *
          * @return {void}
          */
-        var queue = function () {
-            var pending = handle.tiles().filter(function (tile) {
+        var queue = function() {
+            var pending = handle.tiles().filter(function(tile) {
                 return !tile.hasAttribute('data-loaded') && isNear(tile);
             });
 
@@ -166,7 +166,7 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
             }
         };
 
-        root.addEventListener('click', function (event) {
+        root.addEventListener('click', function(event) {
             var facet = event.target.closest('[data-action="family"]');
             if (!facet) {
                 return;
@@ -175,14 +175,14 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
             var family = facet.getAttribute('data-value');
 
             Array.prototype.forEach.call(root.querySelectorAll('[data-action="family"]'),
-                function (button) {
+                function(button) {
                     var active = button === facet;
                     button.classList.toggle('active', active);
                     button.setAttribute('aria-pressed', active ? 'true' : 'false');
                 });
 
             Array.prototype.forEach.call(root.querySelectorAll('[data-region="tile"]'),
-                function (tile) {
+                function(tile) {
                     tile.hidden = family !== '' && tile.getAttribute('data-family') !== family;
                 });
 
@@ -191,7 +191,7 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
             queue();
         });
 
-        apply.addEventListener('click', function () {
+        apply.addEventListener('click', function() {
             var chosen = handle.value();
             if (!chosen) {
                 return;
@@ -207,13 +207,13 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
                     style: chosen,
                     seed: 7
                 }
-            }])[0].then(function (result) {
+            }])[0].then(function(result) {
                 modal.destroy();
                 if (config.done) {
                     config.done(result);
                 }
                 return result;
-            }).catch(function (error) {
+            }).catch(function(error) {
                 apply.disabled = false;
                 Notification.exception(error);
             });

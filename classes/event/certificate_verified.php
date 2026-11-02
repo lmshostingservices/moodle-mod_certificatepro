@@ -61,4 +61,22 @@ class certificate_verified extends \core\event\base {
     public function get_url() {
         return new \moodle_url('/mod/certificatepro/verify.php', ['id' => $this->contextinstanceid]);
     }
+
+    /**
+     * Mapping used when logs are restored.
+     *
+     * @return array|int
+     */
+    public static function get_objectid_mapping() {
+        return ['db' => 'certificatepro_issues', 'restore' => 'certificatepro_issue'];
+    }
+
+    /**
+     * Other data needs no mapping on restore.
+     *
+     * @return bool
+     */
+    public static function get_other_mapping() {
+        return false;
+    }
 }

@@ -69,11 +69,14 @@ class grade extends text_base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(parent::default_style(), [
-            'font' => 'body',
-            'scalerole' => 'meta',
-            'size' => null,
-        ]);
+        return array_merge(
+            parent::default_style(),
+            [
+                'font' => 'body',
+                'scalerole' => 'meta',
+                'size' => null,
+            ]
+        );
     }
 
     /**
@@ -84,37 +87,59 @@ class grade extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('select', 'gradeitem',
+        $mform->addElement(
+            'select',
+            'gradeitem',
             get_string('gradeitem', 'mod_certificatepro'),
-            \mod_certificatepro\local\grade_helper::menu($context));
+            \mod_certificatepro\local\grade_helper::menu($context)
+        );
 
-        $mform->addElement('select', 'gradeformat',
-            get_string('gradeformat', 'mod_certificatepro'), [
+        $mform->addElement(
+            'select',
+            'gradeformat',
+            get_string('gradeformat', 'mod_certificatepro'),
+            [
                 'percent' => get_string('gradeformat_percent', 'mod_certificatepro'),
                 'points' => get_string('gradeformat_points', 'mod_certificatepro'),
                 'pointsmax' => get_string('gradeformat_pointsmax', 'mod_certificatepro'),
                 'letter' => get_string('gradeformat_letter', 'mod_certificatepro'),
                 'passfail' => get_string('gradeformat_passfail', 'mod_certificatepro'),
-            ]);
+            ]
+        );
         $mform->setDefault('gradeformat', 'percent');
 
-        $mform->addElement('select', 'decimals',
+        $mform->addElement(
+            'select',
+            'decimals',
             get_string('gradedecimals', 'mod_certificatepro'),
-            [0 => '0', 1 => '1', 2 => '2', 3 => '3']);
+            [0 => '0', 1 => '1', 2 => '2', 3 => '3']
+        );
         $mform->setDefault('decimals', 0);
 
-        $mform->addElement('text', 'label',
-            get_string('gradelabel', 'mod_certificatepro'), ['size' => 40]);
+        $mform->addElement(
+            'text',
+            'label',
+            get_string('gradelabel', 'mod_certificatepro'),
+            ['size' => 40]
+        );
         $mform->setType('label', PARAM_TEXT);
 
-        $mform->addElement('text', 'passtext',
-            get_string('gradepasstext', 'mod_certificatepro'), ['size' => 30]);
+        $mform->addElement(
+            'text',
+            'passtext',
+            get_string('gradepasstext', 'mod_certificatepro'),
+            ['size' => 30]
+        );
         $mform->setType('passtext', PARAM_TEXT);
         $mform->setDefault('passtext', get_string('gradepassdefault', 'mod_certificatepro'));
         $mform->hideIf('passtext', 'gradeformat', 'neq', 'passfail');
 
-        $mform->addElement('text', 'failtext',
-            get_string('gradefailtext', 'mod_certificatepro'), ['size' => 30]);
+        $mform->addElement(
+            'text',
+            'failtext',
+            get_string('gradefailtext', 'mod_certificatepro'),
+            ['size' => 30]
+        );
         $mform->setType('failtext', PARAM_TEXT);
         $mform->setDefault('failtext', get_string('gradefaildefault', 'mod_certificatepro'));
         $mform->hideIf('failtext', 'gradeformat', 'neq', 'passfail');

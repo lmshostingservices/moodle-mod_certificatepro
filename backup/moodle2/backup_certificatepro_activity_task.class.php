@@ -48,8 +48,12 @@ class backup_certificatepro_activity_task extends backup_activity_task {
      * @return void
      */
     protected function define_my_steps() {
-        $this->add_step(new backup_certificatepro_activity_structure_step(
-            'certificatepro_structure', 'certificatepro.xml'));
+        $this->add_step(
+            new backup_certificatepro_activity_structure_step(
+                'certificatepro_structure',
+                'certificatepro.xml'
+            )
+        );
     }
 
     /**
@@ -63,10 +67,16 @@ class backup_certificatepro_activity_task extends backup_activity_task {
 
         $base = preg_quote($CFG->wwwroot . '/mod/certificatepro', '#');
 
-        $content = preg_replace('#(' . $base . '/index.php\?id=)([0-9]+)#',
-            '$@CERTIFICATEPROINDEX*$2@$', $content);
-        $content = preg_replace('#(' . $base . '/view.php\?id=)([0-9]+)#',
-            '$@CERTIFICATEPROVIEWBYID*$2@$', $content);
+        $content = preg_replace(
+            '#(' . $base . '/index.php\?id=)([0-9]+)#',
+            '$@CERTIFICATEPROINDEX*$2@$',
+            $content
+        );
+        $content = preg_replace(
+            '#(' . $base . '/view.php\?id=)([0-9]+)#',
+            '$@CERTIFICATEPROVIEWBYID*$2@$',
+            $content
+        );
 
         return $content;
     }

@@ -89,8 +89,13 @@ class pdf_renderer {
         $issue = $ctx->get_issue();
 
         $pdf->SetCreator('Certificate Pro');
-        $pdf->SetAuthor(format_string($site->fullname, true,
-            ['context' => \context_system::instance()]));
+        $pdf->SetAuthor(
+            format_string(
+                $site->fullname,
+                true,
+                ['context' => \context_system::instance()]
+            )
+        );
         $pdf->SetTitle($options['title'] ?? $this->template->get_name());
         $pdf->SetSubject($options['subject'] ?? get_string('pdfsubject', 'mod_certificatepro'));
 
@@ -100,12 +105,14 @@ class pdf_renderer {
 
         // Accessibility. An untagged certificate is unreadable to a screen reader,
         // which is a procurement blocker in most public sector buying.
-        $pdf->setLanguageArray([
-            'a_meta_charset' => 'UTF-8',
-            'a_meta_dir' => right_to_left() ? 'rtl' : 'ltr',
-            'a_meta_language' => current_language(),
-            'w_page' => get_string('page'),
-        ]);
+        $pdf->setLanguageArray(
+            [
+                'a_meta_charset' => 'UTF-8',
+                'a_meta_dir' => right_to_left() ? 'rtl' : 'ltr',
+                'a_meta_language' => current_language(),
+                'w_page' => get_string('page'),
+            ]
+        );
         // Ask the reader to announce the document title rather than the file
         // name. This is the one accessibility affordance TCPDF genuinely offers,
         // and it is the difference between hearing "Certificate of Achievement"
@@ -152,8 +159,10 @@ class pdf_renderer {
             try {
                 $pdf->ImageSVG($path, 0, 0, $width, $height, '', '', '', 0, false);
             } catch (\Throwable $e) {
-                debugging('Certificate Pro could not draw a page background: ' . $e->getMessage(),
-                    DEBUG_DEVELOPER);
+                debugging(
+                    'Certificate Pro could not draw a page background: ' . $e->getMessage(),
+                    DEBUG_DEVELOPER
+                );
             }
         }
 
@@ -165,8 +174,11 @@ class pdf_renderer {
                 $element->render_pdf($pdf, $ctx);
             } catch (\Throwable $e) {
                 // One broken element must never cost a learner their certificate.
-                debugging('Certificate Pro element ' . $element->get_id() . ' failed to render: '
-                    . $e->getMessage(), DEBUG_DEVELOPER);
+                debugging(
+                    'Certificate Pro element ' . $element->get_id() . ' failed to render: '
+                        . $e->getMessage(),
+                    DEBUG_DEVELOPER
+                );
             }
         }
     }

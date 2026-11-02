@@ -51,36 +51,76 @@ if ($action === 'issue' && $userid > 0) {
     require_sesskey();
     require_capability('mod/certificatepro:issue', $context);
 
-    $user = $DB->get_record('user', ['id' => $userid], '*', MUST_EXIST);
+    $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], '*', MUST_EXIST);
+    if (!is_enrolled($context, $user, 'mod/certificatepro:receive')) {
+        throw new moodle_exception('notenrolledreceive', 'mod_certificatepro');
+    }
     issue_service::issue($instance, $course, $context, $user, (int) $USER->id);
 
-    redirect($url, get_string('certificateissued', 'mod_certificatepro'), null,
-        \core\output\notification::NOTIFY_SUCCESS);
+    redirect(
+        $url,
+        get_string('certificateissued', 'mod_certificatepro'),
+        null,
+        \core\output\notification::NOTIFY_SUCCESS
+    );
 }
 
 if ($action === 'revoke' && $issueid > 0) {
     require_sesskey();
     require_capability('mod/certificatepro:revoke', $context);
 
-    $issue = $DB->get_record('certificatepro_issues',
-        ['id' => $issueid, 'certificateproid' => $instance->id], '*', MUST_EXIST);
+    if (empty($instance->revocationallowed)) {
+        throw new moodle_exception('nopermissions', 'error', '', get_string('revokecertificate', 'mod_certificatepro'));
+    }
+    $issue = $DB->get_record(
+        'certificatepro_issues',
+        ['id' => $issueid, 'certificateproid' => $instance->id],
+        '*',
+        MUST_EXIST
+    );
     issue_service::revoke($issue, $context, $reason);
 
-    redirect($url, get_string('certificaterevoked', 'mod_certificatepro'), null,
-        \core\output\notification::NOTIFY_SUCCESS);
+    redirect(
+        $url,
+        get_string('certificaterevoked', 'mod_certificatepro'),
+        null,
+        \core\output\notification::NOTIFY_SUCCESS
+    );
 }
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('reporttitle', 'mod_certificatepro'));
 
-$participants = get_enrolled_users($context, 'mod/certificatepro:view', 0, 'u.*',
-    'u.lastname ASC, u.firstname ASC');
+$participants = get_enrolled_users(
+    $context,
+    'mod/certificatepro:receive',
+    0,
+    'u.*',
+    'u.lastname ASC, u.firstname ASC'
+);
 
-$issues = $DB->get_records('certificatepro_issues', ['certificateproid' => $instance->id],
-    '', '*', 0, 0);
+$issues = $DB->get_records(
+    'certificatepro_issues',
+    ['certificateproid' => $instance->id],
+    '',
+    '*',
+    0,
+    0
+);
 $byuser = [];
 foreach ($issues as $issue) {
     $byuser[(int) $issue->userid] = $issue;
+}
+// People who already hold a certificate stay listed even if they are no longer enrolled as recipients.
+$missing = array_diff(array_keys($byuser), array_map('intval', array_keys($participants)));
+if ($missing) {
+    [$insql, $inparams] = $DB->get_in_or_equal($missing);
+    $participants += $DB->get_records_select(
+        'user',
+        "id {$insql} AND deleted = 0",
+        $inparams,
+        'lastname ASC, firstname ASC'
+    );
 }
 
 $canissue = has_capability('mod/certificatepro:issue', $context);
@@ -103,16 +143,22 @@ foreach ($participants as $participant) {
 
     if ($issue === null && $canissue) {
         $actions = $OUTPUT->single_button(
-            new moodle_url($url, ['action' => 'issue', 'userid' => $participant->id,
-                'sesskey' => sesskey()]),
+            new moodle_url(
+                $url,
+                ['action' => 'issue', 'userid' => $participant->id,
+                    'sesskey' => sesskey()]
+            ),
             get_string('issuecertificate', 'mod_certificatepro'),
             'post'
         );
     } else if ($issue !== null && $canrevoke && empty($issue->revoked)
             && !empty($instance->revocationallowed)) {
         $actions = $OUTPUT->single_button(
-            new moodle_url($url, ['action' => 'revoke', 'issueid' => $issue->id,
-                'sesskey' => sesskey()]),
+            new moodle_url(
+                $url,
+                ['action' => 'revoke', 'issueid' => $issue->id,
+                    'sesskey' => sesskey()]
+            ),
             get_string('revokecertificate', 'mod_certificatepro'),
             'post'
         );

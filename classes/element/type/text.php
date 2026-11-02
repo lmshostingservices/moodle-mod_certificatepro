@@ -74,9 +74,12 @@ class text extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('textarea', 'content',
+        $mform->addElement(
+            'textarea',
+            'content',
             get_string('elementtext', 'mod_certificatepro'),
-            ['rows' => 4, 'cols' => 60]);
+            ['rows' => 4, 'cols' => 60]
+        );
         $mform->setType('content', PARAM_TEXT);
         $mform->addHelpButton('content', 'elementtext', 'mod_certificatepro');
     }

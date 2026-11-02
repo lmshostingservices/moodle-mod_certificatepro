@@ -81,27 +81,31 @@ class designer_api extends external_api {
      * @return external_function_parameters
      */
     public static function save_layout_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'pageid' => new external_value(PARAM_INT, 'The page being edited'),
-            'elements' => new external_multiple_structure(
-                new external_single_structure([
-                    'id' => new external_value(PARAM_INT, 'The element id'),
-                    'posx' => new external_value(PARAM_FLOAT, 'Millimetres from the left edge'),
-                    'posy' => new external_value(PARAM_FLOAT, 'Millimetres from the top edge'),
-                    'width' => new external_value(PARAM_FLOAT, 'Width in millimetres'),
-                    'height' => new external_value(PARAM_FLOAT, 'Height in millimetres'),
-                    'rotation' => new external_value(PARAM_FLOAT, 'Rotation in degrees'),
-                    'refpoint' => new external_value(PARAM_ALPHA, 'The anchor point'),
-                    'alignment' => new external_value(PARAM_ALPHA, 'Horizontal text alignment'),
-                    'valignment' => new external_value(PARAM_ALPHA, 'Vertical alignment'),
-                    'zoneid' => new external_value(PARAM_ALPHANUMEXT, 'The docked zone, or empty'),
-                    'zindex' => new external_value(PARAM_INT, 'Stacking order'),
-                    'hidden' => new external_value(PARAM_INT, 'Whether the element is hidden'),
-                    'locked' => new external_value(PARAM_INT, 'Whether the element is locked'),
-                ])
-            ),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'pageid' => new external_value(PARAM_INT, 'The page being edited'),
+                'elements' => new external_multiple_structure(
+                    new external_single_structure(
+                        [
+                            'id' => new external_value(PARAM_INT, 'The element id'),
+                            'posx' => new external_value(PARAM_FLOAT, 'Millimetres from the left edge'),
+                            'posy' => new external_value(PARAM_FLOAT, 'Millimetres from the top edge'),
+                            'width' => new external_value(PARAM_FLOAT, 'Width in millimetres'),
+                            'height' => new external_value(PARAM_FLOAT, 'Height in millimetres'),
+                            'rotation' => new external_value(PARAM_FLOAT, 'Rotation in degrees'),
+                            'refpoint' => new external_value(PARAM_ALPHA, 'The anchor point'),
+                            'alignment' => new external_value(PARAM_ALPHA, 'Horizontal text alignment'),
+                            'valignment' => new external_value(PARAM_ALPHA, 'Vertical alignment'),
+                            'zoneid' => new external_value(PARAM_ALPHANUMEXT, 'The docked zone, or empty'),
+                            'zindex' => new external_value(PARAM_INT, 'Stacking order'),
+                            'hidden' => new external_value(PARAM_INT, 'Whether the element is hidden'),
+                            'locked' => new external_value(PARAM_INT, 'Whether the element is locked'),
+                        ]
+                    )
+                ),
+            ]
+        );
     }
 
     /**
@@ -115,17 +119,24 @@ class designer_api extends external_api {
     public static function save_layout(int $templateid, int $pageid, array $elements): array {
         global $DB;
 
-        $params = self::validate_parameters(self::save_layout_parameters(), [
-            'templateid' => $templateid,
-            'pageid' => $pageid,
-            'elements' => $elements,
-        ]);
+        $params = self::validate_parameters(
+            self::save_layout_parameters(),
+            [
+                'templateid' => $templateid,
+                'pageid' => $pageid,
+                'elements' => $elements,
+            ]
+        );
 
         $template = self::require_editable($params['templateid']);
         self::require_page($template, $params['pageid']);
 
-        $onpage = $DB->get_records_menu('certificatepro_elements',
-            ['pageid' => $params['pageid']], '', 'id, id AS elementid');
+        $onpage = $DB->get_records_menu(
+            'certificatepro_elements',
+            ['pageid' => $params['pageid']],
+            '',
+            'id, id AS elementid'
+        );
 
         $saved = 0;
         foreach ($params['elements'] as $element) {
@@ -135,32 +146,40 @@ class designer_api extends external_api {
                 continue;
             }
 
-            $template->move_element((int) $element['id'], [
-                'posx' => $element['posx'],
-                'posy' => $element['posy'],
-                'width' => max(0.0, (float) $element['width']),
-                'height' => max(0.0, (float) $element['height']),
-                'rotation' => $element['rotation'],
-                'refpoint' => $element['refpoint'],
-                'alignment' => $element['alignment'],
-                'valignment' => $element['valignment'],
-                'zoneid' => $element['zoneid'],
-                'zindex' => $element['zindex'],
-            ]);
+            $template->move_element(
+                (int) $element['id'],
+                [
+                    'posx' => $element['posx'],
+                    'posy' => $element['posy'],
+                    'width' => max(0.0, (float) $element['width']),
+                    'height' => max(0.0, (float) $element['height']),
+                    'rotation' => $element['rotation'],
+                    'refpoint' => $element['refpoint'],
+                    'alignment' => $element['alignment'],
+                    'valignment' => $element['valignment'],
+                    'zoneid' => $element['zoneid'],
+                    'zindex' => $element['zindex'],
+                ]
+            );
 
-            $DB->update_record('certificatepro_elements', (object) [
-                'id' => (int) $element['id'],
-                'hidden' => empty($element['hidden']) ? 0 : 1,
-                'locked' => empty($element['locked']) ? 0 : 1,
-            ]);
+            $DB->update_record(
+                'certificatepro_elements',
+                (object) [
+                    'id' => (int) $element['id'],
+                    'hidden' => empty($element['hidden']) ? 0 : 1,
+                    'locked' => empty($element['locked']) ? 0 : 1,
+                ]
+            );
 
             $saved++;
         }
 
-        \mod_certificatepro\event\template_updated::create([
-            'objectid' => $template->get_id(),
-            'context' => $template->get_context(),
-        ])->trigger();
+        \mod_certificatepro\event\template_updated::create(
+            [
+                'objectid' => $template->get_id(),
+                'context' => $template->get_context(),
+            ]
+        )->trigger();
 
         return ['saved' => $saved, 'revision' => (int) $template->get_record()->revision];
     }
@@ -171,10 +190,12 @@ class designer_api extends external_api {
      * @return external_single_structure
      */
     public static function save_layout_returns(): external_single_structure {
-        return new external_single_structure([
-            'saved' => new external_value(PARAM_INT, 'How many elements were saved'),
-            'revision' => new external_value(PARAM_INT, 'The design revision after saving'),
-        ]);
+        return new external_single_structure(
+            [
+                'saved' => new external_value(PARAM_INT, 'How many elements were saved'),
+                'revision' => new external_value(PARAM_INT, 'The design revision after saving'),
+            ]
+        );
     }
 
     /**
@@ -183,12 +204,14 @@ class designer_api extends external_api {
      * @return external_function_parameters
      */
     public static function add_element_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'pageid' => new external_value(PARAM_INT, 'The page to add to'),
-            'elementtype' => new external_value(PARAM_ALPHANUMEXT, 'The element type'),
-            'zoneid' => new external_value(PARAM_ALPHANUMEXT, 'The zone to dock into', VALUE_DEFAULT, ''),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'pageid' => new external_value(PARAM_INT, 'The page to add to'),
+                'elementtype' => new external_value(PARAM_ALPHANUMEXT, 'The element type'),
+                'zoneid' => new external_value(PARAM_ALPHANUMEXT, 'The zone to dock into', VALUE_DEFAULT, ''),
+            ]
+        );
     }
 
     /**
@@ -204,19 +227,26 @@ class designer_api extends external_api {
             string $zoneid = ''): array {
         global $DB;
 
-        $params = self::validate_parameters(self::add_element_parameters(), [
-            'templateid' => $templateid,
-            'pageid' => $pageid,
-            'elementtype' => $elementtype,
-            'zoneid' => $zoneid,
-        ]);
+        $params = self::validate_parameters(
+            self::add_element_parameters(),
+            [
+                'templateid' => $templateid,
+                'pageid' => $pageid,
+                'elementtype' => $elementtype,
+                'zoneid' => $zoneid,
+            ]
+        );
 
         $template = self::require_editable($params['templateid']);
         $page = self::require_page($template, $params['pageid']);
 
         if (!\mod_certificatepro\element\registry::exists($params['elementtype'])) {
-            throw new \moodle_exception('errorunknownelement', 'mod_certificatepro', '',
-                $params['elementtype']);
+            throw new \moodle_exception(
+                'errorunknownelement',
+                'mod_certificatepro',
+                '',
+                $params['elementtype']
+            );
         }
 
         $elementid = $template->add_element(
@@ -244,7 +274,8 @@ class designer_api extends external_api {
         return new external_single_structure([
             'element' => new external_value(
                 PARAM_RAW, // pipeline-ignore: PARAM_RAW - JSON, decoded by caller
-                'The new element as JSON'),
+                'The new element as JSON'
+            ),
         ]);
     }
 
@@ -254,13 +285,15 @@ class designer_api extends external_api {
      * @return external_function_parameters
      */
     public static function duplicate_elements_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'pageid' => new external_value(PARAM_INT, 'The page being edited'),
-            'elementids' => new external_multiple_structure(
-                new external_value(PARAM_INT, 'An element id')
-            ),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'pageid' => new external_value(PARAM_INT, 'The page being edited'),
+                'elementids' => new external_multiple_structure(
+                    new external_value(PARAM_INT, 'An element id')
+                ),
+            ]
+        );
     }
 
     /**
@@ -275,11 +308,14 @@ class designer_api extends external_api {
             array $elementids): array {
         global $DB;
 
-        $params = self::validate_parameters(self::duplicate_elements_parameters(), [
-            'templateid' => $templateid,
-            'pageid' => $pageid,
-            'elementids' => $elementids,
-        ]);
+        $params = self::validate_parameters(
+            self::duplicate_elements_parameters(),
+            [
+                'templateid' => $templateid,
+                'pageid' => $pageid,
+                'elementids' => $elementids,
+            ]
+        );
 
         $template = self::require_editable($params['templateid']);
         $page = self::require_page($template, $params['pageid']);
@@ -293,8 +329,10 @@ class designer_api extends external_api {
         $created = [];
 
         foreach ($params['elementids'] as $elementid) {
-            $record = $DB->get_record('certificatepro_elements',
-                ['id' => $elementid, 'pageid' => $params['pageid']]);
+            $record = $DB->get_record(
+                'certificatepro_elements',
+                ['id' => $elementid, 'pageid' => $params['pageid']]
+            );
             if (!$record) {
                 continue;
             }
@@ -309,8 +347,14 @@ class designer_api extends external_api {
             $newid = (int) $DB->insert_record('certificatepro_elements', $copy);
 
             foreach ($areas as $area) {
-                $files = $fs->get_area_files($template->get_context()->id, 'mod_certificatepro',
-                    $area, (int) $record->id, 'id', false);
+                $files = $fs->get_area_files(
+                    $template->get_context()->id,
+                    'mod_certificatepro',
+                    $area,
+                    (int) $record->id,
+                    'id',
+                    false
+                );
                 foreach ($files as $file) {
                     $fs->create_file_from_storedfile(['itemid' => $newid], $file);
                 }
@@ -334,7 +378,8 @@ class designer_api extends external_api {
         return new external_single_structure([
             'elements' => new external_value(
                 PARAM_RAW, // pipeline-ignore: PARAM_RAW - JSON, decoded by caller
-                'The new elements as JSON'),
+                'The new elements as JSON'
+            ),
         ]);
     }
 
@@ -344,12 +389,14 @@ class designer_api extends external_api {
      * @return external_function_parameters
      */
     public static function delete_elements_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'elementids' => new external_multiple_structure(
-                new external_value(PARAM_INT, 'An element id')
-            ),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'elementids' => new external_multiple_structure(
+                    new external_value(PARAM_INT, 'An element id')
+                ),
+            ]
+        );
     }
 
     /**
@@ -362,10 +409,13 @@ class designer_api extends external_api {
     public static function delete_elements(int $templateid, array $elementids): array {
         global $DB;
 
-        $params = self::validate_parameters(self::delete_elements_parameters(), [
-            'templateid' => $templateid,
-            'elementids' => $elementids,
-        ]);
+        $params = self::validate_parameters(
+            self::delete_elements_parameters(),
+            [
+                'templateid' => $templateid,
+                'elementids' => $elementids,
+            ]
+        );
 
         $template = self::require_editable($params['templateid']);
         $pageids = array_keys($template->get_pages());
@@ -389,9 +439,11 @@ class designer_api extends external_api {
      * @return external_single_structure
      */
     public static function delete_elements_returns(): external_single_structure {
-        return new external_single_structure([
-            'deleted' => new external_value(PARAM_INT, 'How many elements were deleted'),
-        ]);
+        return new external_single_structure(
+            [
+                'deleted' => new external_value(PARAM_INT, 'How many elements were deleted'),
+            ]
+        );
     }
 
     /**
@@ -400,19 +452,33 @@ class designer_api extends external_api {
      * @return external_function_parameters
      */
     public static function generate_artwork_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            'name' => new external_value(PARAM_TEXT, 'A name for the artwork'),
-            'prompt' => new external_value(PARAM_TEXT, 'What the author asked for'),
-            'style' => new external_value(PARAM_ALPHANUMEXT, 'The style to draw or take guidance from'),
-            'orientation' => new external_value(PARAM_ALPHA, 'L or P'),
-            'seed' => new external_value(PARAM_INT, 'A number that varies the composition',
-                VALUE_DEFAULT, 1),
-            'intensity' => new external_value(PARAM_FLOAT, 'How bold the artwork should be',
-                VALUE_DEFAULT, 0.5),
-            'usemodel' => new external_value(PARAM_BOOL, 'Whether a model may be asked',
-                VALUE_DEFAULT, true),
-        ]);
+        return new external_function_parameters(
+            [
+                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+                'name' => new external_value(PARAM_TEXT, 'A name for the artwork'),
+                'prompt' => new external_value(PARAM_TEXT, 'What the author asked for'),
+                'style' => new external_value(PARAM_ALPHANUMEXT, 'The style to draw or take guidance from'),
+                'orientation' => new external_value(PARAM_ALPHA, 'L or P'),
+                'seed' => new external_value(
+                    PARAM_INT,
+                    'A number that varies the composition',
+                    VALUE_DEFAULT,
+                    1
+                ),
+                'intensity' => new external_value(
+                    PARAM_FLOAT,
+                    'How bold the artwork should be',
+                    VALUE_DEFAULT,
+                    0.5
+                ),
+                'usemodel' => new external_value(
+                    PARAM_BOOL,
+                    'Whether a model may be asked',
+                    VALUE_DEFAULT,
+                    true
+                ),
+            ]
+        );
     }
 
     /**
@@ -431,16 +497,19 @@ class designer_api extends external_api {
     public static function generate_artwork(int $templateid, string $name, string $prompt,
             string $style, string $orientation, int $seed = 1, float $intensity = 0.5,
             bool $usemodel = true): array {
-        $params = self::validate_parameters(self::generate_artwork_parameters(), [
-            'templateid' => $templateid,
-            'name' => $name,
-            'prompt' => $prompt,
-            'style' => $style,
-            'orientation' => $orientation,
-            'seed' => $seed,
-            'intensity' => $intensity,
-            'usemodel' => $usemodel,
-        ]);
+        $params = self::validate_parameters(
+            self::generate_artwork_parameters(),
+            [
+                'templateid' => $templateid,
+                'name' => $name,
+                'prompt' => $prompt,
+                'style' => $style,
+                'orientation' => $orientation,
+                'seed' => $seed,
+                'intensity' => $intensity,
+                'usemodel' => $usemodel,
+            ]
+        );
 
         $template = self::require_editable($params['templateid']);
         $context = $template->get_context();
@@ -461,10 +530,12 @@ class designer_api extends external_api {
             ]
         );
 
-        \mod_certificatepro\event\artwork_generated::create([
-            'objectid' => $result['id'],
-            'context' => $context,
-        ])->trigger();
+        \mod_certificatepro\event\artwork_generated::create(
+            [
+                'objectid' => $result['id'],
+                'context' => $context,
+            ]
+        )->trigger();
 
         return [
             'id' => $result['id'],

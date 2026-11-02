@@ -57,8 +57,15 @@ class styles_rich {
 
         // A deep ground, not a tint.
         $c->alpha(1.0);
-        $c->linear_gradient(0.0, 0.0, 1.0, 1.0, $ink, $dark,
-            [$corner & 1 ? 1.0 : 0.0, 0.0, $corner & 1 ? 0.0 : 1.0, 1.0]);
+        $c->linear_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $ink,
+            $dark,
+            [$corner & 1 ? 1.0 : 0.0, 0.0, $corner & 1 ? 0.0 : 1.0, 1.0]
+        );
 
         // Every shading is painted into a full-page rectangle, with the highlight
         // positioned through the gradient's own coordinates. Painting into a
@@ -68,16 +75,37 @@ class styles_rich {
         $hu = ($corner & 1) ? 0.82 : 0.18;
 
         $c->alpha(0.60);
-        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $primary, $dark,
-            [$hu, 0.06, 0.0, $hu, 0.06, 0.62]);
+        $c->radial_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $primary,
+            $dark,
+            [$hu, 0.06, 0.0, $hu, 0.06, 0.62]
+        );
 
         $c->alpha(0.32);
-        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $accent, $dark,
-            [1.0 - $hu, 0.92, 0.0, 1.0 - $hu, 0.92, 0.55]);
+        $c->radial_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $accent,
+            $dark,
+            [1.0 - $hu, 0.92, 0.0, 1.0 - $hu, 0.92, 0.55]
+        );
 
         $c->alpha(0.20);
-        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $light, $dark,
-            [$hu, -0.10, 0.0, $hu, -0.10, 0.42]);
+        $c->radial_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $light,
+            $dark,
+            [$hu, -0.10, 0.0, $hu, -0.10, 0.42]
+        );
 
         $c->restore();
 
@@ -93,8 +121,13 @@ class styles_rich {
         $c->alpha(0.28);
         $c->stroke($paper, 0.35);
         $gap = 0.014 * $c->s();
-        $c->rect($iu + $gap / $c->w(), $iv + $gap / $c->h(),
-            1 - 2 * ($iu + $gap / $c->w()), 1 - 2 * ($iv + $gap / $c->h()), 'D');
+        $c->rect(
+            $iu + $gap / $c->w(),
+            $iv + $gap / $c->h(),
+            1 - 2 * ($iu + $gap / $c->w()),
+            1 - 2 * ($iv + $gap / $c->h()),
+            'D'
+        );
 
         // Corner ticks, so the frame reads as made rather than drawn.
         $arm = 0.030 * $c->s();
@@ -143,8 +176,16 @@ class styles_rich {
         $c->stroke($primary, 0.30);
         $mr = 0.30 * $c->s();
         for ($k = 0; $k < 9; $k++) {
-            self::rosette($c, 0.5, 0.48, $mr, 17, 6, 0.40 * (1 + 0.035 * $k),
-                $k * 2 * M_PI / (17 * 9));
+            self::rosette(
+                $c,
+                0.5,
+                0.48,
+                $mr,
+                17,
+                6,
+                0.40 * (1 + 0.035 * $k),
+                $k * 2 * M_PI / (17 * 9)
+            );
         }
         $c->alpha(0.13);
         $c->stroke($primary, 0.5);
@@ -154,14 +195,54 @@ class styles_rich {
 
         // Four guilloche bands, one per edge.
         $inner = $out + $band;
-        self::strand_band($c, false, $ou, 1 - $ou, ($out + $band / 2) / $c->h(),
-            $band * 0.42, 7, $dark, $primary, 0.55);
-        self::strand_band($c, false, $ou, 1 - $ou, 1 - ($out + $band / 2) / $c->h(),
-            $band * 0.42, 7, $dark, $primary, 0.55);
-        self::strand_band($c, true, $ov, 1 - $ov, ($out + $band / 2) / $c->w(),
-            $band * 0.42, 7, $dark, $primary, 0.55);
-        self::strand_band($c, true, $ov, 1 - $ov, 1 - ($out + $band / 2) / $c->w(),
-            $band * 0.42, 7, $dark, $primary, 0.55);
+        self::strand_band(
+            $c,
+            false,
+            $ou,
+            1 - $ou,
+            ($out + $band / 2) / $c->h(),
+            $band * 0.42,
+            7,
+            $dark,
+            $primary,
+            0.55
+        );
+        self::strand_band(
+            $c,
+            false,
+            $ou,
+            1 - $ou,
+            1 - ($out + $band / 2) / $c->h(),
+            $band * 0.42,
+            7,
+            $dark,
+            $primary,
+            0.55
+        );
+        self::strand_band(
+            $c,
+            true,
+            $ov,
+            1 - $ov,
+            ($out + $band / 2) / $c->w(),
+            $band * 0.42,
+            7,
+            $dark,
+            $primary,
+            0.55
+        );
+        self::strand_band(
+            $c,
+            true,
+            $ov,
+            1 - $ov,
+            1 - ($out + $band / 2) / $c->w(),
+            $band * 0.42,
+            7,
+            $dark,
+            $primary,
+            0.55
+        );
 
         // The rules that contain the bands.
         $c->alpha(0.95);
@@ -170,14 +251,24 @@ class styles_rich {
 
         $c->alpha(0.75);
         $c->stroke($dark, 0.45);
-        $c->rect($inner / $c->w(), $inner / $c->h(),
-            1 - 2 * $inner / $c->w(), 1 - 2 * $inner / $c->h(), 'D');
+        $c->rect(
+            $inner / $c->w(),
+            $inner / $c->h(),
+            1 - 2 * $inner / $c->w(),
+            1 - 2 * $inner / $c->h(),
+            'D'
+        );
 
         $c->alpha(0.40);
         $c->stroke($primary, 0.3);
         $tight = $inner + 0.012 * $c->s();
-        $c->rect($tight / $c->w(), $tight / $c->h(),
-            1 - 2 * $tight / $c->w(), 1 - 2 * $tight / $c->h(), 'D');
+        $c->rect(
+            $tight / $c->w(),
+            $tight / $c->h(),
+            1 - 2 * $tight / $c->w(),
+            1 - 2 * $tight / $c->h(),
+            'D'
+        );
 
         // Corner rosettes covering the joins.
         $rr = $band * 0.86;
@@ -189,8 +280,16 @@ class styles_rich {
             $c->alpha(0.62);
             $c->stroke($dark, 0.32);
             for ($k = 0; $k < 5; $k++) {
-                self::rosette($c, $corner[0], $corner[1], $rr * 0.92, 7, 2,
-                    0.70 * (1 + 0.06 * $k), $k * 2 * M_PI / (7 * 5));
+                self::rosette(
+                    $c,
+                    $corner[0],
+                    $corner[1],
+                    $rr * 0.92,
+                    7,
+                    2,
+                    0.70 * (1 + 0.06 * $k),
+                    $k * 2 * M_PI / (7 * 5)
+                );
             }
             $c->alpha(0.95);
             $c->stroke($dark, 0.8);
@@ -217,8 +316,15 @@ class styles_rich {
         $c->clip(0.0, 0.0, 1.0, 1.0);
 
         $c->alpha(0.40);
-        $c->linear_gradient(0.0, 0.0, 1.0, 1.0, $wash, $c->colour('paper'),
-            [0.5, 0.0, 0.5, 1.0]);
+        $c->linear_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $wash,
+            $c->colour('paper'),
+            [0.5, 0.0, 0.5, 1.0]
+        );
 
         // Rays from the centre, gathered behind the text.
         $c->alpha(0.07);
@@ -227,8 +333,12 @@ class styles_rich {
             $a = deg2rad($i * 5 + 2.5);
             $r0 = 0.10 * $c->s();
             $r1 = 0.92 * $c->l();
-            $c->line(0.5 + $r0 * cos($a) / $c->w(), 0.46 - $r0 * sin($a) / $c->h(),
-                0.5 + $r1 * cos($a) / $c->w(), 0.46 - $r1 * sin($a) / $c->h());
+            $c->line(
+                0.5 + $r0 * cos($a) / $c->w(),
+                0.46 - $r0 * sin($a) / $c->h(),
+                0.5 + $r1 * cos($a) / $c->w(),
+                0.46 - $r1 * sin($a) / $c->h()
+            );
         }
 
         // The medallion itself.
@@ -236,8 +346,16 @@ class styles_rich {
         $c->alpha(0.12);
         $c->stroke($primary, 0.32);
         for ($k = 0; $k < 11; $k++) {
-            self::rosette($c, 0.5, 0.46, $mr, 19, 7, 0.38 * (1 + 0.03 * $k),
-                $k * 2 * M_PI / (19 * 11));
+            self::rosette(
+                $c,
+                0.5,
+                0.46,
+                $mr,
+                19,
+                7,
+                0.38 * (1 + 0.03 * $k),
+                $k * 2 * M_PI / (19 * 11)
+            );
         }
 
         $c->alpha(0.16);
@@ -288,24 +406,52 @@ class styles_rich {
         $c->clip(0.0, 0.0, 1.0, 1.0);
 
         $c->alpha(1.0);
-        $c->linear_gradient(0.0, 0.0, 1.0, 1.0, $dark, $primary,
-            $flip ? [1.0, 0.0, 0.0, 1.0] : [0.0, 0.0, 1.0, 1.0]);
+        $c->linear_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $dark,
+            $primary,
+            $flip ? [1.0, 0.0, 0.0, 1.0] : [0.0, 0.0, 1.0, 1.0]
+        );
 
         // Full-page shadings, positioned by their own coordinates, so no
         // bounding box can show as an edge.
         $hu = $flip ? 0.86 : 0.14;
 
         $c->alpha(0.52);
-        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $light, $primary,
-            [$hu, 0.04, 0.0, $hu, 0.04, 0.58]);
+        $c->radial_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $light,
+            $primary,
+            [$hu, 0.04, 0.0, $hu, 0.04, 0.58]
+        );
 
         $c->alpha(0.36);
-        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $accent, $primary,
-            [1.0 - $hu, 0.86, 0.0, 1.0 - $hu, 0.86, 0.52]);
+        $c->radial_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $accent,
+            $primary,
+            [1.0 - $hu, 0.86, 0.0, 1.0 - $hu, 0.86, 0.52]
+        );
 
         $c->alpha(0.24);
-        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $ink, $primary,
-            [0.5, 1.15, 0.0, 0.5, 1.15, 0.60]);
+        $c->radial_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $ink,
+            $primary,
+            [0.5, 1.15, 0.0, 0.5, 1.15, 0.60]
+        );
 
         $c->restore();
 
@@ -368,8 +514,15 @@ class styles_rich {
         $c->clip(0.0, 0.0, $bw, 1.0);
         $c->linear_gradient(0.0, 0.0, 1.0, 1.0, $dark, $primary, [0.0, 0.0, 0.4, 1.0]);
         $c->alpha(0.42);
-        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $light, $primary,
-            [0.10, 0.06, 0.0, 0.10, 0.06, 0.55]);
+        $c->radial_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $light,
+            $primary,
+            [0.10, 0.06, 0.0, 0.10, 0.06, 0.55]
+        );
         $c->restore();
 
         // Fine rules inside the block, reversed out.
@@ -428,8 +581,15 @@ class styles_rich {
         $c->save();
         $c->clip($ou, $ov, 1 - 2 * $ou, 1 - 2 * $ov);
         $c->alpha(0.30);
-        $c->radial_gradient(-0.10, 0.30, 1.20, 1.05, $paper, $wash,
-            [0.5, 0.5, 0.0, 0.5, 0.5, 0.52]);
+        $c->radial_gradient(
+            -0.10,
+            0.30,
+            1.20,
+            1.05,
+            $paper,
+            $wash,
+            [0.5, 0.5, 0.0, 0.5, 0.5, 0.52]
+        );
         $c->restore();
 
         // The frame: heavy, fine, and a dotted third.
@@ -440,14 +600,24 @@ class styles_rich {
         $g1 = 0.016 * $c->s();
         $c->alpha(0.70);
         $c->stroke($primary, 0.5);
-        $c->rect($ou + $g1 / $c->w(), $ov + $g1 / $c->h(),
-            1 - 2 * ($ou + $g1 / $c->w()), 1 - 2 * ($ov + $g1 / $c->h()), 'D');
+        $c->rect(
+            $ou + $g1 / $c->w(),
+            $ov + $g1 / $c->h(),
+            1 - 2 * ($ou + $g1 / $c->w()),
+            1 - 2 * ($ov + $g1 / $c->h()),
+            'D'
+        );
 
         $g2 = 0.026 * $c->s();
         $c->alpha(0.45);
         $c->stroke($primary, 0.4, [1.2, 2.2]);
-        $c->rect($ou + $g2 / $c->w(), $ov + $g2 / $c->h(),
-            1 - 2 * ($ou + $g2 / $c->w()), 1 - 2 * ($ov + $g2 / $c->h()), 'D');
+        $c->rect(
+            $ou + $g2 / $c->w(),
+            $ov + $g2 / $c->h(),
+            1 - 2 * ($ou + $g2 / $c->w()),
+            1 - 2 * ($ov + $g2 / $c->h()),
+            'D'
+        );
 
         // Corner fans: denser, and weighted so they read as ornament rather
         // than as a few stray rules.
@@ -459,9 +629,12 @@ class styles_rich {
             for ($i = 0; $i <= 15; $i++) {
                 $a = deg2rad($i * (90 / 15));
                 $len = $fan * (0.62 + 0.38 * sin(deg2rad($i * (180 / 15))));
-                $c->line($k[0], $k[1],
+                $c->line(
+                    $k[0],
+                    $k[1],
                     $k[0] + $k[2] * $len * cos($a) / $c->w(),
-                    $k[1] + $k[3] * $len * sin($a) / $c->h());
+                    $k[1] + $k[3] * $len * sin($a) / $c->h()
+                );
             }
             $c->alpha(0.9);
             $c->stroke($dark, 0.9);
@@ -483,8 +656,16 @@ class styles_rich {
         $c->alpha(0.72);
         $c->stroke($primary, 0.36);
         for ($k = 0; $k < 7; $k++) {
-            self::rosette($c, 0.5, $ov, $rr, 13, 5, 0.42 * (1 + 0.05 * $k),
-                $k * 2 * M_PI / (13 * 7));
+            self::rosette(
+                $c,
+                0.5,
+                $ov,
+                $rr,
+                13,
+                5,
+                0.42 * (1 + 0.05 * $k),
+                $k * 2 * M_PI / (13 * 7)
+            );
         }
 
         $c->alpha(1.0);
@@ -497,14 +678,21 @@ class styles_rich {
         // A foot rule with a centred diamond.
         $c->alpha(0.85);
         $c->stroke($dark, 0.8);
-        $c->line(0.5 - 0.22, 1 - $ov - 0.030 * $c->s() / $c->h(),
-            0.5 + 0.22, 1 - $ov - 0.030 * $c->s() / $c->h());
+        $c->line(
+            0.5 - 0.22,
+            1 - $ov - 0.030 * $c->s() / $c->h(),
+            0.5 + 0.22,
+            1 - $ov - 0.030 * $c->s() / $c->h()
+        );
         $dv = 1 - $ov - 0.030 * $c->s() / $c->h();
         $ds = 0.014 * $c->s();
         $c->alpha(1.0);
         $c->fill($dark);
-        $c->poly([0.5, $dv - $ds / $c->h(), 0.5 + $ds / $c->w(), $dv,
-            0.5, $dv + $ds / $c->h(), 0.5 - $ds / $c->w(), $dv], 'F');
+        $c->poly(
+            [0.5, $dv - $ds / $c->h(), 0.5 + $ds / $c->w(), $dv,
+                0.5, $dv + $ds / $c->h(), 0.5 - $ds / $c->w(), $dv],
+            'F'
+        );
     }
 
     /**

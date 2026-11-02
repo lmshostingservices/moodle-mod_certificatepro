@@ -46,10 +46,9 @@ class element_form extends \moodleform {
         $element = $this->_customdata['element'];
         $context = $this->_customdata['context'];
 
-        $mform->addElement('hidden', 'id', $element->get_id());
+        // The form posts back to edit.php without a query string, so 'id' must carry the course module id.
+        $mform->addElement('hidden', 'id', $this->_customdata['cmid']);
         $mform->setType('id', PARAM_INT);
-        $mform->addElement('hidden', 'cmid', $this->_customdata['cmid']);
-        $mform->setType('cmid', PARAM_INT);
         $mform->addElement('hidden', 'action', 'editelement');
         $mform->setType('action', PARAM_ALPHA);
         $mform->addElement('hidden', 'elementid', $element->get_id());
@@ -64,8 +63,11 @@ class element_form extends \moodleform {
 
         // Typography, but only for elements that draw words.
         if ($element instanceof \mod_certificatepro\element\text_base) {
-            $mform->addElement('header', 'typographyheader',
-                get_string('designer_inspector', 'mod_certificatepro'));
+            $mform->addElement(
+                'header',
+                'typographyheader',
+                get_string('designer_inspector', 'mod_certificatepro')
+            );
 
             $fonts = [
                 'heading' => get_string('elementfont_heading', 'mod_certificatepro'),
@@ -73,74 +75,128 @@ class element_form extends \moodleform {
                 'accent' => get_string('elementfont_accent', 'mod_certificatepro'),
             ] + font_manager::catalogue();
 
-            $mform->addElement('select', 'stylefont',
-                get_string('elementfont', 'mod_certificatepro'), $fonts);
+            $mform->addElement(
+                'select',
+                'stylefont',
+                get_string('elementfont', 'mod_certificatepro'),
+                $fonts
+            );
             $mform->addHelpButton('stylefont', 'elementfont', 'mod_certificatepro');
 
-            $mform->addElement('text', 'stylesize',
-                get_string('elementsize', 'mod_certificatepro'), ['size' => 6]);
-            $mform->setType('stylesize', PARAM_FLOAT);
+            $mform->addElement(
+                'text',
+                'stylesize',
+                get_string('elementsize', 'mod_certificatepro'),
+                ['size' => 6]
+            );
+            $mform->setType('stylesize', PARAM_TEXT);
 
-            $mform->addElement('text', 'stylecolour',
-                get_string('elementcolour', 'mod_certificatepro'), ['size' => 14]);
+            $mform->addElement(
+                'text',
+                'stylecolour',
+                get_string('elementcolour', 'mod_certificatepro'),
+                ['size' => 14]
+            );
             $mform->setType('stylecolour', PARAM_TEXT);
             $mform->addHelpButton('stylecolour', 'elementcolour', 'mod_certificatepro');
 
             $emphasis = [
                 $mform->createElement('advcheckbox', 'stylebold', '', get_string('bold', 'editor')),
                 $mform->createElement('advcheckbox', 'styleitalic', '', get_string('italic', 'editor')),
-                $mform->createElement('advcheckbox', 'styleunderline', '',
-                    get_string('underline', 'editor')),
+                $mform->createElement(
+                    'advcheckbox',
+                    'styleunderline',
+                    '',
+                    get_string('underline', 'editor')
+                ),
             ];
-            $mform->addGroup($emphasis, 'emphasisgroup',
-                get_string('elementemphasis', 'mod_certificatepro'), ' ', false);
+            $mform->addGroup(
+                $emphasis,
+                'emphasisgroup',
+                get_string('elementemphasis', 'mod_certificatepro'),
+                ' ',
+                false
+            );
 
-            $mform->addElement('select', 'stylecase',
-                get_string('elementcase', 'mod_certificatepro'), [
+            $mform->addElement(
+                'select',
+                'stylecase',
+                get_string('elementcase', 'mod_certificatepro'),
+                [
                     'none' => get_string('elementcase_none', 'mod_certificatepro'),
                     'upper' => get_string('elementcase_upper', 'mod_certificatepro'),
                     'lower' => get_string('elementcase_lower', 'mod_certificatepro'),
                     'title' => get_string('elementcase_title', 'mod_certificatepro'),
-                ]);
+                ]
+            );
 
-            $mform->addElement('text', 'styletracking',
-                get_string('elementtracking', 'mod_certificatepro'), ['size' => 6]);
+            $mform->addElement(
+                'text',
+                'styletracking',
+                get_string('elementtracking', 'mod_certificatepro'),
+                ['size' => 6]
+            );
             $mform->setType('styletracking', PARAM_FLOAT);
 
-            $mform->addElement('text', 'stylelineheight',
-                get_string('elementlineheight', 'mod_certificatepro'), ['size' => 6]);
+            $mform->addElement(
+                'text',
+                'stylelineheight',
+                get_string('elementlineheight', 'mod_certificatepro'),
+                ['size' => 6]
+            );
             $mform->setType('stylelineheight', PARAM_FLOAT);
 
-            $mform->addElement('select', 'alignment',
-                get_string('elementalignment', 'mod_certificatepro'), [
+            $mform->addElement(
+                'select',
+                'alignment',
+                get_string('elementalignment', 'mod_certificatepro'),
+                [
                     'L' => get_string('elementalignment_left', 'mod_certificatepro'),
                     'C' => get_string('elementalignment_centre', 'mod_certificatepro'),
                     'R' => get_string('elementalignment_right', 'mod_certificatepro'),
                     'J' => get_string('elementalignment_justify', 'mod_certificatepro'),
-                ]);
+                ]
+            );
             $mform->addHelpButton('alignment', 'elementalignment', 'mod_certificatepro');
 
-            $mform->addElement('advcheckbox', 'stylefit',
-                get_string('elementfit', 'mod_certificatepro'));
+            $mform->addElement(
+                'advcheckbox',
+                'stylefit',
+                get_string('elementfit', 'mod_certificatepro')
+            );
             $mform->addHelpButton('stylefit', 'elementfit', 'mod_certificatepro');
 
-            $mform->addElement('text', 'stylemaxlines',
-                get_string('elementmaxlines', 'mod_certificatepro'), ['size' => 6]);
+            $mform->addElement(
+                'text',
+                'stylemaxlines',
+                get_string('elementmaxlines', 'mod_certificatepro'),
+                ['size' => 6]
+            );
             $mform->setType('stylemaxlines', PARAM_INT);
         }
 
         // Position, for anyone who prefers numbers to dragging.
-        $mform->addElement('header', 'positionheader',
-            get_string('elementposition', 'mod_certificatepro'));
+        $mform->addElement(
+            'header',
+            'positionheader',
+            get_string('elementposition', 'mod_certificatepro')
+        );
 
         foreach (['posx', 'posy', 'width', 'height', 'rotation'] as $field) {
-            $mform->addElement('text', $field,
-                get_string('designer_' . $field, 'mod_certificatepro'), ['size' => 8]);
+            $mform->addElement(
+                'text',
+                $field,
+                get_string('designer_' . $field, 'mod_certificatepro'),
+                ['size' => 8]
+            );
             $mform->setType($field, PARAM_FLOAT);
         }
 
-        $mform->addElement('select', 'refpoint',
-            get_string('elementrefpoint', 'mod_certificatepro'), [
+        $mform->addElement(
+            'select',
+            'refpoint',
+            get_string('elementrefpoint', 'mod_certificatepro'),
+            [
                 'tl' => get_string('refpoint_tl', 'mod_certificatepro'),
                 'tc' => get_string('refpoint_tc', 'mod_certificatepro'),
                 'tr' => get_string('refpoint_tr', 'mod_certificatepro'),
@@ -150,15 +206,20 @@ class element_form extends \moodleform {
                 'bl' => get_string('refpoint_bl', 'mod_certificatepro'),
                 'bc' => get_string('refpoint_bc', 'mod_certificatepro'),
                 'br' => get_string('refpoint_br', 'mod_certificatepro'),
-            ]);
+            ]
+        );
         $mform->addHelpButton('refpoint', 'elementrefpoint', 'mod_certificatepro');
 
-        $mform->addElement('select', 'valignment',
-            get_string('elementvalignment', 'mod_certificatepro'), [
+        $mform->addElement(
+            'select',
+            'valignment',
+            get_string('elementvalignment', 'mod_certificatepro'),
+            [
                 'T' => get_string('elementvalignment_top', 'mod_certificatepro'),
                 'M' => get_string('elementvalignment_middle', 'mod_certificatepro'),
                 'B' => get_string('elementvalignment_bottom', 'mod_certificatepro'),
-            ]);
+            ]
+        );
 
         $this->add_action_buttons();
 
@@ -188,7 +249,7 @@ class element_form extends \moodleform {
             'alignment' => $element->get_alignment(),
             'valignment' => $element->get_valignment(),
             'stylefont' => $style['font'] ?? 'body',
-            'stylesize' => $style['size'],
+            'stylesize' => isset($style['size']) && $style['size'] !== null ? format_float((float)$style['size'], -1) : '',
             'stylecolour' => $style['colour'] ?? 'ink',
             'stylebold' => !empty($style['bold']) ? 1 : 0,
             'styleitalic' => !empty($style['italic']) ? 1 : 0,
@@ -214,8 +275,14 @@ class element_form extends \moodleform {
                 continue;
             }
             $draftitemid = file_get_submitted_draft_itemid('imagefile');
-            file_prepare_draft_area($draftitemid, $context->id, 'mod_certificatepro',
-                $area, $element->get_id(), ['subdirs' => 0, 'maxfiles' => 1]);
+            file_prepare_draft_area(
+                $draftitemid,
+                $context->id,
+                'mod_certificatepro',
+                $area,
+                $element->get_id(),
+                ['subdirs' => 0, 'maxfiles' => 1]
+            );
             $mform->getElement('imagefile')->setValue($draftitemid);
             break;
         }
@@ -235,6 +302,12 @@ class element_form extends \moodleform {
         /** @var element_base $element */
         $element = $this->_customdata['element'];
 
+        if (isset($data['stylesize']) && trim((string)$data['stylesize']) !== '') {
+            $size = unformat_float($data['stylesize'], true);
+            if ($size === false || $size === null || $size <= 0 || $size > 400) {
+                $errors['stylesize'] = get_string('err_numeric', 'form');
+            }
+        }
         return array_merge($errors, $element->validate_form($data, $files));
     }
 
@@ -275,7 +348,11 @@ class element_form extends \moodleform {
                 if (in_array($key, ['bold', 'italic', 'underline', 'fit'], true)) {
                     $value = !empty($value);
                 } else if ($key === 'size') {
-                    $value = ($value === '' || $value === null) ? null : (float) $value;
+                    $value = trim((string)$value);
+                    $value = ($value === '') ? null : (float) unformat_float($value);
+                    if ($value !== null && $value <= 0) {
+                        $value = null;
+                    }
                 } else if (in_array($key, ['tracking', 'lineheight'], true)) {
                     $value = (float) $value;
                 } else if ($key === 'maxlines') {

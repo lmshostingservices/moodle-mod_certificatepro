@@ -57,7 +57,8 @@ certificatepro_view($instance, $course, $cm, $context);
 $unmet = issue_service::unmet_criteria($instance, $USER, $course, $cm);
 $issue = issue_service::get_issue((int) $instance->id, (int) $USER->id);
 
-if ($issue === null && empty($unmet) && !empty($instance->autoissue)) {
+if ($issue === null && empty($unmet) && !empty($instance->autoissue) &&
+        has_capability('mod/certificatepro:receive', $context, null, false)) {
     $issue = issue_service::issue($instance, $course, $context, $USER);
 }
 
@@ -68,17 +69,30 @@ if ($badge && $issue !== null && empty($issue->revoked)) {
     require_sesskey();
 
     $svg = \mod_certificatepro\local\credential\badge_service::badge(
-        $issue, $instance, $course, $USER);
+        $issue,
+        $instance,
+        $course,
+        $USER
+    );
 
-    \mod_certificatepro\event\certificate_downloaded::create([
-        'objectid' => $issue->id,
-        'context' => $context,
-        'relateduserid' => $USER->id,
-        'other' => ['format' => 'badge'],
-    ])->trigger();
+    \mod_certificatepro\event\certificate_downloaded::create(
+        [
+            'objectid' => $issue->id,
+            'context' => $context,
+            'relateduserid' => $USER->id,
+            'other' => ['format' => 'badge'],
+        ]
+    )->trigger();
 
-    send_file($svg, \mod_certificatepro\local\credential\badge_service::filename($issue),
-        0, 0, true, true, 'image/svg+xml');
+    send_file(
+        $svg,
+        \mod_certificatepro\local\credential\badge_service::filename($issue),
+        0,
+        0,
+        true,
+        true,
+        'image/svg+xml'
+    );
     exit;
 }
 
@@ -88,15 +102,23 @@ if ($download && $issue !== null && empty($issue->revoked)) {
     $file = issue_service::get_file($instance, $course, $context, $USER, $issue);
 
     if ($file) {
-        \mod_certificatepro\event\certificate_downloaded::create([
-            'objectid' => $issue->id,
-            'context' => $context,
-            'relateduserid' => $USER->id,
-        ])->trigger();
+        \mod_certificatepro\event\certificate_downloaded::create(
+            [
+                'objectid' => $issue->id,
+                'context' => $context,
+                'relateduserid' => $USER->id,
+            ]
+        )->trigger();
 
-        send_stored_file($file, 0, 0, $instance->deliveryoption === 'D', [
-            'filename' => issue_service::filename($instance, $course, $USER, $issue),
-        ]);
+        send_stored_file(
+            $file,
+            0,
+            0,
+            $instance->deliveryoption === 'D',
+            [
+                'filename' => issue_service::filename($instance, $course, $USER, $issue),
+            ]
+        );
         exit;
     }
 }

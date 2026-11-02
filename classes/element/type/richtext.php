@@ -80,13 +80,18 @@ class richtext extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('editor', 'contenteditor',
-            get_string('elementrichtext', 'mod_certificatepro'), ['rows' => 8], [
+        $mform->addElement(
+            'editor',
+            'contenteditor',
+            get_string('elementrichtext', 'mod_certificatepro'),
+            ['rows' => 8],
+            [
                 'context' => $context,
                 'noclean' => false,
                 'maxfiles' => 0,
                 'trusttext' => false,
-            ]);
+            ]
+        );
         $mform->setType('contenteditor', PARAM_RAW); // pipeline-ignore: PARAM_RAW - cleaned on save
         $mform->addHelpButton('contenteditor', 'elementrichtext', 'mod_certificatepro');
     }
@@ -120,10 +125,13 @@ class richtext extends text_base {
      */
     public function prepare_form(\MoodleQuickForm $mform): void {
         if ($mform->elementExists('contenteditor')) {
-            $mform->setDefault('contenteditor', [
-                'text' => (string) $this->config('content', ''),
-                'format' => FORMAT_HTML,
-            ]);
+            $mform->setDefault(
+                'contenteditor',
+                [
+                    'text' => (string) $this->config('content', ''),
+                    'format' => FORMAT_HTML,
+                ]
+            );
         }
     }
 

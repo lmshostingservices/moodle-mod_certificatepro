@@ -34,9 +34,10 @@ $code = optional_param('code', '', PARAM_TEXT);
 
 // This page is deliberately reachable without an account: the person checking a
 // certificate is usually an employer or a registrar who has none, and a scanned
-// QR code that lands on a login form is a dead end. A site that has switched on
-// forcelogin has said it wants no anonymous access at all, so honour that.
-if (!empty($CFG->forcelogin)) {
+// QR code that lands on a login form is a dead end. Like core's public badge page it
+// therefore stays open when "Force users to log in" is on (the default on Moodle 5.0+
+// installs). Sites that want no anonymous verification switch the plugin setting off.
+if (!get_config('mod_certificatepro', 'publicverify')) {
     require_login();
 }
 
@@ -68,8 +69,10 @@ if ($code !== '') {
 
             $allowed = $instance && !empty($instance->verifyany);
             if (!$allowed && isloggedin() && !isguestuser()) {
-                $allowed = has_capability('mod/certificatepro:verifyallcertificates',
-                    context_system::instance());
+                $allowed = has_capability(
+                    'mod/certificatepro:verifyallcertificates',
+                    context_system::instance()
+                );
             }
 
             if (!$allowed) {
@@ -86,10 +89,12 @@ if ($code !== '') {
                 }
                 $recipient = $DB->get_record('user', ['id' => $issue->userid], '*', IGNORE_MISSING);
 
-                \mod_certificatepro\event\certificate_verified::create([
-                    'objectid' => $issue->id,
-                    'context' => context_system::instance(),
-                ])->trigger();
+                \mod_certificatepro\event\certificate_verified::create(
+                    [
+                        'objectid' => $issue->id,
+                        'context' => context_system::instance(),
+                    ]
+                )->trigger();
             }
         }
     }

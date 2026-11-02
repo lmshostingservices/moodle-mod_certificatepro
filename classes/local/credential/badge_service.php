@@ -173,18 +173,20 @@ class badge_service {
      * @return array the specification
      */
     protected static function spec_from_data(array $data): array {
-        return seal_engine::defaults([
-            'edge' => (string) ($data['sealedge'] ?? seal_engine::EDGE_DOUBLE),
-            'ring' => (string) ($data['sealring'] ?? seal_engine::RING_BOTH),
-            'mark' => (string) ($data['sealmark'] ?? seal_engine::MARK_MONOGRAM),
-            'top' => (string) ($data['toptext'] ?? ''),
-            'bottom' => (string) ($data['bottomtext'] ?? ''),
-            'centre' => (string) ($data['centretext'] ?? ''),
-            'year' => (string) ($data['yeartext'] ?? ''),
-            'motto' => (string) ($data['mottotext'] ?? ''),
-            'ink' => self::hex($data['colour'] ?? '', self::site_colour()),
-            'metal' => self::hex($data['metal'] ?? '', '#b08432'),
-        ]);
+        return seal_engine::defaults(
+            [
+                'edge' => (string) ($data['sealedge'] ?? seal_engine::EDGE_DOUBLE),
+                'ring' => (string) ($data['sealring'] ?? seal_engine::RING_BOTH),
+                'mark' => (string) ($data['sealmark'] ?? seal_engine::MARK_MONOGRAM),
+                'top' => (string) ($data['toptext'] ?? ''),
+                'bottom' => (string) ($data['bottomtext'] ?? ''),
+                'centre' => (string) ($data['centretext'] ?? ''),
+                'year' => (string) ($data['yeartext'] ?? ''),
+                'motto' => (string) ($data['mottotext'] ?? ''),
+                'ink' => self::hex($data['colour'] ?? '', self::site_colour()),
+                'metal' => self::hex($data['metal'] ?? '', '#b08432'),
+            ]
+        );
     }
 
     /**
@@ -229,15 +231,17 @@ class badge_service {
 
         $name = format_string($SITE->fullname ?? '', true, ['context' => \context_system::instance()]);
 
-        return seal_engine::defaults([
-            'edge' => seal_engine::EDGE_DOUBLE,
-            'ring' => seal_engine::RING_BOTH,
-            'mark' => seal_engine::MARK_MONOGRAM,
-            'top' => \core_text::strtoupper($name),
-            'bottom' => \core_text::strtoupper(format_string($course->shortname ?? '', true)),
-            'centre' => seal_engine::initials($name),
-            'ink' => self::site_colour(),
-        ]);
+        return seal_engine::defaults(
+            [
+                'edge' => seal_engine::EDGE_DOUBLE,
+                'ring' => seal_engine::RING_BOTH,
+                'mark' => seal_engine::MARK_MONOGRAM,
+                'top' => \core_text::strtoupper($name),
+                'bottom' => \core_text::strtoupper(format_string($course->shortname ?? '', true)),
+                'centre' => seal_engine::initials($name),
+                'ink' => self::site_colour(),
+            ]
+        );
     }
 
 
@@ -267,7 +271,7 @@ class badge_service {
      * @return string a #rrggbb string
      */
     protected static function site_colour(): string {
-        $configured = (string) get_config('certificatepro', 'brandcolour');
+        $configured = (string) get_config('mod_certificatepro', 'brandcolour');
         if ($configured !== '' && brand::is_hex($configured)) {
             return brand::normalise_hex($configured);
         }

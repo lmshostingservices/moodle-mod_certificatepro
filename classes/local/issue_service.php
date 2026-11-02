@@ -62,10 +62,14 @@ class issue_service {
 
         if (!empty($instance->requiredtime)) {
             $spent = course_helper::time_in_course((int) $course->id, (int) $user->id);
-            $required = (int) $instance->requiredtime * MINSECS;
+            // The form's duration element stores seconds.
+            $required = (int) $instance->requiredtime;
             if ($spent < $required) {
-                $reasons[] = get_string('criteriontime', 'mod_certificatepro',
-                    format_time($required));
+                $reasons[] = get_string(
+                    'criteriontime',
+                    'mod_certificatepro',
+                    format_time($required)
+                );
             }
         }
 
@@ -84,14 +88,19 @@ class issue_service {
                 }
             }
             if ($achieved === null || $achieved < (float) $instance->requiregrade) {
-                $reasons[] = get_string('criteriongrade', 'mod_certificatepro',
-                    format_float((float) $instance->requiregrade, 1));
+                $reasons[] = get_string(
+                    'criteriongrade',
+                    'mod_certificatepro',
+                    format_float((float) $instance->requiregrade, 1)
+                );
             }
         }
 
         if (!empty($instance->requirecompletion)) {
-            $completion = $DB->get_record('course_completions',
-                ['course' => $course->id, 'userid' => $user->id]);
+            $completion = $DB->get_record(
+                'course_completions',
+                ['course' => $course->id, 'userid' => $user->id]
+            );
             if (!$completion || empty($completion->timecompleted)) {
                 $reasons[] = get_string('criterioncompletion', 'mod_certificatepro');
             }
@@ -110,11 +119,14 @@ class issue_service {
     public static function get_issue(int $certificateproid, int $userid): ?\stdClass {
         global $DB;
 
-        $record = $DB->get_record('certificatepro_issues', [
-            'certificateproid' => $certificateproid,
-            'userid' => $userid,
-            'cycleid' => null,
-        ]);
+        $record = $DB->get_record(
+            'certificatepro_issues',
+            [
+                'certificateproid' => $certificateproid,
+                'userid' => $userid,
+                'cycleid' => null,
+            ]
+        );
 
         return $record ?: null;
     }
@@ -135,7 +147,7 @@ class issue_service {
         $lock = \core\lock\lock_config::get_lock_factory('mod_certificatepro')
             ->get_lock('issuer_' . $instance->id, 10);
         if (!$lock) {
-            throw new \moodle_exception('locktimeout');
+            throw new \moodle_exception('locktimeout', 'moodle');
         }
         try {
             if ($DB->get_field('certificatepro', 'cycleonly', ['id' => $instance->id])) {
@@ -158,7 +170,7 @@ class issue_service {
         $factory = \core\lock\lock_config::get_lock_factory('local_recertify');
         $lock = $factory->get_lock('cycle_' . $cycleid, 10);
         if (!$lock) {
-            throw new \moodle_exception('locktimeout');
+            throw new \moodle_exception('locktimeout', 'moodle');
         }
         try {
             $cycle = $DB->get_record('local_recertify_cycles', ['id' => $cycleid], '*', MUST_EXIST);
@@ -235,14 +247,103 @@ class issue_service {
 
         self::materialise($instance, $course, $context, $user, $issue);
 
-        \mod_certificatepro\event\certificate_issued::create([
-            'objectid' => $issue->id,
-            'context' => $context,
-            'relateduserid' => $user->id,
-            'other' => ['code' => $issue->code],
-        ])->trigger();
+        \mod_certificatepro\event\certificate_issued::create(
+            [
+                'objectid' => $issue->id,
+                'context' => $context,
+                'relateduserid' => $user->id,
+                'other' => ['code' => $issue->code],
+            ]
+        )->trigger();
+
+        try {
+            self::notify_issued($instance, $course, $context, $user, $issue);
+        } catch (\Throwable $e) {
+            // A mail failure must never undo or block an issued certificate.
+            debugging('Certificate Pro could not send issue notifications: ' . $e->getMessage(), DEBUG_DEVELOPER);
+        }
 
         return $DB->get_record('certificatepro_issues', ['id' => $issue->id], '*', MUST_EXIST);
+    }
+
+    /**
+     * Send the "certificate issued" notifications configured on the activity.
+     *
+     * @param \stdClass $instance the activity instance
+     * @param \stdClass $course the course
+     * @param \context $context the module context
+     * @param \stdClass $user the recipient
+     * @param \stdClass $issue the new issue
+     * @return void
+     */
+    protected static function notify_issued(\stdClass $instance, \stdClass $course, \context $context,
+            \stdClass $user, \stdClass $issue): void {
+        global $DB;
+
+        if (empty($instance->emailstudents) && empty($instance->emailteachers) && empty($instance->emailothers)) {
+            return;
+        }
+        $cmid = $context instanceof \context_module ? $context->instanceid : 0;
+        $url = new \moodle_url('/mod/certificatepro/view.php', ['id' => $cmid]);
+        $a = (object)[
+            'learner' => fullname($user),
+            'certificate' => format_string($instance->name, true, ['context' => $context]),
+            'course' => format_string($course->fullname, true, ['context' => $context]),
+            'code' => $issue->code,
+            'url' => $url->out(false),
+        ];
+        $subject = get_string('issuedemailsubject', 'mod_certificatepro', $a);
+        $sent = false;
+
+        $send = function (\stdClass $to, string $bodykey) use ($subject, $a, $course, $url, &$sent) {
+            $message = new \core\message\message();
+            $message->component = 'mod_certificatepro';
+            $message->name = 'issued';
+            $message->userfrom = \core_user::get_noreply_user();
+            $message->userto = $to;
+            $message->subject = $subject;
+            $message->fullmessage = get_string($bodykey, 'mod_certificatepro', $a);
+            $message->fullmessageformat = FORMAT_PLAIN;
+            $message->fullmessagehtml = text_to_html($message->fullmessage, false, false, true);
+            $message->smallmessage = $subject;
+            $message->notification = 1;
+            $message->contexturl = $url->out(false);
+            $message->contexturlname = $a->certificate;
+            $message->courseid = $course->id;
+            $sent = message_send($message) || $sent;
+        };
+
+        if (!empty($instance->emailstudents) && empty($user->deleted) && empty($user->suspended)) {
+            $send($user, 'issuedemailbody_learner');
+        }
+        if (!empty($instance->emailteachers)) {
+            $staff = get_enrolled_users($context, 'mod/certificatepro:receiveissuenotification', 0, 'u.*', null, 0, 0, true);
+            foreach ($staff as $teacher) {
+                if ((int)$teacher->id !== (int)$user->id) {
+                    $send($teacher, 'issuedemailbody_staff');
+                }
+            }
+        }
+        if (!empty($instance->emailothers)) {
+            foreach (explode(',', (string)$instance->emailothers) as $address) {
+                $address = trim($address);
+                if ($address === '' || !validate_email($address)) {
+                    continue;
+                }
+                $recipient = \core_user::get_noreply_user();
+                $recipient->email = $address;
+                $recipient->mailformat = 1;
+                $sent = email_to_user(
+                    $recipient,
+                    \core_user::get_noreply_user(),
+                    $subject,
+                    get_string('issuedemailbody_staff', 'mod_certificatepro', $a)
+                ) || $sent;
+            }
+        }
+        if ($sent) {
+            $DB->set_field('certificatepro_issues', 'emailed', 1, ['id' => $issue->id]);
+        }
     }
 
     /**
@@ -262,29 +363,37 @@ class issue_service {
         try {
             $template = template::load((int) $instance->templateid);
         } catch (\Throwable $e) {
-            debugging('Certificate Pro could not load a design to issue: ' . $e->getMessage(),
-                DEBUG_DEVELOPER);
+            debugging(
+                'Certificate Pro could not load a design to issue: ' . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
             return;
         }
 
         $ctx = render_context::for_issue($context, $instance, $course, $user, $issue);
         $renderer = new pdf_renderer($template);
 
-        $content = $renderer->render($ctx, [
-            'title' => format_string($instance->name, true, ['context' => $context]),
-            'protection' => pdf_renderer::protection_flags($instance),
-        ]);
+        $content = $renderer->render(
+            $ctx,
+            [
+                'title' => format_string($instance->name, true, ['context' => $context]),
+                'protection' => pdf_renderer::protection_flags($instance),
+            ]
+        );
 
         $fs = get_file_storage();
         $fs->delete_area_files($context->id, 'mod_certificatepro', self::FILEAREA, $issue->id);
-        $fs->create_file_from_string([
-            'contextid' => $context->id,
-            'component' => 'mod_certificatepro',
-            'filearea' => self::FILEAREA,
-            'itemid' => $issue->id,
-            'filepath' => '/',
-            'filename' => self::filename($instance, $course, $user, $issue),
-        ], $content);
+        $fs->create_file_from_string(
+            [
+                'contextid' => $context->id,
+                'component' => 'mod_certificatepro',
+                'filearea' => self::FILEAREA,
+                'itemid' => $issue->id,
+                'filepath' => '/',
+                'filename' => self::filename($instance, $course, $user, $issue),
+            ],
+            $content
+        );
 
         // The badge is drawn from the design's seal, and a design can be edited
         // after an issue is minted. Freeze the seal's settings alongside the
@@ -298,12 +407,15 @@ class issue_service {
         $issue->templaterevision = (int) $template->get_record()->revision;
         $issue->pdfhash = hash('sha256', $content);
 
-        $DB->update_record('certificatepro_issues', (object) [
-            'id' => $issue->id,
-            'snapshot' => $issue->snapshot,
-            'templaterevision' => $issue->templaterevision,
-            'pdfhash' => $issue->pdfhash,
-        ]);
+        $DB->update_record(
+            'certificatepro_issues',
+            (object) [
+                'id' => $issue->id,
+                'snapshot' => $issue->snapshot,
+                'templaterevision' => $issue->templaterevision,
+                'pdfhash' => $issue->pdfhash,
+            ]
+        );
     }
 
     /**
@@ -319,8 +431,14 @@ class issue_service {
     public static function get_file(\stdClass $instance, \stdClass $course, \context $context,
             \stdClass $user, \stdClass $issue): ?\stored_file {
         $fs = get_file_storage();
-        $files = $fs->get_area_files($context->id, 'mod_certificatepro', self::FILEAREA,
-            $issue->id, 'id', false);
+        $files = $fs->get_area_files(
+            $context->id,
+            'mod_certificatepro',
+            self::FILEAREA,
+            $issue->id,
+            'id',
+            false
+        );
 
         if (!empty($files)) {
             return reset($files);
@@ -332,8 +450,14 @@ class issue_service {
         }
         self::materialise($instance, $course, $context, $user, $issue);
 
-        $files = $fs->get_area_files($context->id, 'mod_certificatepro', self::FILEAREA,
-            $issue->id, 'id', false);
+        $files = $fs->get_area_files(
+            $context->id,
+            'mod_certificatepro',
+            self::FILEAREA,
+            $issue->id,
+            'id',
+            false
+        );
 
         return empty($files) ? null : reset($files);
     }
@@ -349,19 +473,24 @@ class issue_service {
     public static function revoke(\stdClass $issue, \context $context, string $reason): void {
         global $DB, $USER;
 
-        $DB->update_record('certificatepro_issues', (object) [
-            'id' => $issue->id,
-            'revoked' => 1,
-            'revokedby' => (int) $USER->id,
-            'revokedreason' => $reason,
-            'timerevoked' => time(),
-        ]);
+        $DB->update_record(
+            'certificatepro_issues',
+            (object) [
+                'id' => $issue->id,
+                'revoked' => 1,
+                'revokedby' => (int) $USER->id,
+                'revokedreason' => $reason,
+                'timerevoked' => time(),
+            ]
+        );
 
-        \mod_certificatepro\event\certificate_revoked::create([
-            'objectid' => $issue->id,
-            'context' => $context,
-            'relateduserid' => $issue->userid,
-        ])->trigger();
+        \mod_certificatepro\event\certificate_revoked::create(
+            [
+                'objectid' => $issue->id,
+                'context' => $context,
+                'relateduserid' => $issue->userid,
+            ]
+        )->trigger();
     }
 
     /**
@@ -498,10 +627,13 @@ class issue_service {
                 $DB->set_field('certificatepro_serials', 'counter', $next, ['id' => $record->id]);
             } else {
                 $next = 1;
-                $DB->insert_record('certificatepro_serials', (object) [
-                    'scope' => $scope,
-                    'counter' => $next,
-                ]);
+                $DB->insert_record(
+                    'certificatepro_serials',
+                    (object) [
+                        'scope' => $scope,
+                        'counter' => $next,
+                    ]
+                );
             }
 
             $transaction->allow_commit();
@@ -537,8 +669,11 @@ class issue_service {
                 '{serial}' => $issue->serial ?? '',
                 '{date}' => userdate($issue->timecreated ?? time(), '%Y-%m-%d'),
             ];
-            $name = str_ireplace(array_keys($replacements), array_values($replacements),
-                (string) $instance->customfilenamepattern);
+            $name = str_ireplace(
+                array_keys($replacements),
+                array_values($replacements),
+                (string) $instance->customfilenamepattern
+            );
         } else {
             $name = format_string($instance->name, true) . ' - ' . fullname($user);
         }

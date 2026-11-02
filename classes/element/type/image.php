@@ -91,12 +91,17 @@ class image extends image_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('filemanager', 'imagefile',
-            get_string('elementimagefile', 'mod_certificatepro'), null, [
+        $mform->addElement(
+            'filemanager',
+            'imagefile',
+            get_string('elementimagefile', 'mod_certificatepro'),
+            null,
+            [
                 'subdirs' => 0,
                 'maxfiles' => 1,
                 'accepted_types' => ['web_image', '.svg'],
-            ]);
+            ]
+        );
 
         $this->add_common_image_settings($mform);
     }

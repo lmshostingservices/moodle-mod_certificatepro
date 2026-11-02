@@ -171,9 +171,12 @@ class registry {
             if (empty($items)) {
                 continue;
             }
-            usort($items, static function (array $a, array $b): int {
-                return strcmp($a['name'], $b['name']);
-            });
+            usort(
+                $items,
+                static function (array $a, array $b): int {
+                    return strcmp($a['name'], $b['name']);
+                }
+            );
             $catalogue[] = [
                 'id' => $category,
                 'name' => get_string('elementcategory_' . $category, 'mod_certificatepro'),

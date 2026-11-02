@@ -141,11 +141,22 @@ foreach (($manifest['items'] ?? []) as $item) {
     }
 }
 
-cli_writeln(sprintf('Queue holds %d entr%s across %d source%s.',
-    count($queue), count($queue) === 1 ? 'y' : 'ies',
-    count($registry), count($registry) === 1 ? '' : 's'));
-cli_writeln(sprintf('Manifest holds %d existing record%s.',
-    count($existing), count($existing) === 1 ? '' : 's'));
+cli_writeln(
+    sprintf(
+        'Queue holds %d entr%s across %d source%s.',
+        count($queue),
+        count($queue) === 1 ? 'y' : 'ies',
+        count($registry),
+        count($registry) === 1 ? '' : 's'
+    )
+);
+cli_writeln(
+    sprintf(
+        'Manifest holds %d existing record%s.',
+        count($existing),
+        count($existing) === 1 ? '' : 's'
+    )
+);
 cli_writeln('');
 
 $stats = [
@@ -213,8 +224,14 @@ foreach ($queue as $position => $entry) {
 
     $stats[$result['status']] = ($stats[$result['status']] ?? 0) + 1;
 
-    cli_writeln(sprintf('  %-9s %-52s %s',
-        strtoupper($result['status']), $id, $result['detail']));
+    cli_writeln(
+        sprintf(
+            '  %-9s %-52s %s',
+            strtoupper($result['status']),
+            $id,
+            $result['detail']
+        )
+    );
 
     if ($result['record'] !== null) {
         $existing[$id] = $result['record'];
@@ -273,8 +290,10 @@ if ($dryrun) {
     cli_writeln('');
     cli_writeln('Dry run: manifest not written.');
 } else {
-    if (!certificatepro_pd_write_atomic($manifestpath,
-            json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n")) {
+    if (!certificatepro_pd_write_atomic(
+        $manifestpath,
+        json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
+    )) {
         cli_error('Could not write the manifest to ' . $manifestpath);
     }
     cli_writeln('');
@@ -283,11 +302,17 @@ if ($dryrun) {
 
 cli_writeln('');
 cli_writeln(str_repeat('-', 70));
-cli_writeln(sprintf(
-    'imported %d   updated %d   unchanged %d   protected %d   skipped %d   failed %d',
-    $stats['imported'], $stats['updated'], $stats['unchanged'],
-    $stats['protected'], $stats['skipped'], $stats['failed']
-));
+cli_writeln(
+    sprintf(
+        'imported %d   updated %d   unchanged %d   protected %d   skipped %d   failed %d',
+        $stats['imported'],
+        $stats['updated'],
+        $stats['unchanged'],
+        $stats['protected'],
+        $stats['skipped'],
+        $stats['failed']
+    )
+);
 
 $bycount = [];
 foreach ($out['items'] as $item) {
@@ -422,36 +447,54 @@ function certificatepro_pd_process(array $entry, ?array $source, string $sourcek
         return certificatepro_pd_result('failed', 'unknown source key "' . $sourcekey . '"', $previous);
     }
     if (empty($source['enabled_for_import'])) {
-        return certificatepro_pd_result('skipped',
-            'source is not enabled for automated import; import this one by hand', $previous);
+        return certificatepro_pd_result(
+            'skipped',
+            'source is not enabled for automated import; import this one by hand',
+            $previous
+        );
     }
     if (($source['format'] ?? 'vector') !== 'vector') {
-        return certificatepro_pd_result('skipped',
-            'source is raster and needs tracing, which is a human step', $previous);
+        return certificatepro_pd_result(
+            'skipped',
+            'source is raster and needs tracing, which is a human step',
+            $previous
+        );
     }
 
     // A hand-curated asset is the output of somebody's afternoon. Nothing this
     // script does is worth losing it.
     if ($previous !== null && !empty($previous['hand_curated'])) {
-        return certificatepro_pd_result('protected',
-            'hand curated, refusing to overwrite', $previous);
+        return certificatepro_pd_result(
+            'protected',
+            'hand curated, refusing to overwrite',
+            $previous
+        );
     }
 
     $role = (string)($entry['role'] ?? '');
     if (!in_array($role, pd_library::roles(), true)) {
-        return certificatepro_pd_result('failed',
-            'role "' . $role . '" is not one of: ' . implode(', ', pd_library::roles()), $previous);
+        return certificatepro_pd_result(
+            'failed',
+            'role "' . $role . '" is not one of: ' . implode(', ', pd_library::roles()),
+            $previous
+        );
     }
 
     if (empty($entry['licence_verified'])) {
-        return certificatepro_pd_result('skipped',
-            'licence not verified; open the item page, read the licence, set licence_verified', $previous);
+        return certificatepro_pd_result(
+            'skipped',
+            'licence not verified; open the item page, read the licence, set licence_verified',
+            $previous
+        );
     }
 
     $url = certificatepro_pd_download_url($entry, $source);
     if ($url === null) {
-        return certificatepro_pd_result('failed',
-            'cannot build a download URL; source has no download_url_template', $previous);
+        return certificatepro_pd_result(
+            'failed',
+            'cannot build a download URL; source has no download_url_template',
+            $previous
+        );
     }
 
     $denial = certificatepro_pd_denial($url, $denied);
@@ -465,9 +508,11 @@ function certificatepro_pd_process(array $entry, ?array $source, string $sourcek
     // A file on disk that this manifest has never heard of was put there by a
     // person. Treat that as hand curation whether or not it was flagged.
     if ($previous === null && is_file($target)) {
-        return certificatepro_pd_result('protected',
+        return certificatepro_pd_result(
+            'protected',
             'a file already exists at ' . $relative . ' with no manifest record; refusing to overwrite',
-            null);
+            null
+        );
     }
 
     if (!$force && $previous !== null && is_file($target)) {
@@ -503,15 +548,30 @@ function certificatepro_pd_process(array $entry, ?array $source, string $sourcek
         );
     }
 
-    $record = certificatepro_pd_record($entry, $source, $sourcekey, $url, $relative, $clean,
-        $sha, $prepared['geometry'], $previous);
+    $record = certificatepro_pd_record(
+        $entry,
+        $source,
+        $sourcekey,
+        $url,
+        $relative,
+        $clean,
+        $sha,
+        $prepared['geometry'],
+        $previous
+    );
 
     if ($dryrun) {
         return array_merge(
-            certificatepro_pd_result($previous === null ? 'imported' : 'updated',
-                sprintf('would write %s (%d bytes, viewBox %s)',
-                    $relative, strlen($clean), $record['viewbox']),
-                $record),
+            certificatepro_pd_result(
+                $previous === null ? 'imported' : 'updated',
+                sprintf(
+                    'would write %s (%d bytes, viewBox %s)',
+                    $relative,
+                    strlen($clean),
+                    $record['viewbox']
+                ),
+                $record
+            ),
             ['fetched' => true]
         );
     }
@@ -524,9 +584,11 @@ function certificatepro_pd_process(array $entry, ?array $source, string $sourcek
     }
 
     return array_merge(
-        certificatepro_pd_result($previous === null ? 'imported' : 'updated',
+        certificatepro_pd_result(
+            $previous === null ? 'imported' : 'updated',
             sprintf('%s (%d bytes, viewBox %s)', $relative, strlen($clean), $record['viewbox']),
-            $record),
+            $record
+        ),
         ['fetched' => true]
     );
 }
@@ -563,10 +625,13 @@ function certificatepro_pd_download_url(array $entry, array $source): ?string {
     if ($template === '') {
         return null;
     }
-    return strtr($template, [
-        '{ref}' => rawurlencode((string)($entry['ref'] ?? '')),
-        '{slug}' => rawurlencode((string)($entry['slug'] ?? '')),
-    ]);
+    return strtr(
+        $template,
+        [
+            '{ref}' => rawurlencode((string)($entry['ref'] ?? '')),
+            '{slug}' => rawurlencode((string)($entry['slug'] ?? '')),
+        ]
+    );
 }
 
 /**
@@ -581,10 +646,13 @@ function certificatepro_pd_item_url(array $entry, array $source): string {
     if ($template === '') {
         return (string)($source['base_url'] ?? '');
     }
-    return strtr($template, [
-        '{ref}' => (string)($entry['ref'] ?? ''),
-        '{slug}' => (string)($entry['slug'] ?? ''),
-    ]);
+    return strtr(
+        $template,
+        [
+            '{ref}' => (string)($entry['ref'] ?? ''),
+            '{slug}' => (string)($entry['slug'] ?? ''),
+        ]
+    );
 }
 
 /**
@@ -638,15 +706,19 @@ function certificatepro_pd_filename(string $id): string {
  */
 function certificatepro_pd_fetch(string $url, int $timeout): array {
     $curl = new \curl();
-    $body = $curl->get($url, [], [
-        'CURLOPT_FOLLOWLOCATION' => 1,
-        'CURLOPT_MAXREDIRS' => 5,
-        'CURLOPT_TIMEOUT' => $timeout,
-        'CURLOPT_CONNECTTIMEOUT' => min(15, $timeout),
-        'CURLOPT_USERAGENT' => CERTIFICATEPRO_PD_USER_AGENT,
-        'CURLOPT_SSL_VERIFYPEER' => 1,
-        'CURLOPT_SSL_VERIFYHOST' => 2,
-    ]);
+    $body = $curl->get(
+        $url,
+        [],
+        [
+            'CURLOPT_FOLLOWLOCATION' => 1,
+            'CURLOPT_MAXREDIRS' => 5,
+            'CURLOPT_TIMEOUT' => $timeout,
+            'CURLOPT_CONNECTTIMEOUT' => min(15, $timeout),
+            'CURLOPT_USERAGENT' => CERTIFICATEPRO_PD_USER_AGENT,
+            'CURLOPT_SSL_VERIFYPEER' => 1,
+            'CURLOPT_SSL_VERIFYHOST' => 2,
+        ]
+    );
 
     if ($curl->get_errno()) {
         return ['body' => '', 'error' => 'fetch failed: ' . $curl->error];
@@ -663,8 +735,11 @@ function certificatepro_pd_fetch(string $url, int $timeout): array {
         return ['body' => '', 'error' => 'fetch returned an empty body'];
     }
     if (strlen($body) > CERTIFICATEPRO_PD_MAX_FETCH_BYTES) {
-        return ['body' => '', 'error' => sprintf('response is %d bytes, over the %d byte ceiling',
-            strlen($body), CERTIFICATEPRO_PD_MAX_FETCH_BYTES)];
+        return ['body' => '', 'error' => sprintf(
+            'response is %d bytes, over the %d byte ceiling',
+            strlen($body),
+            CERTIFICATEPRO_PD_MAX_FETCH_BYTES
+        )];
     }
 
     return ['body' => $body, 'error' => null];
@@ -687,22 +762,28 @@ function certificatepro_pd_prepare(string $body, array $entry, array $source, st
     $head = ltrim(substr($body, 0, 512));
 
     if (str_starts_with($body, "PK\x03\x04")) {
-        return $fail('the download is a ZIP archive, not a bare SVG; extract it by hand '
-            . 'and set download_url to the extracted file');
+        return $fail(
+            'the download is a ZIP archive, not a bare SVG; extract it by hand '
+                . 'and set download_url to the extracted file'
+        );
     }
     if (str_starts_with($body, "\x89PNG") || str_starts_with($body, "\xFF\xD8\xFF")
             || str_starts_with($body, 'GIF8') || str_starts_with($body, '%PDF')) {
         return $fail('the download is a raster image or PDF, not SVG');
     }
     if (stripos($head, '<svg') === false && stripos($head, '<?xml') === false) {
-        return $fail('the download does not look like SVG; the first bytes are '
-            . json_encode(substr($head, 0, 60)));
+        return $fail(
+            'the download does not look like SVG; the first bytes are '
+                . json_encode(substr($head, 0, 60))
+        );
     }
 
     $clean = svg_sanitiser::clean($body);
     if ($clean === null) {
-        return $fail('the sanitiser rejected the document; it is malformed, oversized, '
-            . 'or carries an entity declaration');
+        return $fail(
+            'the sanitiser rejected the document; it is malformed, oversized, '
+                . 'or carries an entity declaration'
+        );
     }
     if (!svg_sanitiser::is_drawable($clean)) {
         return $fail('nothing is drawn once the document is sanitised');
@@ -758,8 +839,14 @@ function certificatepro_pd_normalise(string $svg, array $entry, array $source, s
     // libxml stamp a redundant xmlns:default onto every child it adopts.
     if (abs($minx) > 0.0001 || abs($miny) > 0.0001) {
         $group = $document->createElementNS('http://www.w3.org/2000/svg', 'g');
-        $group->setAttribute('transform', sprintf('translate(%s,%s)',
-            certificatepro_pd_number(-$minx), certificatepro_pd_number(-$miny)));
+        $group->setAttribute(
+            'transform',
+            sprintf(
+                'translate(%s,%s)',
+                certificatepro_pd_number(-$minx),
+                certificatepro_pd_number(-$miny)
+            )
+        );
         while ($root->firstChild !== null) {
             $group->appendChild($root->firstChild);
         }
@@ -781,8 +868,14 @@ function certificatepro_pd_normalise(string $svg, array $entry, array $source, s
     certificatepro_pd_strip_namespaces($document);
 
     $root->setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    $root->setAttribute('viewBox', sprintf('0 0 %s %s',
-        certificatepro_pd_number($width), certificatepro_pd_number($height)));
+    $root->setAttribute(
+        'viewBox',
+        sprintf(
+            '0 0 %s %s',
+            certificatepro_pd_number($width),
+            certificatepro_pd_number($height)
+        )
+    );
     $root->setAttribute('width', certificatepro_pd_number($width));
     $root->setAttribute('height', certificatepro_pd_number($height));
     $root->setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -790,12 +883,16 @@ function certificatepro_pd_normalise(string $svg, array $entry, array $source, s
     // Provenance travels inside the file as well as in the manifest, because a
     // single SVG lifted out of the bundle should still say where it came from.
     $desc = $document->createElement('desc');
-    $desc->appendChild($document->createTextNode(sprintf(
-        'Source: %s. Licence: %s. From: %s. Imported for mod_certificatepro.',
-        (string)($source['name'] ?? 'unknown'),
-        (string)($source['licence'] ?? 'unknown'),
-        $url
-    )));
+    $desc->appendChild(
+        $document->createTextNode(
+            sprintf(
+                'Source: %s. Licence: %s. From: %s. Imported for mod_certificatepro.',
+                (string)($source['name'] ?? 'unknown'),
+                (string)($source['licence'] ?? 'unknown'),
+                $url
+            )
+        )
+    );
 
     $title = $document->createElement('title');
     $title->appendChild($document->createTextNode((string)($entry['title'] ?? $entry['id'])));
@@ -819,8 +916,11 @@ function certificatepro_pd_normalise(string $svg, array $entry, array $source, s
             'width' => $width,
             'height' => $height,
             'aspect' => round($width / $height, 4),
-            'viewbox' => sprintf('0 0 %s %s',
-                certificatepro_pd_number($width), certificatepro_pd_number($height)),
+            'viewbox' => sprintf(
+                '0 0 %s %s',
+                certificatepro_pd_number($width),
+                certificatepro_pd_number($height)
+            ),
         ],
         'error' => null,
     ];
@@ -983,8 +1083,10 @@ function certificatepro_pd_record(array $entry, array $source, string $sourcekey
         'author' => (string)($entry['author'] ?? ''),
         'licence' => (string)($entry['licence'] ?? $source['licence'] ?? 'unknown'),
         'licence_url' => (string)($entry['licence_url'] ?? $source['licence_url'] ?? ''),
-        'attribution_required' => (bool)($entry['attribution_required']
-            ?? $source['attribution_required'] ?? false),
+        'attribution_required' => (bool)(
+            $entry['attribution_required']
+                ?? $source['attribution_required'] ?? false
+        ),
         'attribution' => (string)($entry['attribution'] ?? ''),
         'licence_verified_on' => (string)($entry['verified_on'] ?? ''),
         'licence_quote' => (string)($entry['verified_quote'] ?? ''),

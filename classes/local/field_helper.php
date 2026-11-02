@@ -128,13 +128,19 @@ class field_helper {
             if (!$definition) {
                 return '';
             }
-            $data = $DB->get_record('user_info_data',
-                ['userid' => $user->id, 'fieldid' => $definition->id]);
+            $data = $DB->get_record(
+                'user_info_data',
+                ['userid' => $user->id, 'fieldid' => $definition->id]
+            );
             if (!$data) {
                 return '';
             }
-            return self::present((string) $data->data, (int) ($data->dataformat ?? FORMAT_MOODLE),
-                $context, $allowhtml);
+            return self::present(
+                (string) $data->data,
+                (int) ($data->dataformat ?? FORMAT_MOODLE),
+                $context,
+                $allowhtml
+            );
         }
 
         if ($field === 'fullname') {
@@ -146,7 +152,9 @@ class field_helper {
             return (string) ($countries[$user->country] ?? $user->country);
         }
 
-        if (!property_exists($user, $field)) {
+        // Only whitelisted profile fields may be printed: a restored or crafted design must never be able
+        // to put password hashes, secrets or other internal columns on a certificate.
+        if (!in_array($field, self::USER_FIELDS, true) || !property_exists($user, $field)) {
             return '';
         }
 
@@ -222,8 +230,12 @@ class field_helper {
             foreach ($data as $datum) {
                 if ($datum->get_field()->get('shortname') === $shortname) {
                     $value = $datum->export_value();
-                    return $value === null ? '' : self::present((string) $value, FORMAT_HTML,
-                        $context, $allowhtml);
+                    return $value === null ? '' : self::present(
+                        (string) $value,
+                        FORMAT_HTML,
+                        $context,
+                        $allowhtml
+                    );
                 }
             }
             return '';

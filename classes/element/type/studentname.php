@@ -69,14 +69,17 @@ class studentname extends text_base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(parent::default_style(), [
-            'font' => 'heading',
-            'scalerole' => 'recipient',
-            'size' => null,
-            'colour' => 'primarydark',
-            'maxlines' => 2,
-            'fit' => true,
-        ]);
+        return array_merge(
+            parent::default_style(),
+            [
+                'font' => 'heading',
+                'scalerole' => 'recipient',
+                'size' => null,
+                'colour' => 'primarydark',
+                'maxlines' => 2,
+                'fit' => true,
+            ]
+        );
     }
 
     /**
@@ -87,8 +90,12 @@ class studentname extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('select', 'nameformat',
-            get_string('nameformat', 'mod_certificatepro'), self::name_formats());
+        $mform->addElement(
+            'select',
+            'nameformat',
+            get_string('nameformat', 'mod_certificatepro'),
+            self::name_formats()
+        );
         $mform->setDefault('nameformat', 'fullname');
         $mform->addHelpButton('nameformat', 'nameformat', 'mod_certificatepro');
     }

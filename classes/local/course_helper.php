@@ -38,8 +38,13 @@ class course_helper {
             return [];
         }
 
-        $users = get_enrolled_users($coursecontext, 'moodle/course:update', 0,
-            'u.*', 'u.lastname ASC, u.firstname ASC');
+        $users = get_enrolled_users(
+            $coursecontext,
+            'moodle/course:update',
+            0,
+            'u.*',
+            'u.lastname ASC, u.firstname ASC'
+        );
 
         $teachers = [];
         foreach ($users as $user) {
@@ -83,8 +88,10 @@ class course_helper {
               ORDER BY timecreated ASC";
 
         try {
-            $records = $DB->get_records_sql($sql,
-                ['userid' => $userid, 'courseid' => $courseid]);
+            $records = $DB->get_records_sql(
+                $sql,
+                ['userid' => $userid, 'courseid' => $courseid]
+            );
         } catch (\dml_exception $e) {
             // The standard log store may not be installed.
             return 0;

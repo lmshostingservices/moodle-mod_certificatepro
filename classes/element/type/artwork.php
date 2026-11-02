@@ -83,13 +83,20 @@ class artwork extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('select', 'backgroundid',
+        $mform->addElement(
+            'select',
+            'backgroundid',
             get_string('artworkchoose', 'mod_certificatepro'),
-            \mod_certificatepro\local\ai\background_repository::menu($context));
+            \mod_certificatepro\local\ai\background_repository::menu($context)
+        );
         $mform->addHelpButton('backgroundid', 'artworkchoose', 'mod_certificatepro');
 
-        $mform->addElement('text', 'opacity',
-            get_string('elementopacity', 'mod_certificatepro'), ['size' => 6]);
+        $mform->addElement(
+            'text',
+            'opacity',
+            get_string('elementopacity', 'mod_certificatepro'),
+            ['size' => 6]
+        );
         $mform->setType('opacity', PARAM_FLOAT);
         $mform->setDefault('opacity', 1);
     }
@@ -146,11 +153,23 @@ class artwork extends base {
         file_put_contents($path, $svg);
 
         try {
-            $pdf->ImageSVG($path, 0, 0, $ctx->get_page_width(), $ctx->get_page_height(),
-                '', '', '', 0, false);
+            $pdf->ImageSVG(
+                $path,
+                0,
+                0,
+                $ctx->get_page_width(),
+                $ctx->get_page_height(),
+                '',
+                '',
+                '',
+                0,
+                false
+            );
         } catch (\Throwable $e) {
-            debugging('Certificate Pro could not draw generated artwork: ' . $e->getMessage(),
-                DEBUG_DEVELOPER);
+            debugging(
+                'Certificate Pro could not draw generated artwork: ' . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
         }
 
         if ($opacity < 1.0) {
@@ -169,7 +188,11 @@ class artwork extends base {
         if ($svg === '') {
             return \html_writer::div('', 'certificatepro-element-placeholder');
         }
-        return \html_writer::div($svg, 'certificatepro-element-artwork', [
-            'style' => 'opacity:' . (float) $this->config('opacity', 1.0),
-        ]);
+        return \html_writer::div(
+            $svg,
+            'certificatepro-element-artwork',
+            [
+                'style' => 'opacity:' . (float) $this->config('opacity', 1.0),
+            ]
+        );
     }}

@@ -357,9 +357,13 @@ abstract class text_base extends base {
 
         $body = $this->allows_html() ? $this->clean_html($text) : nl2br(s($text), false);
 
-        return \html_writer::div($body, 'certificatepro-element-text', [
-            'style' => implode(';', $styles),
-        ]);
+        return \html_writer::div(
+            $body,
+            'certificatepro-element-text',
+            [
+                'style' => implode(';', $styles),
+            ]
+        );
     }
 
     /**

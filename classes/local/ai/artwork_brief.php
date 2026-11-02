@@ -206,8 +206,13 @@ class artwork_brief {
 
         $lines[] = '';
         $lines[] = 'Page and palette:';
-        $lines[] = sprintf('- The canvas is %.0f by %.0f millimetres. Use viewBox="0 0 %.0f %.0f".',
-            $width, $height, $width, $height);
+        $lines[] = sprintf(
+            '- The canvas is %.0f by %.0f millimetres. Use viewBox="0 0 %.0f %.0f".',
+            $width,
+            $height,
+            $width,
+            $height
+        );
         $lines[] = '- Use only these colours, which are the site\'s own brand palette:';
         foreach (['primary', 'primarydark', 'primarylight', 'primarywash', 'accent', 'ink',
                 'muted', 'rule', 'paper'] as $role) {
@@ -222,8 +227,11 @@ class artwork_brief {
             '1. Leave the rectangle from %.0f%% to %.0f%% of the width and %.0f%% to %.0f%% of the '
             . 'height almost empty. The certificate title and the recipient\'s name are printed '
             . 'there. A flat tint below 4%% opacity is acceptable; lines, shapes and text are not.',
-            background_library::QUIET_U0 * 100, background_library::QUIET_U1 * 100,
-            background_library::QUIET_V0 * 100, background_library::QUIET_V1 * 100);
+            background_library::QUIET_U0 * 100,
+            background_library::QUIET_U1 * 100,
+            background_library::QUIET_V0 * 100,
+            background_library::QUIET_V1 * 100
+        );
         $lines[] = '2. Vector only. No <image>, no embedded raster, no external references.';
         $lines[] = '3. No <text> and no lettering of any kind. Text is placed by the certificate.';
         $lines[] = '4. No <filter>, no blur, no blend modes, no CSS. These do not print.';
@@ -318,40 +326,68 @@ class artwork_brief {
 
             // Symmetry.
             if ($this->answers['symmetry'] === 'radial'
-                    && in_array($id, ['medallion_watermark', 'wax_seal_frame', 'rosette_corners',
-                        'counter_rosette', 'watermark_field', 'vignette_field'], true)) {
+                    && in_array(
+                        $id,
+                        ['medallion_watermark', 'wax_seal_frame', 'rosette_corners',
+                            'counter_rosette', 'watermark_field', 'vignette_field'],
+                        true
+                    )) {
                 $score += 2.0;
             }
             if ($this->answers['symmetry'] === 'asymmetric'
-                    && in_array($id, ['corner_bloom', 'duotone_drift', 'colour_column',
-                        'deep_field', 'drift_field'], true)) {
+                    && in_array(
+                        $id,
+                        ['corner_bloom', 'duotone_drift', 'colour_column',
+                            'deep_field', 'drift_field'],
+                        true
+                    )) {
                 $score += 1.5;
             }
             if ($this->answers['symmetry'] === 'symmetric'
-                    && in_array($id, ['guilloche_border', 'crest_frame', 'laurel_arc',
-                        'cartouche_title', 'vignette_field'], true)) {
+                    && in_array(
+                        $id,
+                        ['guilloche_border', 'crest_frame', 'laurel_arc',
+                            'cartouche_title', 'vignette_field'],
+                        true
+                    )) {
                 $score += 1.5;
             }
 
             // Placement.
             if ($this->answers['placement'] === 'bands'
-                    && in_array($id, ['ceremonial_bands', 'lathe_ribbon', 'tonal_bands',
-                        'laurel_arc', 'cartouche_title', 'counter_rosette'], true)) {
+                    && in_array(
+                        $id,
+                        ['ceremonial_bands', 'lathe_ribbon', 'tonal_bands',
+                            'laurel_arc', 'cartouche_title', 'counter_rosette'],
+                        true
+                    )) {
                 $score += 2.0;
             }
             if ($this->answers['placement'] === 'corner'
-                    && in_array($id, ['corner_bloom', 'colour_column', 'duotone_drift',
-                        'deep_field'], true)) {
+                    && in_array(
+                        $id,
+                        ['corner_bloom', 'colour_column', 'duotone_drift',
+                            'deep_field'],
+                        true
+                    )) {
                 $score += 2.0;
             }
             if ($this->answers['placement'] === 'full'
-                    && in_array($id, ['engine_field', 'watermark_field', 'wash_gradient',
-                        'vignette_field', 'medallion_watermark', 'relief_ruling'], true)) {
+                    && in_array(
+                        $id,
+                        ['engine_field', 'watermark_field', 'wash_gradient',
+                            'vignette_field', 'medallion_watermark', 'relief_ruling'],
+                        true
+                    )) {
                 $score += 2.0;
             }
             if ($this->answers['placement'] === 'edges'
-                    && in_array($id, ['guilloche_border', 'rosette_corners', 'wax_seal_frame',
-                        'crest_frame', 'engraved_plate'], true)) {
+                    && in_array(
+                        $id,
+                        ['guilloche_border', 'rosette_corners', 'wax_seal_frame',
+                            'crest_frame', 'engraved_plate'],
+                        true
+                    )) {
                 $score += 2.0;
             }
 

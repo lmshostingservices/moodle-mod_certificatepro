@@ -32,7 +32,6 @@ $functions = [
         'type' => 'write',
         'ajax' => true,
         'capabilities' => 'mod/certificatepro:manage',
-        'services' => [MOODLE_OFFICIAL_MOBILE_SERVICE],
     ],
     'mod_certificatepro_add_element' => [
         'classname' => 'mod_certificatepro\external\designer_api',

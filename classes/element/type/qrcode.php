@@ -76,21 +76,31 @@ class qrcode extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('select', 'errorlevel',
-            get_string('qrerrorlevel', 'mod_certificatepro'), [
+        $mform->addElement(
+            'select',
+            'errorlevel',
+            get_string('qrerrorlevel', 'mod_certificatepro'),
+            [
                 'L' => get_string('qrerrorlevel_l', 'mod_certificatepro'),
                 'M' => get_string('qrerrorlevel_m', 'mod_certificatepro'),
                 'Q' => get_string('qrerrorlevel_q', 'mod_certificatepro'),
                 'H' => get_string('qrerrorlevel_h', 'mod_certificatepro'),
-            ]);
+            ]
+        );
         $mform->setDefault('errorlevel', 'H');
         $mform->addHelpButton('errorlevel', 'qrerrorlevel', 'mod_certificatepro');
 
-        $mform->addElement('advcheckbox', 'usebrandcolour',
-            get_string('qrusebrandcolour', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'usebrandcolour',
+            get_string('qrusebrandcolour', 'mod_certificatepro')
+        );
 
-        $mform->addElement('advcheckbox', 'quietzone',
-            get_string('qrquietzone', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'quietzone',
+            get_string('qrquietzone', 'mod_certificatepro')
+        );
         $mform->setDefault('quietzone', 1);
         $mform->addHelpButton('quietzone', 'qrquietzone', 'mod_certificatepro');
     }

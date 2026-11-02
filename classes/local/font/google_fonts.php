@@ -217,7 +217,9 @@ class google_fonts {
 
             try {
                 $installed = \mod_certificatepro\local\font_manager::install_from_path(
-                    $path, $family . ' ' . $weight);
+                    $path,
+                    $family . ' ' . $weight
+                );
                 $report['installed'][] = ['weight' => $weight, 'name' => $installed];
             } catch (\Throwable $e) {
                 $report['failed'][] = ['weight' => $weight, 'reason' => $e->getMessage()];
@@ -310,8 +312,10 @@ class google_fonts {
         $info = $curl->get_info();
 
         if ($curl->get_errno() || (int) ($info['http_code'] ?? 0) !== 200 || $body === false) {
-            debugging('Certificate Pro could not reach the Google Fonts service: ' . $url,
-                DEBUG_DEVELOPER);
+            debugging(
+                'Certificate Pro could not reach the Google Fonts service: ' . $url,
+                DEBUG_DEVELOPER
+            );
             return null;
         }
 

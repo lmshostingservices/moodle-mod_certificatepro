@@ -77,8 +77,16 @@ class ornament {
     public static function rosette_family(canvas $c, float $cu, float $cv, float $bigr, int $p,
             int $q, int $traces, float $offset = 0.40): void {
         for ($k = 0; $k < $traces; $k++) {
-            self::rosette($c, $cu, $cv, $bigr, $p, $q, $offset * (1 + 0.035 * $k),
-                $k * 2 * M_PI / ($p * $traces));
+            self::rosette(
+                $c,
+                $cu,
+                $cv,
+                $bigr,
+                $p,
+                $q,
+                $offset * (1 + 0.035 * $k),
+                $k * 2 * M_PI / ($p * $traces)
+            );
         }
     }
 
@@ -153,14 +161,54 @@ class ornament {
         $ov = $inset / $c->h();
         $amp = $bandmm * 0.42;
 
-        self::strand_band($c, false, $ou, 1 - $ou, ($inset + $bandmm / 2) / $c->h(),
-            $amp, $strands, $colour, $brandcolour, $alpha);
-        self::strand_band($c, false, $ou, 1 - $ou, 1 - ($inset + $bandmm / 2) / $c->h(),
-            $amp, $strands, $colour, $brandcolour, $alpha);
-        self::strand_band($c, true, $ov, 1 - $ov, ($inset + $bandmm / 2) / $c->w(),
-            $amp, $strands, $colour, $brandcolour, $alpha);
-        self::strand_band($c, true, $ov, 1 - $ov, 1 - ($inset + $bandmm / 2) / $c->w(),
-            $amp, $strands, $colour, $brandcolour, $alpha);
+        self::strand_band(
+            $c,
+            false,
+            $ou,
+            1 - $ou,
+            ($inset + $bandmm / 2) / $c->h(),
+            $amp,
+            $strands,
+            $colour,
+            $brandcolour,
+            $alpha
+        );
+        self::strand_band(
+            $c,
+            false,
+            $ou,
+            1 - $ou,
+            1 - ($inset + $bandmm / 2) / $c->h(),
+            $amp,
+            $strands,
+            $colour,
+            $brandcolour,
+            $alpha
+        );
+        self::strand_band(
+            $c,
+            true,
+            $ov,
+            1 - $ov,
+            ($inset + $bandmm / 2) / $c->w(),
+            $amp,
+            $strands,
+            $colour,
+            $brandcolour,
+            $alpha
+        );
+        self::strand_band(
+            $c,
+            true,
+            $ov,
+            1 - $ov,
+            1 - ($inset + $bandmm / 2) / $c->w(),
+            $amp,
+            $strands,
+            $colour,
+            $brandcolour,
+            $alpha
+        );
     }
 
     /**
@@ -260,8 +308,15 @@ class ornament {
         $c->linear_gradient(0.0, 0.0, 1.0, 1.0, $wash, $paper, [0.0, 0.0, 0.35, 1.0]);
 
         $c->alpha(0.22 * $strength);
-        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $light, $paper,
-            [$bloomu, $bloomv, 0.0, $bloomu, $bloomv, 0.70]);
+        $c->radial_gradient(
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            $light,
+            $paper,
+            [$bloomu, $bloomv, 0.0, $bloomu, $bloomv, 0.70]
+        );
 
         $c->restore();
     }

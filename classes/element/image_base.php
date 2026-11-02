@@ -51,9 +51,12 @@ abstract class image_base extends base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(parent::default_style(), [
-            'opacity' => 1.0,
-        ]);
+        return array_merge(
+            parent::default_style(),
+            [
+                'opacity' => 1.0,
+            ]
+        );
     }
 
     /**
@@ -64,23 +67,37 @@ abstract class image_base extends base {
      */
     protected function add_common_image_settings(\MoodleQuickForm $mform): void {
         if ($this->has_media_picker()) {
-            $mform->addElement('select', 'mediaid',
+            $mform->addElement(
+                'select',
+                'mediaid',
                 get_string('mediafromlibrary', 'mod_certificatepro'),
-                media_library::menu($this->media_kind()));
+                media_library::menu($this->media_kind())
+            );
             $mform->addHelpButton('mediaid', 'mediafromlibrary', 'mod_certificatepro');
         }
 
-        $mform->addElement('advcheckbox', 'keepaspect',
-            get_string('keepaspect', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'keepaspect',
+            get_string('keepaspect', 'mod_certificatepro')
+        );
         $mform->setDefault('keepaspect', 1);
 
-        $mform->addElement('text', 'opacity',
-            get_string('elementopacity', 'mod_certificatepro'), ['size' => 6]);
+        $mform->addElement(
+            'text',
+            'opacity',
+            get_string('elementopacity', 'mod_certificatepro'),
+            ['size' => 6]
+        );
         $mform->setType('opacity', PARAM_FLOAT);
         $mform->setDefault('opacity', 1);
 
-        $mform->addElement('text', 'alttext',
-            get_string('elementalttext', 'mod_certificatepro'), ['size' => 60]);
+        $mform->addElement(
+            'text',
+            'alttext',
+            get_string('elementalttext', 'mod_certificatepro'),
+            ['size' => 60]
+        );
         $mform->setType('alttext', PARAM_TEXT);
         $mform->addHelpButton('alttext', 'elementalttext', 'mod_certificatepro');
     }
@@ -306,8 +323,25 @@ abstract class image_base extends base {
             if (strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'svg') {
                 $pdf->ImageSVG($path, $left, $top, $width, $height, '', '', '', 0, false);
             } else {
-                $pdf->Image($path, $left, $top, $width, $height, '', '', '', true, 300,
-                    '', false, false, 0, false, false, false);
+                $pdf->Image(
+                    $path,
+                    $left,
+                    $top,
+                    $width,
+                    $height,
+                    '',
+                    '',
+                    '',
+                    true,
+                    300,
+                    '',
+                    false,
+                    false,
+                    0,
+                    false,
+                    false,
+                    false
+                );
             }
         } catch (\Throwable $e) {
             debugging('Certificate Pro could not draw an image: ' . $e->getMessage(), DEBUG_DEVELOPER);
@@ -346,12 +380,15 @@ abstract class image_base extends base {
             $fit = 'cover';
         }
 
-        return \html_writer::empty_tag('img', [
-            'src' => $url,
-            'alt' => (string) $this->config('alttext', ''),
-            'class' => $classes,
-            'style' => 'width:100%;height:100%;object-fit:' . $fit
-                . ';opacity:' . (float) $this->config('opacity', 1.0),
-        ]);
+        return \html_writer::empty_tag(
+            'img',
+            [
+                'src' => $url,
+                'alt' => (string) $this->config('alttext', ''),
+                'class' => $classes,
+                'style' => 'width:100%;height:100%;object-fit:' . $fit
+                    . ';opacity:' . (float) $this->config('opacity', 1.0),
+            ]
+        );
     }
 }

@@ -114,10 +114,13 @@ class starter_templates {
             }
             if (!empty($spec['style'])) {
                 $existing = json_decode($record->style ?? '', true);
-                $record->style = json_encode(array_merge(
-                    is_array($existing) ? $existing : [],
-                    $spec['style']
-                ), JSON_PRESERVE_ZERO_FRACTION);
+                $record->style = json_encode(
+                    array_merge(
+                        is_array($existing) ? $existing : [],
+                        $spec['style']
+                    ),
+                    JSON_PRESERVE_ZERO_FRACTION
+                );
             }
             foreach (['width', 'height', 'posx', 'posy', 'refpoint'] as $field) {
                 if (isset($spec[$field])) {
@@ -130,11 +133,18 @@ class starter_templates {
             // oblong and the seal drawn small and off-centre inside it.
             if ($spec['type'] === 'seal' && !empty($spec['zone'])) {
                 $page = $DB->get_record('certificatepro_pages', ['id' => $pageid]);
-                $zones = zone_library::resolve($page->orientation,
-                    (float) $page->width, (float) $page->height);
+                $zones = zone_library::resolve(
+                    $page->orientation,
+                    (float) $page->width,
+                    (float) $page->height
+                );
                 if (isset($zones[$spec['zone']])) {
-                    $side = min((float) $record->width, (float) $record->height,
-                        $zones[$spec['zone']]['w'], $zones[$spec['zone']]['h']);
+                    $side = min(
+                        (float) $record->width,
+                        (float) $record->height,
+                        $zones[$spec['zone']]['w'],
+                        $zones[$spec['zone']]['h']
+                    );
                     $record->width = $side;
                     $record->height = $side;
                 }
@@ -144,8 +154,11 @@ class starter_templates {
             // in, or the design arrives with things already overlapping.
             if (!empty($spec['zone']) && $spec['type'] !== 'seal') {
                 $page = $DB->get_record('certificatepro_pages', ['id' => $pageid]);
-                $zones = zone_library::resolve($page->orientation,
-                    (float) $page->width, (float) $page->height);
+                $zones = zone_library::resolve(
+                    $page->orientation,
+                    (float) $page->width,
+                    (float) $page->height
+                );
                 if (isset($zones[$spec['zone']])) {
                     $record->width = min((float) $record->width, $zones[$spec['zone']]['w']);
                     $record->height = min((float) $record->height, $zones[$spec['zone']]['h']);
@@ -192,11 +205,14 @@ class starter_templates {
 
         $anchored = zone_library::anchor($zones[$zoneid], (float) $record->width, (float) $record->height);
 
-        $DB->update_record('certificatepro_elements', (object) [
-            'id' => $elementid,
-            'posx' => $anchored['posx'],
-            'posy' => $anchored['posy'],
-        ]);
+        $DB->update_record(
+            'certificatepro_elements',
+            (object) [
+                'id' => $elementid,
+                'posx' => $anchored['posx'],
+                'posy' => $anchored['posy'],
+            ]
+        );
     }
 
     /**

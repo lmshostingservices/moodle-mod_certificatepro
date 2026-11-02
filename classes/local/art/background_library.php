@@ -66,66 +66,222 @@ class background_library {
         return [
             // Engraved and ceremonial: the register of a share certificate or a
             // university award.
-            'engraved_plate' => self::entry('Engraved Plate', 'ceremonial', 'full',
-                styles_rich::class, 'dark', [0.12, 0.13, 0.76, 0.74]),
-            'guilloche_border' => self::entry('Guilloche Border', 'ceremonial', 'full',
-                styles_engraved::class, 'dark', [0.14, 0.15, 0.72, 0.70]),
-            'rosette_corners' => self::entry('Rosette Corners', 'ceremonial', 'full',
-                styles_engraved::class, 'dark', [0.13, 0.14, 0.74, 0.72]),
-            'medallion_watermark' => self::entry('Medallion', 'ceremonial', 'full',
-                styles_rich::class, 'dark', [0.08, 0.10, 0.84, 0.78]),
-            'wax_seal_frame' => self::entry('Wax Seal', 'ceremonial', 'full',
-                styles_engraved::class, 'dark', [0.13, 0.14, 0.74, 0.72]),
-            'cartouche_title' => self::entry('Cartouche', 'ceremonial', 'full',
-                styles_engraved::class, 'dark', [0.12, 0.13, 0.76, 0.74]),
-            'crest_frame' => self::entry('Crest', 'ceremonial', 'full',
-                styles_rich::class, 'dark', [0.11, 0.16, 0.78, 0.70]),
-            'laurel_arc' => self::entry('Laurel Arc', 'ceremonial', 'full',
-                styles_engraved::class, 'dark', [0.10, 0.19, 0.80, 0.64]),
-            'engine_field' => self::entry('Engine Field', 'ceremonial', 'full',
-                styles_engraved::class, 'dark', [0.10, 0.11, 0.80, 0.78]),
-            'ceremonial_bands' => self::entry('Ceremonial Bands', 'ceremonial', 'full',
-                styles_engraved::class, 'dark', [0.09, 0.14, 0.82, 0.72]),
-            'counter_rosette' => self::entry('Counter Rosette', 'ceremonial', 'full',
-                styles_security::class, 'dark', [0.08, 0.30, 0.84, 0.62]),
+            'engraved_plate' => self::entry(
+                'Engraved Plate',
+                'ceremonial',
+                'full',
+                styles_rich::class,
+                'dark',
+                [0.12, 0.13, 0.76, 0.74]
+            ),
+            'guilloche_border' => self::entry(
+                'Guilloche Border',
+                'ceremonial',
+                'full',
+                styles_engraved::class,
+                'dark',
+                [0.14, 0.15, 0.72, 0.70]
+            ),
+            'rosette_corners' => self::entry(
+                'Rosette Corners',
+                'ceremonial',
+                'full',
+                styles_engraved::class,
+                'dark',
+                [0.13, 0.14, 0.74, 0.72]
+            ),
+            'medallion_watermark' => self::entry(
+                'Medallion',
+                'ceremonial',
+                'full',
+                styles_rich::class,
+                'dark',
+                [0.08, 0.10, 0.84, 0.78]
+            ),
+            'wax_seal_frame' => self::entry(
+                'Wax Seal',
+                'ceremonial',
+                'full',
+                styles_engraved::class,
+                'dark',
+                [0.13, 0.14, 0.74, 0.72]
+            ),
+            'cartouche_title' => self::entry(
+                'Cartouche',
+                'ceremonial',
+                'full',
+                styles_engraved::class,
+                'dark',
+                [0.12, 0.13, 0.76, 0.74]
+            ),
+            'crest_frame' => self::entry(
+                'Crest',
+                'ceremonial',
+                'full',
+                styles_rich::class,
+                'dark',
+                [0.11, 0.16, 0.78, 0.70]
+            ),
+            'laurel_arc' => self::entry(
+                'Laurel Arc',
+                'ceremonial',
+                'full',
+                styles_engraved::class,
+                'dark',
+                [0.10, 0.19, 0.80, 0.64]
+            ),
+            'engine_field' => self::entry(
+                'Engine Field',
+                'ceremonial',
+                'full',
+                styles_engraved::class,
+                'dark',
+                [0.10, 0.11, 0.80, 0.78]
+            ),
+            'ceremonial_bands' => self::entry(
+                'Ceremonial Bands',
+                'ceremonial',
+                'full',
+                styles_engraved::class,
+                'dark',
+                [0.09, 0.14, 0.82, 0.72]
+            ),
+            'counter_rosette' => self::entry(
+                'Counter Rosette',
+                'ceremonial',
+                'full',
+                styles_security::class,
+                'dark',
+                [0.08, 0.30, 0.84, 0.62]
+            ),
 
             // Soft tinted grounds: quieter than the ceremonial set, far more
             // present than bare paper.
-            'wash_gradient' => self::entry('Wash', 'wash', 'soft',
-                styles_wash::class, 'dark', [0.10, 0.10, 0.80, 0.78]),
-            'corner_bloom' => self::entry('Corner Bloom', 'wash', 'soft',
-                styles_wash::class, 'dark', [0.10, 0.10, 0.80, 0.80]),
-            'tonal_bands' => self::entry('Tonal Bands', 'wash', 'soft',
-                styles_wash::class, 'dark', [0.10, 0.10, 0.80, 0.80]),
-            'vignette_field' => self::entry('Vignette', 'wash', 'soft',
-                styles_wash::class, 'dark', [0.10, 0.10, 0.80, 0.80]),
-            'duotone_drift' => self::entry('Duotone Drift', 'wash', 'soft',
-                styles_wash::class, 'dark', [0.10, 0.10, 0.80, 0.80]),
-            'laid_paper' => self::entry('Laid Paper', 'wash', 'soft',
-                styles_wash::class, 'dark', [0.10, 0.10, 0.80, 0.80]),
-            'watermark_field' => self::entry('Watermark', 'wash', 'soft',
-                styles_wash::class, 'dark', [0.09, 0.10, 0.82, 0.78]),
+            'wash_gradient' => self::entry(
+                'Wash',
+                'wash',
+                'soft',
+                styles_wash::class,
+                'dark',
+                [0.10, 0.10, 0.80, 0.78]
+            ),
+            'corner_bloom' => self::entry(
+                'Corner Bloom',
+                'wash',
+                'soft',
+                styles_wash::class,
+                'dark',
+                [0.10, 0.10, 0.80, 0.80]
+            ),
+            'tonal_bands' => self::entry(
+                'Tonal Bands',
+                'wash',
+                'soft',
+                styles_wash::class,
+                'dark',
+                [0.10, 0.10, 0.80, 0.80]
+            ),
+            'vignette_field' => self::entry(
+                'Vignette',
+                'wash',
+                'soft',
+                styles_wash::class,
+                'dark',
+                [0.10, 0.10, 0.80, 0.80]
+            ),
+            'duotone_drift' => self::entry(
+                'Duotone Drift',
+                'wash',
+                'soft',
+                styles_wash::class,
+                'dark',
+                [0.10, 0.10, 0.80, 0.80]
+            ),
+            'laid_paper' => self::entry(
+                'Laid Paper',
+                'wash',
+                'soft',
+                styles_wash::class,
+                'dark',
+                [0.10, 0.10, 0.80, 0.80]
+            ),
+            'watermark_field' => self::entry(
+                'Watermark',
+                'wash',
+                'soft',
+                styles_wash::class,
+                'dark',
+                [0.09, 0.10, 0.82, 0.78]
+            ),
 
             // Bold grounds. Built and kept, but not expanded into a full family.
-            'deep_field' => self::entry('Deep Field', 'bold', 'full',
-                styles_rich::class, 'light', [0.09, 0.10, 0.82, 0.80]),
-            'card_panel' => self::entry('Card Panel', 'bold', 'full',
-                styles_rich::class, 'dark', [0.12, 0.13, 0.76, 0.74]),
-            'colour_column' => self::entry('Column', 'bold', 'full',
-                styles_rich::class, 'dark', [0.34, 0.10, 0.58, 0.80]),
+            'deep_field' => self::entry(
+                'Deep Field',
+                'bold',
+                'full',
+                styles_rich::class,
+                'light',
+                [0.09, 0.10, 0.82, 0.80]
+            ),
+            'card_panel' => self::entry(
+                'Card Panel',
+                'bold',
+                'full',
+                styles_rich::class,
+                'dark',
+                [0.12, 0.13, 0.76, 0.74]
+            ),
+            'colour_column' => self::entry(
+                'Column',
+                'bold',
+                'full',
+                styles_rich::class,
+                'dark',
+                [0.34, 0.10, 0.58, 0.80]
+            ),
 
             // The five survivors of the first set, kept as quiet options and
             // seated on a tinted ground rather than bare white.
-            'aurora_field' => self::entry('Aurora Field', 'quiet', 'soft',
-                styles_atmospheric::class, 'dark', [0.10, 0.10, 0.80, 0.80]),
-            'drift_field' => self::entry('Drift Field', 'quiet', 'soft',
-                styles_organic::class, 'dark', [0.10, 0.10, 0.80, 0.80]),
-            'isoline_terrain' => self::entry('Isoline Terrain', 'quiet', 'soft',
-                styles_organic::class, 'dark', [0.10, 0.10, 0.80, 0.80]),
-            'lathe_ribbon' => self::entry('Lathe Ribbon', 'quiet', 'soft',
-                styles_security::class, 'dark', [0.10, 0.14, 0.80, 0.72]),
-            'relief_ruling' => self::entry('Relief Ruling', 'quiet', 'soft',
-                styles_security::class, 'dark', [0.10, 0.10, 0.80, 0.80]),
+            'aurora_field' => self::entry(
+                'Aurora Field',
+                'quiet',
+                'soft',
+                styles_atmospheric::class,
+                'dark',
+                [0.10, 0.10, 0.80, 0.80]
+            ),
+            'drift_field' => self::entry(
+                'Drift Field',
+                'quiet',
+                'soft',
+                styles_organic::class,
+                'dark',
+                [0.10, 0.10, 0.80, 0.80]
+            ),
+            'isoline_terrain' => self::entry(
+                'Isoline Terrain',
+                'quiet',
+                'soft',
+                styles_organic::class,
+                'dark',
+                [0.10, 0.10, 0.80, 0.80]
+            ),
+            'lathe_ribbon' => self::entry(
+                'Lathe Ribbon',
+                'quiet',
+                'soft',
+                styles_security::class,
+                'dark',
+                [0.10, 0.14, 0.80, 0.72]
+            ),
+            'relief_ruling' => self::entry(
+                'Relief Ruling',
+                'quiet',
+                'soft',
+                styles_security::class,
+                'dark',
+                [0.10, 0.10, 0.80, 0.80]
+            ),
         ];
     }
 
@@ -208,8 +364,11 @@ class background_library {
         try {
             $class::$method($canvas);
         } catch (\Throwable $e) {
-            debugging('Certificate Pro could not record background "' . $style . '": '
-                . $e->getMessage(), DEBUG_DEVELOPER);
+            debugging(
+                'Certificate Pro could not record background "' . $style . '": '
+                    . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
             $canvas->reset();
             return false;
         }

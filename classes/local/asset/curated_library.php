@@ -98,10 +98,12 @@ class curated_library {
         if (!is_array($decoded)) {
             $decoded = ['manifest_version' => 1, 'collections' => [], 'items' => []];
         }
-        $decoded['items'] = array_values(array_filter(
-            $decoded['items'] ?? [],
-            fn($item) => isset($item['id']) && (int)$item['id'] > 0
-        ));
+        $decoded['items'] = array_values(
+            array_filter(
+                $decoded['items'] ?? [],
+                fn($item) => isset($item['id']) && (int)$item['id'] > 0
+            )
+        );
         self::$manifest = $decoded;
         return self::$manifest;
     }
@@ -131,17 +133,23 @@ class curated_library {
         }
         if (!empty($filters['orientation'])) {
             $want = $filters['orientation'];
-            $items = array_filter($items, function ($i) use ($want) {
-                $has = $i['orientation'] ?? 'both';
-                return $has === 'both' || $has === $want;
-            });
+            $items = array_filter(
+                $items,
+                function ($i) use ($want) {
+                    $has = $i['orientation'] ?? 'both';
+                    return $has === 'both' || $has === $want;
+                }
+            );
         }
         if (!empty($filters['palette'])) {
             $want = \core_text::strtolower($filters['palette']);
-            $items = array_filter($items, function ($i) use ($want) {
-                $palette = array_map('\core_text::strtolower', $i['palette'] ?? []);
-                return in_array($want, $palette, true);
-            });
+            $items = array_filter(
+                $items,
+                function ($i) use ($want) {
+                    $palette = array_map('\core_text::strtolower', $i['palette'] ?? []);
+                    return in_array($want, $palette, true);
+                }
+            );
         }
         if (!empty($filters['content_type'])) {
             $want = $filters['content_type'];
@@ -149,10 +157,13 @@ class curated_library {
         }
         if (!empty($filters['q'])) {
             $needle = \core_text::strtolower(trim($filters['q']));
-            $items = array_filter($items, function ($i) use ($needle) {
-                $hay = \core_text::strtolower(($i['title'] ?? '') . ' ' . ($i['slug'] ?? ''));
-                return \core_text::strpos($hay, $needle) !== false;
-            });
+            $items = array_filter(
+                $items,
+                function ($i) use ($needle) {
+                    $hay = \core_text::strtolower(($i['title'] ?? '') . ' ' . ($i['slug'] ?? ''));
+                    return \core_text::strpos($hay, $needle) !== false;
+                }
+            );
         }
 
         return array_values($items);
@@ -229,17 +240,23 @@ class curated_library {
             try {
                 $live = $client->resource((int)$item['id']);
             } catch (\Throwable $e) {
-                debugging('certificatepro: could not hydrate resource ' . $item['id'] . ': ' .
-                    $e->getMessage(), DEBUG_DEVELOPER);
+                debugging(
+                    'certificatepro: could not hydrate resource ' . $item['id'] . ': ' .
+                        $e->getMessage(),
+                    DEBUG_DEVELOPER
+                );
                 continue;
             }
             $payload = $live['resource'] ?? $live;
-            $out[] = array_merge($item, [
-                'live' => true,
-                'preview' => $payload['thumbnail_url'] ?? $payload['preview_url'] ?? $item['thumb'] ?? null,
-                'contributor' => $payload['contributor']['name'] ?? null,
-                'license' => $payload['license'] ?? null,
-            ]);
+            $out[] = array_merge(
+                $item,
+                [
+                    'live' => true,
+                    'preview' => $payload['thumbnail_url'] ?? $payload['preview_url'] ?? $item['thumb'] ?? null,
+                    'contributor' => $payload['contributor']['name'] ?? null,
+                    'license' => $payload['license'] ?? null,
+                ]
+            );
         }
         return $out;
     }

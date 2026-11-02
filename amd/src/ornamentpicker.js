@@ -26,7 +26,7 @@
  */
 define(['core/ajax', 'core/notification', 'core/templates', 'core/modal', 'core/str',
     'mod_certificatepro/gallery'],
-function (Ajax, Notification, Templates, Modal, Str, Gallery) {
+function(Ajax, Notification, Templates, Modal, Str, Gallery) {
 
     'use strict';
 
@@ -40,7 +40,7 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
      * @param {Object} filter role, orientation and q
      * @return {Promise} the rendered markup
      */
-    var load = function (config, filter) {
+    var load = function(config, filter) {
         return Ajax.call([{
             methodname: 'mod_certificatepro_get_ornaments',
             args: {
@@ -50,7 +50,7 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
                 palette: '',
                 q: filter.q || ''
             }
-        }])[0].then(function (response) {
+        }])[0].then(function(response) {
             response.hasitems = response.items.length > 0;
             return Templates.render('mod_certificatepro/ornament_picker', response);
         });
@@ -62,13 +62,13 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
      * @param {Object} config templateid, pageid, and a done callback
      * @return {Promise} resolves once the dialog is on screen
      */
-    var open = function (config) {
+    var open = function(config) {
         var filter = {role: '', orientation: '', q: ''};
 
         return Promise.all([
             load(config, filter),
             Str.get_string('ornamenttitle', 'mod_certificatepro')
-        ]).then(function (parts) {
+        ]).then(function(parts) {
             return Modal.create({
                 title: parts[1],
                 body: parts[0],
@@ -76,8 +76,8 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
                 removeOnClose: true,
                 returnElement: config.returnElement
             });
-        }).then(function (modal) {
-            return modal.show().then(function () {
+        }).then(function(modal) {
+            return modal.show().then(function() {
                 wire(modal, config, filter);
                 return modal;
             });
@@ -95,7 +95,7 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
      * @param {Object} filter the live filter state
      * @return {void}
      */
-    var wire = function (modal, config, filter) {
+    var wire = function(modal, config, filter) {
         var body = modal.getBody()[0];
         var root = body.querySelector('[data-region="ornamentpicker"]');
         if (!root) {
@@ -115,11 +115,11 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
          * @param {boolean} keepsearchfocus whether to put focus back in the search box
          * @return {void}
          */
-        var refresh = function (keepsearchfocus) {
-            load(config, filter).then(function (html) {
+        var refresh = function(keepsearchfocus) {
+            load(config, filter).then(function(html) {
                 modal.setBody(html);
                 // setBody replaces the markup, so everything below is rebound.
-                window.setTimeout(function () {
+                window.setTimeout(function() {
                     wire(modal, config, filter);
                     var again = modal.getBody()[0].querySelector('[data-region="search"]');
                     if (keepsearchfocus && again) {
@@ -136,13 +136,13 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
             return;
         }
 
-        var handle = Gallery.attach(gallery, function (value, tile) {
+        var handle = Gallery.attach(gallery, function(value, tile) {
             apply.disabled = !value;
             var name = tile.querySelector('.cpro-gallery-name');
             note.textContent = name ? name.textContent : '';
         });
 
-        root.addEventListener('click', function (event) {
+        root.addEventListener('click', function(event) {
             var facet = event.target.closest('[data-action="role"]');
             if (!facet) {
                 return;
@@ -153,9 +153,9 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
 
         if (search) {
             search.value = filter.q;
-            search.addEventListener('input', function () {
+            search.addEventListener('input', function() {
                 window.clearTimeout(timer);
-                timer = window.setTimeout(function () {
+                timer = window.setTimeout(function() {
                     filter.q = search.value;
                     refresh(true);
                 }, SEARCH_DELAY);
@@ -164,13 +164,13 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
 
         if (orientation) {
             orientation.value = filter.orientation;
-            orientation.addEventListener('change', function () {
+            orientation.addEventListener('change', function() {
                 filter.orientation = orientation.value;
                 refresh(false);
             });
         }
 
-        apply.addEventListener('click', function () {
+        apply.addEventListener('click', function() {
             var chosen = handle.value();
             if (!chosen) {
                 return;
@@ -185,13 +185,13 @@ function (Ajax, Notification, Templates, Modal, Str, Gallery) {
                     pageid: config.pageid,
                     assetid: chosen
                 }
-            }])[0].then(function (result) {
+            }])[0].then(function(result) {
                 modal.destroy();
                 if (config.done) {
                     config.done(result);
                 }
                 return result;
-            }).catch(function (error) {
+            }).catch(function(error) {
                 apply.disabled = false;
                 Notification.exception(error);
             });

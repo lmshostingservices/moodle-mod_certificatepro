@@ -69,14 +69,17 @@ class categoryname extends text_base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(parent::default_style(), [
-            'font' => 'accent',
-            'scalerole' => 'eyebrow',
-            'size' => null,
-            'colour' => 'muted',
-            'tracking' => 2.0,
-            'case' => 'upper',
-        ]);
+        return array_merge(
+            parent::default_style(),
+            [
+                'font' => 'accent',
+                'scalerole' => 'eyebrow',
+                'size' => null,
+                'colour' => 'muted',
+                'tracking' => 2.0,
+                'case' => 'upper',
+            ]
+        );
     }
 
     /**
@@ -87,8 +90,11 @@ class categoryname extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('advcheckbox', 'showpath',
-            get_string('showcategorypath', 'mod_certificatepro'));
+        $mform->addElement(
+            'advcheckbox',
+            'showpath',
+            get_string('showcategorypath', 'mod_certificatepro')
+        );
         $mform->setDefault('showpath', 0);
     }
 

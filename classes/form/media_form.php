@@ -38,22 +38,37 @@ class media_form extends \moodleform {
     public function definition() {
         $mform = $this->_form;
 
-        $mform->addElement('header', 'uploadheader',
-            get_string('mediaupload', 'mod_certificatepro'));
+        $mform->addElement(
+            'header',
+            'uploadheader',
+            get_string('mediaupload', 'mod_certificatepro')
+        );
 
-        $mform->addElement('filepicker', 'mediafile',
-            get_string('mediafile', 'mod_certificatepro'), null,
-            ['accepted_types' => ['web_image', '.svg'], 'maxbytes' => 20 * 1024 * 1024]);
+        $mform->addElement(
+            'filepicker',
+            'mediafile',
+            get_string('mediafile', 'mod_certificatepro'),
+            null,
+            ['accepted_types' => ['web_image', '.svg'], 'maxbytes' => 20 * 1024 * 1024]
+        );
         $mform->addRule('mediafile', null, 'required', null, 'client');
 
-        $mform->addElement('text', 'medianame',
-            get_string('medianame', 'mod_certificatepro'), ['size' => 50]);
+        $mform->addElement(
+            'text',
+            'medianame',
+            get_string('medianame', 'mod_certificatepro'),
+            ['size' => 50]
+        );
         $mform->setType('medianame', PARAM_TEXT);
         $mform->addRule('medianame', null, 'required', null, 'client');
         $mform->addHelpButton('medianame', 'medianame', 'mod_certificatepro');
 
-        $mform->addElement('select', 'mediakind',
-            get_string('mediakind', 'mod_certificatepro'), media_library::kinds());
+        $mform->addElement(
+            'select',
+            'mediakind',
+            get_string('mediakind', 'mod_certificatepro'),
+            media_library::kinds()
+        );
         $mform->setDefault('mediakind', media_library::KIND_SIGNATURE);
 
         $this->add_action_buttons(false, get_string('mediaupload', 'mod_certificatepro'));

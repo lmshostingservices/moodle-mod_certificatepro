@@ -42,12 +42,22 @@ class learner_api extends external_api {
      * @return external_function_parameters
      */
     public static function get_certificates_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'userid' => new external_value(PARAM_INT, 'The user to list, or 0 for the current user',
-                VALUE_DEFAULT, 0),
-            'courseid' => new external_value(PARAM_INT, 'Limit to one course, or 0 for all',
-                VALUE_DEFAULT, 0),
-        ]);
+        return new external_function_parameters(
+            [
+                'userid' => new external_value(
+                    PARAM_INT,
+                    'The user to list, or 0 for the current user',
+                    VALUE_DEFAULT,
+                    0
+                ),
+                'courseid' => new external_value(
+                    PARAM_INT,
+                    'Limit to one course, or 0 for all',
+                    VALUE_DEFAULT,
+                    0
+                ),
+            ]
+        );
     }
 
     /**
@@ -60,10 +70,13 @@ class learner_api extends external_api {
     public static function get_certificates(int $userid = 0, int $courseid = 0): array {
         global $DB, $USER;
 
-        $params = self::validate_parameters(self::get_certificates_parameters(), [
-            'userid' => $userid,
-            'courseid' => $courseid,
-        ]);
+        $params = self::validate_parameters(
+            self::get_certificates_parameters(),
+            [
+                'userid' => $userid,
+                'courseid' => $courseid,
+            ]
+        );
 
         $targetid = $params['userid'] > 0 ? $params['userid'] : (int) $USER->id;
 
@@ -108,8 +121,10 @@ class learner_api extends external_api {
                 'timecreated' => (int) $record->timecreated,
                 'expires' => (int) $record->expires,
                 'status' => issue_service::status($record),
-                'verifyurl' => (new \moodle_url('/mod/certificatepro/verify.php',
-                    ['code' => $record->code]))->out(false),
+                'verifyurl' => (new \moodle_url(
+                    '/mod/certificatepro/verify.php',
+                    ['code' => $record->code]
+                ))->out(false),
             ];
         }
 
@@ -122,22 +137,26 @@ class learner_api extends external_api {
      * @return external_single_structure
      */
     public static function get_certificates_returns(): external_single_structure {
-        return new external_single_structure([
-            'certificates' => new external_multiple_structure(
-                new external_single_structure([
-                    'id' => new external_value(PARAM_INT, 'The issue id'),
-                    'code' => new external_value(PARAM_TEXT, 'The verification code'),
-                    'serial' => new external_value(PARAM_TEXT, 'The serial number, or empty'),
-                    'name' => new external_value(PARAM_TEXT, 'The activity name'),
-                    'courseid' => new external_value(PARAM_INT, 'The course id'),
-                    'coursename' => new external_value(PARAM_TEXT, 'The course name'),
-                    'timecreated' => new external_value(PARAM_INT, 'When it was issued'),
-                    'expires' => new external_value(PARAM_INT, 'When it expires, or zero'),
-                    'status' => new external_value(PARAM_ALPHA, 'valid, expired or revoked'),
-                    'verifyurl' => new external_value(PARAM_URL, 'The public verification address'),
-                ])
-            ),
-        ]);
+        return new external_single_structure(
+            [
+                'certificates' => new external_multiple_structure(
+                    new external_single_structure(
+                        [
+                            'id' => new external_value(PARAM_INT, 'The issue id'),
+                            'code' => new external_value(PARAM_TEXT, 'The verification code'),
+                            'serial' => new external_value(PARAM_TEXT, 'The serial number, or empty'),
+                            'name' => new external_value(PARAM_TEXT, 'The activity name'),
+                            'courseid' => new external_value(PARAM_INT, 'The course id'),
+                            'coursename' => new external_value(PARAM_TEXT, 'The course name'),
+                            'timecreated' => new external_value(PARAM_INT, 'When it was issued'),
+                            'expires' => new external_value(PARAM_INT, 'When it expires, or zero'),
+                            'status' => new external_value(PARAM_ALPHA, 'valid, expired or revoked'),
+                            'verifyurl' => new external_value(PARAM_URL, 'The public verification address'),
+                        ]
+                    )
+                ),
+            ]
+        );
     }
 
     /**
@@ -146,9 +165,11 @@ class learner_api extends external_api {
      * @return external_function_parameters
      */
     public static function verify_code_parameters(): external_function_parameters {
-        return new external_function_parameters([
-            'code' => new external_value(PARAM_TEXT, 'The code as printed or scanned'),
-        ]);
+        return new external_function_parameters(
+            [
+                'code' => new external_value(PARAM_TEXT, 'The code as printed or scanned'),
+            ]
+        );
     }
 
     /**
@@ -190,17 +211,34 @@ class learner_api extends external_api {
                  WHERE c.id = :id";
         $instance = $DB->get_record_sql($sql, ['id' => $issue->certificateproid]);
 
-        if (!$instance || empty($instance->verifyany)) {
+        if (!$instance) {
+            return $notfound;
+        }
+        $allowed = !empty($instance->verifyany);
+        if (!$allowed && isloggedin() && !isguestuser()) {
+            // Same rule as verify.php: privileged users may verify any certificate.
+            $allowed = has_capability('mod/certificatepro:verifyallcertificates', \context_system::instance());
+        }
+        if (!$allowed) {
             // The activity has verification switched off for anonymous callers.
             return $notfound;
+        }
+        if (!empty($issue->cycleid) && class_exists('\\local_recertify\\cycle_service')) {
+            $cycle = $DB->get_record('local_recertify_cycles', ['id' => $issue->cycleid]);
+            if ($cycle) {
+                $instance->name = $cycle->name;
+                $instance->coursefullname = $cycle->name;
+            }
         }
 
         $user = $DB->get_record('user', ['id' => $issue->userid], '*', IGNORE_MISSING);
 
-        \mod_certificatepro\event\certificate_verified::create([
-            'objectid' => $issue->id,
-            'context' => \context_system::instance(),
-        ])->trigger();
+        \mod_certificatepro\event\certificate_verified::create(
+            [
+                'objectid' => $issue->id,
+                'context' => \context_system::instance(),
+            ]
+        )->trigger();
 
         return [
             'found' => true,
@@ -220,15 +258,17 @@ class learner_api extends external_api {
      * @return external_single_structure
      */
     public static function verify_code_returns(): external_single_structure {
-        return new external_single_structure([
-            'found' => new external_value(PARAM_BOOL, 'Whether the code is genuine'),
-            'status' => new external_value(PARAM_ALPHA, 'valid, expired, revoked or unknown'),
-            'recipient' => new external_value(PARAM_TEXT, 'Who it was awarded to'),
-            'coursename' => new external_value(PARAM_TEXT, 'The course it was awarded for'),
-            'activityname' => new external_value(PARAM_TEXT, 'The certificate name'),
-            'timeissued' => new external_value(PARAM_INT, 'When it was issued'),
-            'expires' => new external_value(PARAM_INT, 'When it expires, or zero'),
-            'serial' => new external_value(PARAM_TEXT, 'The serial number, or empty'),
-        ]);
+        return new external_single_structure(
+            [
+                'found' => new external_value(PARAM_BOOL, 'Whether the code is genuine'),
+                'status' => new external_value(PARAM_ALPHA, 'valid, expired, revoked or unknown'),
+                'recipient' => new external_value(PARAM_TEXT, 'Who it was awarded to'),
+                'coursename' => new external_value(PARAM_TEXT, 'The course it was awarded for'),
+                'activityname' => new external_value(PARAM_TEXT, 'The certificate name'),
+                'timeissued' => new external_value(PARAM_INT, 'When it was issued'),
+                'expires' => new external_value(PARAM_INT, 'When it expires, or zero'),
+                'serial' => new external_value(PARAM_TEXT, 'The serial number, or empty'),
+            ]
+        );
     }
 }

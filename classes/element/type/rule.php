@@ -70,9 +70,12 @@ class rule extends base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(parent::default_style(), [
-            'colour' => 'rule',
-        ]);
+        return array_merge(
+            parent::default_style(),
+            [
+                'colour' => 'rule',
+            ]
+        );
     }
 
     /**
@@ -83,23 +86,35 @@ class rule extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement('select', 'linestyle',
-            get_string('linestyle', 'mod_certificatepro'), [
+        $mform->addElement(
+            'select',
+            'linestyle',
+            get_string('linestyle', 'mod_certificatepro'),
+            [
                 'solid' => get_string('linestyle_solid', 'mod_certificatepro'),
                 'dashed' => get_string('linestyle_dashed', 'mod_certificatepro'),
                 'dotted' => get_string('linestyle_dotted', 'mod_certificatepro'),
                 'double' => get_string('linestyle_double', 'mod_certificatepro'),
                 'tapered' => get_string('linestyle_tapered', 'mod_certificatepro'),
-            ]);
+            ]
+        );
         $mform->setDefault('linestyle', 'solid');
 
-        $mform->addElement('text', 'thickness',
-            get_string('linethickness', 'mod_certificatepro'), ['size' => 6]);
+        $mform->addElement(
+            'text',
+            'thickness',
+            get_string('linethickness', 'mod_certificatepro'),
+            ['size' => 6]
+        );
         $mform->setType('thickness', PARAM_FLOAT);
         $mform->setDefault('thickness', 0.4);
 
-        $mform->addElement('text', 'colour',
-            get_string('elementcolour', 'mod_certificatepro'), ['size' => 10]);
+        $mform->addElement(
+            'text',
+            'colour',
+            get_string('elementcolour', 'mod_certificatepro'),
+            ['size' => 10]
+        );
         $mform->setType('colour', PARAM_TEXT);
         $mform->setDefault('colour', 'rule');
     }
@@ -221,8 +236,12 @@ class rule extends base {
             $thickness = max(3.0, $thickness);
         }
 
-        return \html_writer::div('', 'certificatepro-element-rule', [
-            'style' => 'width:100%;height:100%;display:flex;align-items:center;'
-                . 'border-top:' . $thickness . 'px ' . $css . ' ' . $hex . ';',
-        ]);
+        return \html_writer::div(
+            '',
+            'certificatepro-element-rule',
+            [
+                'style' => 'width:100%;height:100%;display:flex;align-items:center;'
+                    . 'border-top:' . $thickness . 'px ' . $css . ' ' . $hex . ';',
+            ]
+        );
     }}

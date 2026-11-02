@@ -136,23 +136,55 @@ class tcpdf_painter {
                 break;
 
             case 'rect':
-                $this->pdf->Rect($this->ox + $op[1], $this->oy + $op[2], $op[3], $op[4],
-                    $this->mode((string) $op[5]), $this->linestyle, $this->fillrgb);
+                $this->pdf->Rect(
+                    $this->ox + $op[1],
+                    $this->oy + $op[2],
+                    $op[3],
+                    $op[4],
+                    $this->mode((string) $op[5]),
+                    $this->linestyle,
+                    $this->fillrgb
+                );
                 break;
 
             case 'circle':
-                $this->pdf->Circle($this->ox + $op[1], $this->oy + $op[2], $op[3], $op[4], $op[5],
-                    $this->mode((string) $op[6]), $this->linestyle, $this->fillrgb, 12);
+                $this->pdf->Circle(
+                    $this->ox + $op[1],
+                    $this->oy + $op[2],
+                    $op[3],
+                    $op[4],
+                    $op[5],
+                    $this->mode((string) $op[6]),
+                    $this->linestyle,
+                    $this->fillrgb,
+                    12
+                );
                 break;
 
             case 'ellipse':
-                $this->pdf->Ellipse($this->ox + $op[1], $this->oy + $op[2], $op[3], $op[4], $op[5],
-                    $op[6], $op[7], $this->mode((string) $op[8]), $this->linestyle, $this->fillrgb, 12);
+                $this->pdf->Ellipse(
+                    $this->ox + $op[1],
+                    $this->oy + $op[2],
+                    $op[3],
+                    $op[4],
+                    $op[5],
+                    $op[6],
+                    $op[7],
+                    $this->mode((string) $op[8]),
+                    $this->linestyle,
+                    $this->fillrgb,
+                    12
+                );
                 break;
 
             case 'line':
-                $this->pdf->Line($this->ox + $op[1], $this->oy + $op[2], $this->ox + $op[3],
-                    $this->oy + $op[4], $this->linestyle);
+                $this->pdf->Line(
+                    $this->ox + $op[1],
+                    $this->oy + $op[2],
+                    $this->ox + $op[3],
+                    $this->oy + $op[4],
+                    $this->linestyle
+                );
                 break;
 
             case 'poly':
@@ -164,14 +196,27 @@ class tcpdf_painter {
                 break;
 
             case 'lgrad':
-                $this->pdf->LinearGradient($this->ox + $op[1], $this->oy + $op[2], $op[3], $op[4],
-                    canvas::to_rgb((string) $op[5]), canvas::to_rgb((string) $op[6]), (array) $op[7]);
+                $this->pdf->LinearGradient(
+                    $this->ox + $op[1],
+                    $this->oy + $op[2],
+                    $op[3],
+                    $op[4],
+                    canvas::to_rgb((string) $op[5]),
+                    canvas::to_rgb((string) $op[6]),
+                    (array) $op[7]
+                );
                 break;
 
             case 'rgrad':
-                $this->pdf->RadialGradient($this->ox + $op[1], $this->oy + $op[2], $op[3], $op[4],
-                    canvas::to_rgb((string) $op[5]), canvas::to_rgb((string) $op[6]),
-                    self::radial_coords((array) $op[7]));
+                $this->pdf->RadialGradient(
+                    $this->ox + $op[1],
+                    $this->oy + $op[2],
+                    $op[3],
+                    $op[4],
+                    canvas::to_rgb((string) $op[5]),
+                    canvas::to_rgb((string) $op[6]),
+                    self::radial_coords((array) $op[7])
+                );
                 break;
 
             case 'mesh':
@@ -179,8 +224,14 @@ class tcpdf_painter {
                 break;
 
             case 'text':
-                $this->draw_text((float) $op[1], (float) $op[2], (string) $op[3],
-                    (string) $op[4], (string) $op[5], (float) $op[6]);
+                $this->draw_text(
+                    (float) $op[1],
+                    (float) $op[2],
+                    (string) $op[3],
+                    (string) $op[4],
+                    (string) $op[5],
+                    (float) $op[6]
+                );
                 break;
 
             case 'glyphs':
@@ -206,8 +257,24 @@ class tcpdf_painter {
     protected function draw_text(float $xmm, float $ymm, string $text, string $family,
             string $style, float $sizept): void {
         $this->apply_text_state($family, $style, $sizept);
-        $this->pdf->Text($this->ox + $xmm, $this->oy + $ymm, $text,
-            0, false, true, 0, 0, '', false, '', 0, true, 'L', 'M', true);
+        $this->pdf->Text(
+            $this->ox + $xmm,
+            $this->oy + $ymm,
+            $text,
+            0,
+            false,
+            true,
+            0,
+            0,
+            '',
+            false,
+            '',
+            0,
+            true,
+            'L',
+            'M',
+            true
+        );
     }
 
     /**
@@ -233,8 +300,24 @@ class tcpdf_painter {
             $rot = (float) ($glyph[3] ?? 0.0);
 
             if (abs($rot) < 0.001) {
-                $this->pdf->Text($x, $y, $char,
-                    0, false, true, 0, 0, '', false, '', 0, true, 'L', 'M', true);
+                $this->pdf->Text(
+                    $x,
+                    $y,
+                    $char,
+                    0,
+                    false,
+                    true,
+                    0,
+                    0,
+                    '',
+                    false,
+                    '',
+                    0,
+                    true,
+                    'L',
+                    'M',
+                    true
+                );
                 continue;
             }
 
@@ -246,8 +329,24 @@ class tcpdf_painter {
             // text element's y is always the baseline.
             $this->pdf->StartTransform();
             $this->pdf->Rotate($rot, $x, $y);
-            $this->pdf->Text($x, $y, $char,
-                0, false, true, 0, 0, '', false, '', 0, true, 'L', 'M', true);
+            $this->pdf->Text(
+                $x,
+                $y,
+                $char,
+                0,
+                false,
+                true,
+                0,
+                0,
+                '',
+                false,
+                '',
+                0,
+                true,
+                'L',
+                'M',
+                true
+            );
             $this->pdf->StopTransform();
         }
     }
