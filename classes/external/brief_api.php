@@ -313,7 +313,7 @@ class brief_api extends library_base {
             'answers' => self::answers_structure(),
             'usemodel' => new external_value(PARAM_BOOL, 'Whether a model may be asked',
                 VALUE_DEFAULT, true),
-            'variant' => new external_value(PARAM_ALPHANUMEXT,
+            'variant' => new external_value(PARAM_TEXT, // style~seed; decode_variant() keeps only tokens the catalogue knows
                 'The variant the author picked, or an empty string for the brief itself',
                 VALUE_DEFAULT, ''),
         ]);
@@ -636,7 +636,7 @@ class brief_api extends library_base {
             'answers' => self::answers_structure(),
             'elementid' => new external_value(PARAM_INT,
                 'An existing seal element to restyle, or 0 to add one', VALUE_DEFAULT, 0),
-            'variant' => new external_value(PARAM_ALPHANUMEXT,
+            'variant' => new external_value(PARAM_TEXT, // style~seed; decode_variant() keeps only tokens the catalogue knows
                 'The variant the author picked, or an empty string for the brief itself',
                 VALUE_DEFAULT, ''),
         ]);
@@ -914,7 +914,7 @@ class brief_api extends library_base {
             'templateid' => new external_value(PARAM_INT, 'The design being edited'),
             'kind' => new external_value(PARAM_ALPHA, 'artwork or seal'),
             'answers' => self::answers_structure(),
-            'like' => new external_value(PARAM_ALPHANUMEXT,
+            'like' => new external_value(PARAM_TEXT, // style~seed; decode_variant() keeps only tokens the catalogue knows
                 'A variant key to stay close to', VALUE_DEFAULT, ''),
             'count' => new external_value(PARAM_INT, 'How many to draw', VALUE_DEFAULT, 9),
         ]);

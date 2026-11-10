@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.2] - 2026-11-10
+
+- Blocker, introduced in 1.4.0 and caught before release: "Use this background" in the guided
+  artwork wizard failed with "Invalid parameter value detected". The variant key the wizard
+  passes is `style~seed`, and 1.4.0 had narrowed that parameter to `PARAM_ALPHANUMEXT`, which
+  does not allow a tilde. Moodle's web service layer rejects a value that does not match its
+  declared type exactly, so the whole call failed rather than quietly losing the author's
+  choice. The three keys of that shape are read as text and are still decoded against the
+  catalogue, so a tampered key can only ever name artwork the wizard would have drawn anyway.
+
 ## [1.4.1] - 2026-11-10
 
 - Blocker: opening a text element's settings and pressing Save set its point size to zero, and
