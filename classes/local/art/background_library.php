@@ -242,8 +242,23 @@ class background_library {
         if (!self::record($style, $canvas)) {
             return '';
         }
-        $painter = new svg_painter('cp' . substr(md5($style . $seed), 0, 6));
-        return $painter->render($canvas->ops(), $width, $height);
+        return self::painter($style, $seed)->render($canvas->ops(), $width, $height);
+    }
+
+    /**
+     * The SVG painter a style's markup is produced by.
+     *
+     * The identifier prefix is part of the markup, so anything that redraws a
+     * stored background has to use the same one or it produces the same drawing
+     * under different element ids. Stated once here so the two callers cannot
+     * drift apart.
+     *
+     * @param string $style the style identifier
+     * @param int $seed the composition seed
+     * @return svg_painter
+     */
+    public static function painter(string $style, int $seed): svg_painter {
+        return new svg_painter('cp' . substr(md5($style . $seed), 0, 6));
     }
 
     /**

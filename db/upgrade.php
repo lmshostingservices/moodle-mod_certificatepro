@@ -125,5 +125,36 @@ function xmldb_certificatepro_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026110201, 'certificatepro');
     }
 
+    if ($oldversion < 2026111004) {
+        // A procedurally drawn background is a function of its style, its seed,
+        // its palette and the sheet it is drawn on, and until now only the
+        // style and the primary colour of the palette were kept. The stored
+        // markup was therefore the only copy of the drawing, which forced the
+        // print through TCPDF's SVG parser — and that parser flattens every
+        // gradient to a single colour.
+        //
+        // Keeping the whole recipe means the print can replay the drawing
+        // through the native painter instead, so the paper shows the same
+        // gradient the designer canvas does. A row that predates these two
+        // columns carries seed 0 and no palette, which is the signal to leave
+        // it on the stored markup; the same signal a model-composed background
+        // gives, and for the same reason — it cannot be redrawn.
+        $table = new xmldb_table('certificatepro_backgrounds');
+
+        $field = new xmldb_field('palettejson', XMLDB_TYPE_TEXT, null, null, null, null, null,
+            'palette');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('seed', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0',
+            'palettejson');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026111004, 'certificatepro');
+    }
+
     return true;
 }

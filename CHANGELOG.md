@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.4.4] - 2026-11-10
+
+- Blocker: the designer canvas and the printed certificate disagreed about every background that
+  uses a gradient, which is twenty-three of the twenty-six in the catalogue. Backgrounds reached
+  the page through TCPDF's SVG parser, and that parser does not render gradients: it collapses
+  each one to a single flat fill of its last stop. A wash that swept from a deep tint to near
+  white on screen printed as a slab of the deep tint; "Aurora Field" printed as a blank white
+  page; "Duotone Drift" printed as a flat blue with a hard navy wedge across it. Measured over a
+  grid of sixty-three points on a real render, the canvas and the print were up to 206 of 255
+  apart per colour channel.
+  The plugin already draws a background as an operation list that two painters replay — one for
+  the browser, one for the page — and the award seal has always printed through the second of
+  them. Backgrounds now do the same. A background the style catalogue drew is redrawn at print
+  time from its own recipe, which is now recorded alongside it: the style, the composition seed
+  and the whole palette it was drawn from. The same six styles now measure between 0.3 and 4.2
+  of 255 apart, and the print follows the page it is actually on rather than being stretched
+  from the sheet the artwork was first drawn for.
+  A background composed by a language model is not redrawn and cannot be: its markup is the
+  original artwork and the only copy of it. It keeps the SVG parser, and so does any background
+  stored before the recipe was recorded or drawn from a style the catalogue no longer knows.
+  Those print exactly as they did before.
+- Three faults in the native painter, each of which had been invisible while nothing but the seal
+  used it, and each of which measured: a gradient with any vertical component was drawn upside
+  down, because the canvas describes one the way SVG does and PDF measures the other way up; a
+  radial gradient's focus was placed in the mirrored half of its box for the same reason; and a
+  stroked rectangle was not drawn at all, because TCPDF reads a bare line style as a list of
+  per-side borders and finds no sides in it. The last of those had been swallowing the frame of
+  every background that draws one.
+- Backgrounds now record their seed and their full palette, so what the author saw when they
+  generated artwork is what prints, whatever the design's colours are changed to afterwards.
+
 ## [1.4.3] - 2026-11-10
 
 - Blocker: the guided artwork wizard's "Deep Field" background is a saturated full-bleed ground,

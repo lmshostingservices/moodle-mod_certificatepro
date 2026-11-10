@@ -17,6 +17,7 @@
 namespace mod_certificatepro\local\ai;
 
 use mod_certificatepro\element\render_context;
+use mod_certificatepro\local\art\background_library;
 use mod_certificatepro\local\brand;
 
 /**
@@ -34,14 +35,22 @@ class background_repository {
     /**
      * Save a generated background.
      *
+     * The whole palette and the seed are kept alongside the markup, because
+     * together with the style they are the complete recipe for a procedural
+     * drawing. {@see recipe()} reads them back so the print can replay the
+     * drawing rather than parse the markup. Omit either and the row falls back
+     * to the markup, which is correct but flattens gradients.
+     *
      * @param \context $context the context that owns it
      * @param string $name the author facing name
      * @param string $svg the sanitised markup
-     * @param array $meta prompt, style, palette, orientation and generator
+     * @param array $meta prompt, style, palette, palettefull, seed, orientation and generator
      * @return int the new record id
      */
     public static function save(\context $context, string $name, string $svg, array $meta): int {
         global $DB, $USER;
+
+        $full = $meta['palettefull'] ?? null;
 
         $record = new \stdClass();
         $record->contextid = $context->id;
@@ -49,6 +58,8 @@ class background_repository {
         $record->prompt = (string) ($meta['prompt'] ?? '');
         $record->style = (string) ($meta['style'] ?? '');
         $record->palette = (string) ($meta['palette'] ?? '');
+        $record->palettejson = is_array($full) && $full !== [] ? json_encode($full) : null;
+        $record->seed = max(0, (int) ($meta['seed'] ?? 0));
         $record->orientation = (string) ($meta['orientation'] ?? 'L');
         $record->svg = $svg;
         $record->generator = (string) ($meta['generator'] ?? generator::SOURCE_PROCEDURAL);
@@ -120,6 +131,99 @@ class background_repository {
     }
 
     /**
+     * The recipe for redrawing a stored background, when there is one.
+     *
+     * This is what tells a procedurally drawn background apart from one a model
+     * composed, and it answers conservatively: a recipe comes back only when
+     * every one of the four inputs a drawing needs is on the record and usable.
+     *
+     *  - the generator says the built in engine drew it, so the markup was
+     *    never anything but a rendering of an operation list;
+     *  - the style is one {@see background_library} still knows how to draw;
+     *  - the seed is on the record, which rows written before the seed column
+     *    existed do not have;
+     *  - the whole palette is on the record and parses as nine hex roles.
+     *
+     * A model-composed background fails the first test and can never pass it:
+     * its markup is the original artwork and the only copy of it, so it keeps
+     * the markup path. A legacy procedural row fails the third or fourth and
+     * keeps the markup path too — correct, just flattened, exactly as before.
+     *
+     * The palette is read from the record rather than from the design being
+     * rendered on purpose. A certificate issued last year has to come back out
+     * of the archive looking as it did, and the palette the artwork was drawn
+     * from is part of that.
+     *
+     * @param int $backgroundid the record to read
+     * @return array{style: string, seed: int, palette: array<string, string>}|null
+     *      the recipe, or null when the stored markup is the only answer
+     */
+    public static function recipe(int $backgroundid): ?array {
+        global $DB;
+
+        if ($backgroundid <= 0) {
+            return null;
+        }
+
+        $record = $DB->get_record('certificatepro_backgrounds', ['id' => $backgroundid],
+            'id, style, seed, palettejson, generator');
+        if (!$record) {
+            return null;
+        }
+
+        if ((string) $record->generator !== generator::SOURCE_PROCEDURAL) {
+            return null;
+        }
+
+        $style = (string) $record->style;
+        $seed = (int) $record->seed;
+        if ($seed <= 0 || $style === '' || !background_library::exists($style)) {
+            return null;
+        }
+
+        $palette = self::decode_palette((string) ($record->palettejson ?? ''));
+        if ($palette === null) {
+            return null;
+        }
+
+        return ['style' => $style, 'seed' => $seed, 'palette' => $palette];
+    }
+
+    /**
+     * Read a stored palette back, refusing anything incomplete.
+     *
+     * Half a palette would draw, because {@see \mod_certificatepro\local\art\canvas::role()}
+     * substitutes the ink role for anything missing — and it would draw
+     * something other than the markup beside it on the same record, which is
+     * the one outcome this whole change exists to prevent. So a palette is
+     * either all nine roles in hex or it is not a palette.
+     *
+     * @param string $json the stored JSON
+     * @return array<string, string>|null the palette, or null when it is unusable
+     */
+    protected static function decode_palette(string $json): ?array {
+        if (trim($json) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $palette = [];
+        foreach (array_keys(brand::palette()) as $role) {
+            $value = $decoded[$role] ?? null;
+            if (!is_string($value) || !brand::is_hex($value)) {
+                return null;
+            }
+            $palette[$role] = brand::normalise_hex($value);
+        }
+
+        return $palette;
+    }
+
+    /**
      * Delete a stored background.
      *
      * @param int $backgroundid the record to delete
@@ -150,10 +254,18 @@ class background_repository {
 
         $result = generator::generate($prompt, $style, $palette, $orientation, $context, $options);
 
+        // The recipe is written only when the style catalogue drew the markup,
+        // which is the only case where replaying it reproduces what is stored.
+        // A model's artwork and the legacy engine's markup both leave these two
+        // blank, which is what keeps them on the markup path for good.
+        $replayable = ($result['engine'] ?? generator::ENGINE_NONE) === generator::ENGINE_LIBRARY;
+
         $id = self::save($context, $name, $result['svg'], [
             'prompt' => $prompt,
             'style' => $style,
             'palette' => $palette['primary'] ?? '',
+            'palettefull' => $replayable ? $palette : null,
+            'seed' => $replayable ? max(1, (int) ($options['seed'] ?? 1)) : 0,
             'orientation' => $orientation,
             'generator' => $result['source'],
         ]);

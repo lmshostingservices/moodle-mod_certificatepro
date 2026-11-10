@@ -434,12 +434,25 @@ class brief_api extends library_base {
         }
 
         if ((int) $result['id'] > 0) {
-            $DB->set_field('certificatepro_backgrounds', 'svg', $svg, ['id' => (int) $result['id']]);
+            // The markup is being replaced, so the recipe that redraws it has
+            // to be replaced in the same breath: a row carrying one style's
+            // markup and another's seed would print something the canvas never
+            // showed, which is the whole failure this recipe exists to avoid.
+            $record = new \stdClass();
+            $record->id = (int) $result['id'];
+            $record->svg = $svg;
+            $record->style = $style;
+            $record->palette = $palette['primary'] ?? '';
+            $record->palettejson = json_encode($palette);
+            $record->seed = max(1, $seed);
+            $DB->update_record('certificatepro_backgrounds', $record);
         } else {
             $result['id'] = background_repository::save($context, $name, $svg, [
                 'prompt' => '',
                 'style' => $style,
                 'palette' => $palette['primary'] ?? '',
+                'palettefull' => $palette,
+                'seed' => max(1, $seed),
                 'orientation' => $page->orientation,
                 'generator' => generator::SOURCE_PROCEDURAL,
             ]);

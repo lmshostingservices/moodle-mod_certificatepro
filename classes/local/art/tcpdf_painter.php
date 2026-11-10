@@ -137,7 +137,7 @@ class tcpdf_painter {
 
             case 'rect':
                 $this->pdf->Rect($this->ox + $op[1], $this->oy + $op[2], $op[3], $op[4],
-                    $this->mode((string) $op[5]), $this->linestyle, $this->fillrgb);
+                    $this->mode((string) $op[5]), $this->border_style(), $this->fillrgb);
                 break;
 
             case 'circle':
@@ -165,7 +165,8 @@ class tcpdf_painter {
 
             case 'lgrad':
                 $this->pdf->LinearGradient($this->ox + $op[1], $this->oy + $op[2], $op[3], $op[4],
-                    canvas::to_rgb((string) $op[5]), canvas::to_rgb((string) $op[6]), (array) $op[7]);
+                    canvas::to_rgb((string) $op[5]), canvas::to_rgb((string) $op[6]),
+                    self::linear_coords((array) $op[7]));
                 break;
 
             case 'rgrad':
@@ -303,6 +304,38 @@ class tcpdf_painter {
     }
 
     /**
+     * Turn a linear gradient's canvas coordinates the right way up for PDF.
+     *
+     * The canvas describes a gradient the way SVG does: inside a unit box whose
+     * y runs downwards, so y=0 is the top edge. TCPDF sets up the shading with
+     * `w 0 0 h x (pageheight-(y+h)) cm` {@see \TCPDF::Clip()}, which is the PDF
+     * convention — y runs upwards, so y=0 is the BOTTOM edge.
+     *
+     * Handed the canvas numbers unchanged, every gradient with a vertical
+     * component therefore printed mirrored against the preview. A wash whose
+     * tint sat along the top of the designer canvas sat along the bottom of the
+     * paper. It went unnoticed because no background reached this painter until
+     * now — they all went through TCPDF's SVG parser, which flattened them to
+     * one colour, so there was no orientation left to be wrong — and because
+     * the award seal, the only thing that did come through here, draws no
+     * gradients.
+     *
+     * @param float[] $coords x1, y1, x2, y2 in the unit box, y downwards
+     * @return float[] the same vector with y measured upwards
+     */
+    protected static function linear_coords(array $coords): array {
+        if (count($coords) < 4) {
+            return array_values($coords);
+        }
+        return [
+            (float) $coords[0],
+            1.0 - (float) $coords[1],
+            (float) $coords[2],
+            1.0 - (float) $coords[3],
+        ];
+    }
+
+    /**
      * Translate radial gradient coordinates into the order TCPDF actually reads.
      *
      * The canvas, like SVG, describes a radial gradient with six values: a focus
@@ -316,6 +349,9 @@ class tcpdf_painter {
      * circle, and PDF renders that as a hard diagonal edge with an arc across
      * the page rather than as a soft bloom.
      *
+     * Both y values are also turned the right way up, for the reason given in
+     * {@see linear_coords()}.
+     *
      * @param float[] $coords focus x, focus y, focus r, centre x, centre y, radius
      * @return float[] the five values TCPDF expects
      */
@@ -325,11 +361,32 @@ class tcpdf_painter {
         }
         return [
             (float) $coords[0],
-            (float) $coords[1],
+            1.0 - (float) $coords[1],
             (float) $coords[3],
-            (float) $coords[4],
+            1.0 - (float) $coords[4],
             (float) $coords[5],
         ];
+    }
+
+    /**
+     * The current stroke, in the shape TCPDF's shape methods want it.
+     *
+     * {@see \TCPDF::Rect()} and {@see \TCPDF::Polygon()} accept a line style
+     * either as one style for the whole outline, under the key 'all', or as a
+     * map of per-side styles. Handed a bare style array they take the second
+     * reading: Rect() then strips the stroke operator out of the paint mode and
+     * looks for sides named 'L', 'T', 'R' and 'B', finds none among 'width',
+     * 'cap', 'join', 'dash' and 'color', and draws no outline at all.
+     *
+     * The effect was a stroked rectangle that simply did not appear — the
+     * double keyline frame of the Deep Field ground among them — while the same
+     * op list drew it correctly in the preview. Saying 'all' says what was
+     * always meant: one stroke, all the way round.
+     *
+     * @return array the border style
+     */
+    protected function border_style(): array {
+        return ['all' => $this->linestyle];
     }
 
     /**
@@ -367,7 +424,8 @@ class tcpdf_painter {
         if (count($points) < 4) {
             return;
         }
-        $this->pdf->Polygon($points, $this->mode($mode), $this->linestyle, $this->fillrgb, $closed);
+        $this->pdf->Polygon($points, $this->mode($mode), $this->border_style(), $this->fillrgb,
+            $closed);
     }
 
     /**
@@ -433,7 +491,7 @@ class tcpdf_painter {
                 $style = ['width' => 0.06, 'cap' => 'butt', 'join' => 'miter', 'dash' => 0,
                     'color' => $colour];
                 $this->pdf->SetFillColor($colour[0], $colour[1], $colour[2]);
-                $this->pdf->Polygon($points, 'DF', $style, $colour, true);
+                $this->pdf->Polygon($points, 'DF', ['all' => $style], $colour, true);
             }
         }
 

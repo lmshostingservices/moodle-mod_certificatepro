@@ -16,6 +16,7 @@
 
 namespace mod_certificatepro\local\ai;
 
+use mod_certificatepro\local\art\background_library;
 use mod_certificatepro\local\brand;
 
 /**
@@ -49,6 +50,15 @@ class generator {
     /** @var string Artwork composed by a directly configured provider. */
     public const SOURCE_DIRECT = 'direct';
 
+    /** @var string Drawn from the current style catalogue, so it can be replayed. */
+    public const ENGINE_LIBRARY = 'library';
+
+    /** @var string Drawn from the original markup-emitting engine. */
+    public const ENGINE_LEGACY = 'legacy';
+
+    /** @var string Not drawn here at all: the markup is the artwork. */
+    public const ENGINE_NONE = 'none';
+
     /**
      * Produce artwork.
      *
@@ -58,7 +68,7 @@ class generator {
      * @param string $orientation L or P
      * @param \context $context the context the request is made in
      * @param array $options seed, intensity and whether to allow a model
-     * @return array{svg: string, source: string, notice: string|null}
+     * @return array{svg: string, source: string, notice: string|null, engine: string}
      */
     public static function generate(string $prompt, string $style, array $palette,
             string $orientation, \context $context, array $options = []): array {
@@ -67,10 +77,12 @@ class generator {
         $intensity = (float) ($options['intensity'] ?? 0.5);
         $allowmodel = (bool) ($options['allowmodel'] ?? true);
 
-        $fallback = artwork_engine::procedural($style, $palette, $width, $height, $seed, $intensity);
+        [$fallback, $engine] = self::draw_procedural($style, $palette, $width, $height, $seed,
+            $intensity);
 
         if (!$allowmodel || trim($prompt) === '') {
-            return ['svg' => $fallback, 'source' => self::SOURCE_PROCEDURAL, 'notice' => null];
+            return ['svg' => $fallback, 'source' => self::SOURCE_PROCEDURAL, 'notice' => null,
+                'engine' => $engine];
         }
 
         $instruction = self::compose_instruction($prompt, $style, $palette, $width, $height);
@@ -100,6 +112,9 @@ class generator {
                 'svg' => $clean,
                 'source' => $provider->source(),
                 'notice' => null,
+                // Real artwork from a provider. Nothing can redraw it, so the
+                // markup is the artwork and the engine is nobody's.
+                'engine' => self::ENGINE_NONE,
             ];
         }
 
@@ -107,6 +122,47 @@ class generator {
             'svg' => $fallback,
             'source' => self::SOURCE_PROCEDURAL,
             'notice' => get_string('artworkfellback', 'mod_certificatepro'),
+            'engine' => $engine,
+        ];
+    }
+
+    /**
+     * Draw a procedural background, saying which engine drew it.
+     *
+     * There are two procedural vocabularies in the plugin. The catalogue in
+     * {@see background_library} is the current one: twenty-six styles, each an
+     * operation list that either painter can replay. {@see artwork_engine} is
+     * the original one: ten styles that emit SVG markup directly and have no
+     * operation list behind them.
+     *
+     * Which one drew a background decides whether its print can be replayed
+     * natively, so it is answered here, once, and recorded — rather than
+     * guessed later from a style name that both vocabularies might answer to.
+     * Handed a catalogue style, {@see artwork_engine::procedural()} does not
+     * refuse it: its match falls through to the plain wash, which is a
+     * different drawing under the same name. That is precisely the ambiguity a
+     * stored recipe must not inherit.
+     *
+     * @param string $style the requested style
+     * @param array $palette a palette from {@see brand::palette()}
+     * @param float $width page width in millimetres
+     * @param float $height page height in millimetres
+     * @param int $seed the composition seed
+     * @param float $intensity how bold the artwork should be
+     * @return array{0: string, 1: string} the markup and the engine that drew it
+     */
+    protected static function draw_procedural(string $style, array $palette, float $width,
+            float $height, int $seed, float $intensity): array {
+        if (background_library::exists($style)) {
+            $svg = background_library::svg($style, $palette, $width, $height, max(1, $seed));
+            if ($svg !== '') {
+                return [$svg, self::ENGINE_LIBRARY];
+            }
+        }
+
+        return [
+            artwork_engine::procedural($style, $palette, $width, $height, $seed, $intensity),
+            self::ENGINE_LEGACY,
         ];
     }
 

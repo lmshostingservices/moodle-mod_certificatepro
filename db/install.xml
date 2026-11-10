@@ -179,6 +179,8 @@
         <FIELD NAME="prompt" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="style" TYPE="char" LENGTH="64" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="palette" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="palettejson" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="The whole nine-role palette the artwork was drawn from, as JSON"/>
+        <FIELD NAME="seed" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The composition seed; 0 means unknown, so the stored markup is all there is"/>
         <FIELD NAME="orientation" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="L" SEQUENCE="false"/>
         <FIELD NAME="svg" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="generator" TYPE="char" LENGTH="32" NOTNULL="true" DEFAULT="procedural" SEQUENCE="false" COMMENT="procedural, coreai or claude"/>
