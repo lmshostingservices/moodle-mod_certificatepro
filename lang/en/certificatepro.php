@@ -403,6 +403,7 @@ $string['errorgraderange'] = 'Enter a percentage between 0 and 100.';
 $string['errorlastpage'] = 'A certificate design must keep at least one page, so its last page cannot be removed.';
 $string['errorpagenotfound'] = 'That page does not belong to this certificate design.';
 $string['errorpageorder'] = 'That page order does not match this certificate design, so nothing was moved.';
+$string['errorpositivenumber'] = 'Enter a number greater than zero, or leave this empty to take the value from the design\'s typography.';
 $string['errorrestorepayload'] = 'Those elements could not be read, so nothing was put back.';
 $string['errortemplatecontext'] = 'That certificate design belongs to a different activity.';
 $string['errorunknownelement'] = 'There is no certificate element of type "{$a}" on this site.';

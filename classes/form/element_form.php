@@ -92,7 +92,11 @@ class element_form extends \moodleform {
 
             $mform->addElement('text', 'stylesize',
                 get_string('elementsize', 'mod_certificatepro'), ['size' => 6]);
-            $mform->setType('stylesize', PARAM_FLOAT);
+            // Not PARAM_FLOAT: it turns an empty box into 0 before save() can see
+            // that the author left it blank, and a zero point size renders the
+            // element's text at nothing at all. The value is checked as a number
+            // in validation() instead, which also lets a comma decimal through.
+            $mform->setType('stylesize', PARAM_TEXT);
 
             $mform->addElement('text', 'stylecolour',
                 get_string('elementcolour', 'mod_certificatepro'), ['size' => 14]);
@@ -127,7 +131,9 @@ class element_form extends \moodleform {
 
             $mform->addElement('text', 'stylelineheight',
                 get_string('elementlineheight', 'mod_certificatepro'), ['size' => 6]);
-            $mform->setType('stylelineheight', PARAM_FLOAT);
+            // Same reasoning as the size box above: a cleared line height arriving
+            // as 0 would collapse every line of the element on top of the next.
+            $mform->setType('stylelineheight', PARAM_TEXT);
 
             $mform->addElement('select', 'alignment',
                 get_string('elementalignment', 'mod_certificatepro'), [
@@ -300,6 +306,20 @@ class element_form extends \moodleform {
         /** @var element_base $element */
         $element = $this->_customdata['element'];
 
+        // Both boxes are allowed to be empty, which means "take it from the
+        // design's typography". Anything else has to be a positive number: a
+        // zero or a stray letter would otherwise be stored and the element
+        // would print at no size, or with its lines on top of each other.
+        foreach (['stylesize' => 'elementsize', 'stylelineheight' => 'elementlineheight'] as $field => $string) {
+            if (!isset($data[$field]) || trim((string) $data[$field]) === '') {
+                continue;
+            }
+            $value = unformat_float($data[$field], true);
+            if ($value === false || $value === null || !is_numeric($value) || (float) $value <= 0) {
+                $errors[$field] = get_string('errorpositivenumber', 'mod_certificatepro');
+            }
+        }
+
         return array_merge($errors, $element->validate_form($data, $files));
     }
 
@@ -340,7 +360,7 @@ class element_form extends \moodleform {
                 if (in_array($key, ['bold', 'italic', 'underline', 'fit'], true)) {
                     $value = !empty($value);
                 } else if ($key === 'size') {
-                    $value = ($value === '' || $value === null) ? null : (float) $value;
+                    $value = (trim((string) $value) === '') ? null : (float) unformat_float($value, true);
                 } else if (in_array($key, ['tracking', 'lineheight'], true)) {
                     $value = (float) $value;
                 } else if ($key === 'maxlines') {

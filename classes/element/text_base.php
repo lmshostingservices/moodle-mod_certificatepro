@@ -150,11 +150,32 @@ abstract class text_base extends base {
      */
     protected function resolve_size(render_context $ctx): float {
         $size = $this->style('size', null);
-        if (is_numeric($size)) {
+
+        // A stored zero has to mean "no size of its own" rather than "nought
+        // points". Text set at zero is simply not on the page, and an element
+        // whose settings were saved while the size box was empty used to be
+        // stored exactly that way, so this also quietly repairs those.
+        if (is_numeric($size) && (float) $size > 0) {
             return (float) $size;
         }
         $role = (string) $this->style('scalerole', 'body');
         return typography::size($ctx->get_pairing(), $role);
+    }
+
+    /**
+     * The line height to set the text at.
+     *
+     * Guarded for the same reason as the point size: a stored zero would put
+     * every line of the element on top of the one below it.
+     *
+     * @return float a positive multiplier
+     */
+    protected function resolve_lineheight(): float {
+        $value = $this->style('lineheight', 1.25);
+        if (is_numeric($value) && (float) $value > 0) {
+            return (float) $value;
+        }
+        return 1.25;
     }
 
     /**
@@ -186,7 +207,7 @@ abstract class text_base extends base {
         [$r, $g, $b] = brand::to_rgb($colour);
         $size = $this->resolve_size($ctx);
         $tracking = (float) $this->style('tracking', 0.0);
-        $lineheight = (float) $this->style('lineheight', 1.25);
+        $lineheight = $this->resolve_lineheight();
         $opacity = (float) $this->style('opacity', 1.0);
 
         $width = $this->get_width();
@@ -402,7 +423,7 @@ abstract class text_base extends base {
             // The same settings the print applies before it fits, because both
             // tracking and line height change how much fits in the box.
             $pdf->setFontSpacing($this->points_to_mm((float) $this->style('tracking', 0.0)));
-            $pdf->setCellHeightRatio((float) $this->style('lineheight', 1.25));
+            $pdf->setCellHeightRatio($this->resolve_lineheight());
             $fitted = $this->fit_size($pdf, $family, $style, $size, $html, $width);
             $pdf->setFontSpacing(0);
             $pdf->setCellHeightRatio(1.25);
@@ -471,7 +492,7 @@ abstract class text_base extends base {
             'font-family:' . font_manager::css_font_stack($family),
             'letter-spacing:' . $tracking . 'pt',
             'letter-spacing:' . $this->canvas_points($ctx, $tracking),
-            'line-height:' . (float) $this->style('lineheight', 1.25),
+            'line-height:' . $this->resolve_lineheight(),
             'text-align:' . $this->css_align(),
             'opacity:' . (float) $this->style('opacity', 1.0),
             // The print aligns the text inside a fixed height box by the

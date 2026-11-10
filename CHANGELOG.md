@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.1] - 2026-11-10
+
+- Blocker: opening a text element's settings and pressing Save set its point size to zero, and
+  text at zero points is simply not on the page. The title, the recipient's name or whichever
+  element it was done to vanished from every certificate issued afterwards. The size box is
+  allowed to be empty, meaning "take it from the design's typography", but `PARAM_FLOAT` turned
+  that empty box into a 0 before the save code could tell the difference. The box is read as
+  text and checked as a number instead, and a stored zero is now treated as "no size of its own",
+  so an element already spoiled this way comes right as soon as this version is installed. Line
+  height is guarded the same way: a cleared box used to stack every line on top of the next.
+
 ## [1.4.0] - 2026-11-10
 
 Merges the 1.1.x line into 1.3.0. The two branches diverged on 15 August: 1.3.0 carried the
