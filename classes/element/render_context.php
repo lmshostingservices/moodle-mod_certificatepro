@@ -16,6 +16,8 @@
 
 namespace mod_certificatepro\element;
 
+use mod_certificatepro\local\art\ground;
+
 /**
  * Everything an element needs in order to resolve itself to a value.
  *
@@ -60,8 +62,17 @@ class render_context {
     /** @var array Values already resolved, keyed by element id. */
     protected array $snapshot = [];
 
-    /** @var array The palette in use for this render. */
+    /** @var array The palette in use for this render, as the design stored it. */
     protected array $palette = [];
+
+    /** @var string How text must sit on the page being drawn. */
+    protected string $groundink = ground::INK_DARK;
+
+    /** @var string|null The ground colour the page named, when it named one. */
+    protected ?string $groundcolour = null;
+
+    /** @var array|null The palette as this ground needs it, built on first use. */
+    protected ?array $resolvedpalette = null;
 
     /** @var string The font pairing identifier in use. */
     protected string $pairing = 'system';
@@ -221,11 +232,35 @@ class render_context {
     }
 
     /**
-     * The palette for this render.
+     * The palette roles resolve against for the page being drawn.
+     *
+     * This is the design's own palette on an ordinary light page, and the same
+     * palette adapted to the ground on a dark one. Everything that draws a
+     * colour — text, seals, borders, rules, shapes, signatures, codes — asks
+     * here, so one answer keeps the whole page legible, and keeps the canvas
+     * and the print saying the same thing.
      *
      * @return array<string, string>
      */
     public function get_palette(): array {
+        if ($this->resolvedpalette === null) {
+            $this->resolvedpalette = ground::adapt_palette(
+                $this->palette, $this->groundink, $this->groundcolour);
+        }
+
+        return $this->resolvedpalette;
+    }
+
+    /**
+     * The palette exactly as the design stores it, before any ground adaptation.
+     *
+     * Used where the question is what the design's colours are rather than how
+     * they have to be drawn: painting the background artwork itself, for one,
+     * which must not be lifted off its own ground.
+     *
+     * @return array<string, string>
+     */
+    public function get_base_palette(): array {
         return $this->palette;
     }
 
@@ -237,6 +272,38 @@ class render_context {
      */
     public function set_palette(array $palette): void {
         $this->palette = $palette;
+        $this->resolvedpalette = null;
+    }
+
+    /**
+     * Record what the page being drawn is standing on.
+     *
+     * @param string $ink one of the ground::INK_ constants
+     * @param string|null $colour the ground colour, when the page named one
+     * @return void
+     */
+    public function set_ground(string $ink, ?string $colour = null): void {
+        $this->groundink = $ink === ground::INK_LIGHT ? ground::INK_LIGHT : ground::INK_DARK;
+        $this->groundcolour = $colour;
+        $this->resolvedpalette = null;
+    }
+
+    /**
+     * How text must sit on the page being drawn.
+     *
+     * @return string one of the ground::INK_ constants
+     */
+    public function get_ground_ink(): string {
+        return $this->groundink;
+    }
+
+    /**
+     * Whether the page being drawn needs its text reversed out of the ground.
+     *
+     * @return bool
+     */
+    public function needs_light_ink(): bool {
+        return $this->groundink === ground::INK_LIGHT;
     }
 
     /**
@@ -268,6 +335,23 @@ class render_context {
     public function set_page_size(float $width, float $height): void {
         $this->pagewidth = $width;
         $this->pageheight = $height;
+    }
+
+    /**
+     * Enter a page: its geometry and the ground it stands on, together.
+     *
+     * The two always have to be set as a pair, because a design can put a dark
+     * page next to a light one and whatever was resolved for the previous page
+     * must not leak into the next.
+     *
+     * @param \stdClass $page a page record
+     * @return void
+     */
+    public function set_page(\stdClass $page): void {
+        $this->set_page_size((float) $page->width, (float) $page->height);
+
+        $resolved = ground::for_page($page);
+        $this->set_ground($resolved['ink'], $resolved['colour']);
     }
 
     /**

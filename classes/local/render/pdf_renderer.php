@@ -198,7 +198,10 @@ class pdf_renderer {
         $width = (float) $page->width;
         $height = (float) $page->height;
 
-        $ctx->set_page_size($width, $height);
+        // Geometry and ground together: a dark page must not resolve its text
+        // against the white one the previous page stood on, or the other way
+        // round.
+        $ctx->set_page($page);
 
         $pdf->AddPage($page->orientation, [$width, $height]);
 

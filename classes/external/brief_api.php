@@ -492,6 +492,10 @@ class brief_api extends library_base {
 
         $template->touch();
 
+        // The page is now standing on something else, so anything that already
+        // resolved its ground in this request has to resolve it again.
+        \mod_certificatepro\local\art\ground::forget((int) $page->id);
+
         return (int) $record->id;
     }
 

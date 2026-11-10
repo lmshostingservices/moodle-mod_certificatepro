@@ -398,6 +398,10 @@ class element_form extends \moodleform {
         $record->timemodified = time();
         $DB->update_record('certificatepro_elements', $record);
 
+        // Choosing a different generated background changes what the page is
+        // standing on, and therefore how every colour role on it resolves.
+        \mod_certificatepro\local\art\ground::forget((int) $record->pageid);
+
         // Move any uploaded file out of its draft area.
         $areas = $element::file_areas();
         if (!empty($areas) && !empty($data->imagefile)) {

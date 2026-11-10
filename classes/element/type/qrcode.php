@@ -165,17 +165,22 @@ class qrcode extends base {
         }
         [$left, $top] = $this->box_origin($size, $size);
 
-        $foreground = [0, 0, 0];
-        if ($this->config('usebrandcolour', 0)) {
-            $foreground = brand::to_rgb($ctx->get_palette()['primarydark'] ?? '#000000');
-        }
+        $foreground = brand::to_rgb($this->foreground($ctx));
+
+        // A code is only worth having if a phone can read it, and a reader is
+        // entitled to expect dark modules on a light field. On a dark ground
+        // the code therefore gets its own plate rather than being inverted:
+        // inverted codes are read by some scanners and not others, and a
+        // certificate's verification code is not the place to find out which.
+        $plate = $this->plate($ctx);
+        $background = $plate === null ? false : brand::to_rgb($plate);
 
         $style = [
             'border' => false,
             'vpadding' => $this->config('quietzone', 1) ? 'auto' : 0,
             'hpadding' => $this->config('quietzone', 1) ? 'auto' : 0,
             'fgcolor' => $foreground,
-            'bgcolor' => false,
+            'bgcolor' => $background,
             'module_width' => 1,
             'module_height' => 1,
         ];
@@ -226,7 +231,8 @@ class qrcode extends base {
                 $ctx->verify_url(),
                 'QRCODE,' . $this->config('errorlevel', 'H')
             );
-            $svg = $this->barcode_svg($barcode->getBarcodeArray(), $this->foreground($ctx));
+            $svg = $this->barcode_svg($barcode->getBarcodeArray(), $this->foreground($ctx),
+                $this->plate($ctx));
         } catch (\Throwable $e) {
             // Silence here is what hid the missing class in the first place.
             debugging('Certificate Pro could not draw a QR code for the canvas: '
@@ -264,7 +270,27 @@ class qrcode extends base {
         if (!$this->config('usebrandcolour', 0)) {
             return '#000000';
         }
-        return $ctx->get_palette()['primarydark'] ?? '#000000';
+
+        // On a dark ground the primarydark role has been lifted off it, which is
+        // right for a title and wrong for a code: the modules have to stay dark
+        // against the plate drawn behind them.
+        $palette = $ctx->needs_light_ink() ? $ctx->get_base_palette() : $ctx->get_palette();
+
+        return $palette['primarydark'] ?? '#000000';
+    }
+
+    /**
+     * The field the modules are drawn on, or null to leave the page showing.
+     *
+     * @param render_context $ctx the render context
+     * @return string|null a hex colour, or null for no plate
+     */
+    protected function plate(render_context $ctx): ?string {
+        if (!$ctx->needs_light_ink()) {
+            return null;
+        }
+
+        return $ctx->get_palette()['paper'] ?? '#ffffff';
     }
 
     /**
@@ -277,9 +303,10 @@ class qrcode extends base {
      *
      * @param array|null $code the array from TCPDF2DBarcode::getBarcodeArray()
      * @param string $colour the module colour
+     * @param string|null $plate the field behind the modules, or null for none
      * @return string|null the SVG markup, or null when there is no code
      */
-    protected function barcode_svg(?array $code, string $colour): ?string {
+    protected function barcode_svg(?array $code, string $colour, ?string $plate = null): ?string {
         if (empty($code['num_rows']) || empty($code['num_cols']) || empty($code['bcode'])) {
             return null;
         }
@@ -314,6 +341,12 @@ class qrcode extends base {
         // name when the reader bothers to look for it.
         $titleid = 'cpro-qr-title-' . ($this->get_id() ?: 0);
 
+        $field = '';
+        if ($plate !== null) {
+            $field = '<rect x="0" y="0" width="' . ($cols + (2 * $quiet)) . '" height="'
+                . ($rows + (2 * $quiet)) . '" fill="' . s($plate) . '"/>';
+        }
+
         return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '
             . ($cols + (2 * $quiet)) . ' ' . ($rows + (2 * $quiet)) . '" '
             . 'width="100%" height="100%" preserveAspectRatio="xMidYMid meet" '
@@ -321,7 +354,7 @@ class qrcode extends base {
             . 'role="img" aria-labelledby="' . s($titleid) . '">'
             . '<title id="' . s($titleid) . '">'
             . s(get_string('qraltext', 'mod_certificatepro')) . '</title>'
-            . implode('', $rects) . '</svg>';
+            . $field . implode('', $rects) . '</svg>';
     }
 
     /**

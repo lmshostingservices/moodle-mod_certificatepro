@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.4.3] - 2026-11-10
+
+- Blocker: the guided artwork wizard's "Deep Field" background is a saturated full-bleed ground,
+  and applying it left every mark on the page in its light-page colour. Measured on a real
+  render, the title sat at 1.63:1 against the ground, the recipient's name and the citation at
+  1.99:1, the course name at exactly 1.00:1 — the same colour as the page, invisible — the page
+  border at 1.06:1, the dividing rules at 1.59:1, the seal at 2.29:1 and the QR code at 2.47:1.
+  An author who accepted the wizard's result shipped an illegible certificate.
+  The background catalogue has always declared, per style, whether text has to sit dark on it or
+  be reversed out of it. Nothing read that declaration. It is now read, per page, at render time:
+  a page standing on a ground that needs light ink resolves its palette roles against that ground
+  and lifts any role that does not clear its contrast floor, so text, seals, borders, rules,
+  signatures and codes all come right together, on the designer canvas and in the print alike.
+  The same page now measures 7.21:1 on the title, 7.24:1 on the name and the citation and on the
+  course name, 4.57:1 on the secondary lines, 4.50:1 on the border and the rules, 5.03:1 on the
+  seal and 8.50:1 on the code.
+  Nothing an author saved is rewritten: a colour an author set as an explicit hex is their
+  choice and is left exactly as it is, and moving a design onto a dark background and back off
+  it again returns it byte for byte to where it started. A design already saved against a dark
+  ground comes right the next time it is drawn.
+- A QR code on a dark ground is drawn on its own light plate rather than being inverted, because
+  an inverted code is read by some scanners and not others.
+
 ## [1.4.2] - 2026-11-10
 
 - Blocker, introduced in 1.4.0 and caught before release: "Use this background" in the guided

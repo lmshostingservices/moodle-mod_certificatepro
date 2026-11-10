@@ -597,6 +597,10 @@ class template {
 
         $DB->delete_records('certificatepro_elements', ['id' => $elementid]);
         $this->touch();
+
+        // Removing the generated background takes the page off its ground, and
+        // the colour roles have to go back to their light page values.
+        \mod_certificatepro\local\art\ground::forget((int) $record->pageid);
     }
 
     /**
@@ -964,7 +968,7 @@ class template {
 
         $pages = [];
         foreach ($this->get_pages() as $page) {
-            $ctx->set_page_size((float) $page->width, (float) $page->height);
+            $ctx->set_page($page);
 
             $elements = [];
             foreach ($this->get_elements((int) $page->id) as $element) {

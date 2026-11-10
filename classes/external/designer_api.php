@@ -318,7 +318,7 @@ class designer_api extends external_api {
 
         $ctx = self::preview_context($template);
         $template->configure($ctx);
-        $ctx->set_page_size((float) $page->width, (float) $page->height);
+        $ctx->set_page($page);
 
         $redrawn = [];
         foreach ($reshaped as $record) {
@@ -408,7 +408,7 @@ class designer_api extends external_api {
 
         $ctx = self::preview_context($template);
         $template->configure($ctx);
-        $ctx->set_page_size((float) $page->width, (float) $page->height);
+        $ctx->set_page($page);
 
         return ['element' => json_encode($element->export_for_designer($ctx))];
     }
@@ -464,7 +464,7 @@ class designer_api extends external_api {
 
         $ctx = self::preview_context($template);
         $template->configure($ctx);
-        $ctx->set_page_size((float) $page->width, (float) $page->height);
+        $ctx->set_page($page);
 
         $fs = get_file_storage();
         $areas = \mod_certificatepro\element\registry::all_file_areas();
@@ -777,7 +777,7 @@ class designer_api extends external_api {
             }
 
             $page = $pages[(int) $record->pageid];
-            $ctx->set_page_size((float) $page->width, (float) $page->height);
+            $ctx->set_page($page);
 
             // Exported after the files have arrived, not before: a picture
             // element with an empty file area draws nothing at all.
