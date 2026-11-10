@@ -69,17 +69,26 @@ class organisation extends text_base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(
-            parent::default_style(),
-            [
-                'font' => 'accent',
-                'scalerole' => 'eyebrow',
-                'size' => null,
-                'colour' => 'primary',
-                'tracking' => 1.6,
-                'case' => 'upper',
-            ]
-        );
+        return array_merge(parent::default_style(), [
+            'font' => 'accent',
+            'scalerole' => 'eyebrow',
+            'size' => null,
+            'colour' => 'primary',
+            'tracking' => 1.6,
+            'case' => 'upper',
+        ]);
+    }
+
+    /**
+     * The configuration a newly dropped organisation name starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'source' => 'fullname',
+            'customname' => '',
+        ];
     }
 
     /**
@@ -90,24 +99,16 @@ class organisation extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'source',
-            get_string('organisationsource', 'mod_certificatepro'),
-            [
+        $mform->addElement('select', 'source',
+            get_string('organisationsource', 'mod_certificatepro'), [
                 'fullname' => get_string('fullsitename'),
                 'shortname' => get_string('shortsitename'),
                 'custom' => get_string('organisationcustom', 'mod_certificatepro'),
-            ]
-        );
+            ]);
         $mform->setDefault('source', 'fullname');
 
-        $mform->addElement(
-            'text',
-            'customname',
-            get_string('organisationcustom', 'mod_certificatepro'),
-            ['size' => 60]
-        );
+        $mform->addElement('text', 'customname',
+            get_string('organisationcustom', 'mod_certificatepro'), ['size' => 60]);
         $mform->setType('customname', PARAM_TEXT);
         $mform->hideIf('customname', 'source', 'neq', 'custom');
     }

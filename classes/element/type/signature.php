@@ -98,6 +98,24 @@ class signature extends image_base {
     }
 
     /**
+     * The configuration a newly dropped signature starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'mediaid' => 0,
+            'namesource' => 'custom',
+            'signaturename' => '',
+            'signaturerole' => '',
+            'showrule' => 1,
+            'alttext' => '',
+            'keepaspect' => 1,
+            'opacity' => 1.0,
+        ];
+    }
+
+    /**
      * Add the signature block settings.
      *
      * @param \MoodleQuickForm $mform the form to extend
@@ -105,71 +123,43 @@ class signature extends image_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'filemanager',
-            'imagefile',
-            get_string('signatureimage', 'mod_certificatepro'),
-            null,
-            [
+        $mform->addElement('filemanager', 'imagefile',
+            get_string('signatureimage', 'mod_certificatepro'), null, [
                 'subdirs' => 0,
                 'maxfiles' => 1,
                 'accepted_types' => ['web_image', '.svg'],
-            ]
-        );
+            ]);
         $mform->addHelpButton('imagefile', 'signatureimage', 'mod_certificatepro');
 
-        $mform->addElement(
-            'select',
-            'mediaid',
+        $mform->addElement('select', 'mediaid',
             get_string('mediafromlibrary', 'mod_certificatepro'),
             \mod_certificatepro\local\media_library::menu(
-                \mod_certificatepro\local\media_library::KIND_SIGNATURE
-            )
-        );
+                \mod_certificatepro\local\media_library::KIND_SIGNATURE));
         $mform->addHelpButton('mediaid', 'mediafromlibrary', 'mod_certificatepro');
 
-        $mform->addElement(
-            'select',
-            'namesource',
-            get_string('signaturenamesource', 'mod_certificatepro'),
-            [
+        $mform->addElement('select', 'namesource',
+            get_string('signaturenamesource', 'mod_certificatepro'), [
                 'custom' => get_string('signaturenamesource_custom', 'mod_certificatepro'),
                 'teacher' => get_string('signaturenamesource_teacher', 'mod_certificatepro'),
                 'none' => get_string('signaturenamesource_none', 'mod_certificatepro'),
-            ]
-        );
+            ]);
         $mform->setDefault('namesource', 'custom');
 
-        $mform->addElement(
-            'text',
-            'signaturename',
-            get_string('signaturename', 'mod_certificatepro'),
-            ['size' => 40]
-        );
+        $mform->addElement('text', 'signaturename',
+            get_string('signaturename', 'mod_certificatepro'), ['size' => 40]);
         $mform->setType('signaturename', PARAM_TEXT);
         $mform->hideIf('signaturename', 'namesource', 'neq', 'custom');
 
-        $mform->addElement(
-            'text',
-            'signaturerole',
-            get_string('signaturerole', 'mod_certificatepro'),
-            ['size' => 40]
-        );
+        $mform->addElement('text', 'signaturerole',
+            get_string('signaturerole', 'mod_certificatepro'), ['size' => 40]);
         $mform->setType('signaturerole', PARAM_TEXT);
 
-        $mform->addElement(
-            'advcheckbox',
-            'showrule',
-            get_string('signatureshowrule', 'mod_certificatepro')
-        );
+        $mform->addElement('advcheckbox', 'showrule',
+            get_string('signatureshowrule', 'mod_certificatepro'));
         $mform->setDefault('showrule', 1);
 
-        $mform->addElement(
-            'text',
-            'alttext',
-            get_string('elementalttext', 'mod_certificatepro'),
-            ['size' => 60]
-        );
+        $mform->addElement('text', 'alttext',
+            get_string('elementalttext', 'mod_certificatepro'), ['size' => 60]);
         $mform->setType('alttext', PARAM_TEXT);
     }
 
@@ -278,57 +268,23 @@ class signature extends image_base {
             $imagetop = $top + max(0.0, $imageheight - $drawnheight);
             try {
                 if (strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'svg') {
-                    $pdf->ImageSVG(
-                        $path,
-                        $imageleft,
-                        $imagetop,
-                        $drawnwidth,
-                        $drawnheight,
-                        '',
-                        '',
-                        '',
-                        0,
-                        false
-                    );
+                    $pdf->ImageSVG($path, $imageleft, $imagetop, $drawnwidth, $drawnheight,
+                        '', '', '', 0, false);
                 } else {
-                    $pdf->Image(
-                        $path,
-                        $imageleft,
-                        $imagetop,
-                        $drawnwidth,
-                        $drawnheight,
-                        '',
-                        '',
-                        '',
-                        true,
-                        300,
-                        '',
-                        false,
-                        false,
-                        0,
-                        false,
-                        false,
-                        false
-                    );
+                    $pdf->Image($path, $imageleft, $imagetop, $drawnwidth, $drawnheight, '', '',
+                        '', true, 300, '', false, false, 0, false, false, false);
                 }
             } catch (\Throwable $e) {
-                debugging(
-                    'Certificate Pro could not draw a signature image: ' . $e->getMessage(),
-                    DEBUG_DEVELOPER
-                );
+                debugging('Certificate Pro could not draw a signature image: ' . $e->getMessage(),
+                    DEBUG_DEVELOPER);
             }
         }
 
         $cursor = $top + $imageheight;
 
         if ($this->config('showrule', 1)) {
-            $pdf->Line(
-                $left + ($width * 0.08),
-                $cursor,
-                $left + ($width * 0.92),
-                $cursor,
-                ['width' => 0.3, 'color' => [$ruler, $ruleg, $ruleb]]
-            );
+            $pdf->Line($left + ($width * 0.08), $cursor, $left + ($width * 0.92), $cursor,
+                ['width' => 0.3, 'color' => [$ruler, $ruleg, $ruleb]]);
             $cursor += 1.6;
         }
 
@@ -360,55 +316,58 @@ class signature extends image_base {
         $name = s($this->signature_name($ctx));
         $role = s($ctx->interpolate((string) $this->config('signaturerole', '')));
 
+        // The same faces and the same point sizes the print picks, stated as a
+        // fraction of the page. Left to inherit the stage's own 16px, the name
+        // and the role were set at whatever size the screen happened to be and
+        // changed their proportion to the paper every time the author zoomed.
+        $installed = font_manager::installed_families();
+        $pairing = typography::resolve($ctx->get_pairing(), $installed);
+        $namesize = typography::size($ctx->get_pairing(), 'signaturename');
+        $rolesize = typography::size($ctx->get_pairing(), 'signature');
+
         $parts = '';
         $parts .= \html_writer::div(
             $url !== null
-                ? \html_writer::empty_tag(
-                    'img',
-                    [
-                        'src' => $url,
-                        'alt' => (string) $this->config('alttext', ''),
-                        'style' => 'max-width:90%;max-height:100%;object-fit:contain;',
-                    ]
-                )
+                ? \html_writer::empty_tag('img', [
+                    'src' => $url,
+                    'alt' => (string) $this->config('alttext', ''),
+                    'style' => 'max-width:90%;max-height:100%;object-fit:contain;',
+                ])
                 : '',
-            'certificatepro-signature-image'
+            'certificatepro-signature-image',
+            ['style' => 'flex:1 1 auto;min-height:0;display:flex;'
+                . 'align-items:flex-end;justify-content:center;']
         );
 
         if ($this->config('showrule', 1)) {
-            $parts .= \html_writer::div(
-                '',
-                'certificatepro-signature-rule',
-                [
-                    'style' => 'border-top:1px solid ' . ($palette['ink'] ?? '#111') . ';margin:0 8%;',
-                ]
-            );
+            // 0.3mm of paper, the weight the print draws, with a floor so the
+            // rule is still visible when the design is zoomed out.
+            $parts .= \html_writer::div('', 'certificatepro-signature-rule', [
+                'style' => 'border-top:max(1px,' . $this->canvas_mm($ctx, 0.3) . ') solid '
+                    . ($palette['ink'] ?? '#111') . ';margin:0 8%;',
+            ]);
         }
 
         if ($name !== '') {
-            $parts .= \html_writer::div(
-                $name,
-                'certificatepro-signature-name',
-                [
-                    'style' => 'font-weight:700;text-align:center;color:' . ($palette['ink'] ?? '#111'),
-                ]
-            );
+            $parts .= \html_writer::div($name, 'certificatepro-signature-name', [
+                'style' => 'font-weight:700;text-align:center;line-height:1.4;'
+                    . 'font-family:' . font_manager::css_font_stack($pairing['body']['resolved'])
+                    . ';font-size:' . $namesize . 'pt'
+                    . ';font-size:' . $this->canvas_points($ctx, $namesize)
+                    . ';color:' . ($palette['ink'] ?? '#111'),
+            ]);
         }
         if ($role !== '') {
-            $parts .= \html_writer::div(
-                $role,
-                'certificatepro-signature-role',
-                [
-                    'style' => 'text-align:center;font-size:0.85em;color:' . ($palette['muted'] ?? '#666'),
-                ]
-            );
+            $parts .= \html_writer::div($role, 'certificatepro-signature-role', [
+                'style' => 'text-align:center;line-height:1.4;'
+                    . 'font-family:' . font_manager::css_font_stack($pairing['accent']['resolved'])
+                    . ';font-size:' . $rolesize . 'pt'
+                    . ';font-size:' . $this->canvas_points($ctx, $rolesize)
+                    . ';color:' . ($palette['muted'] ?? '#666'),
+            ]);
         }
 
-        return \html_writer::div(
-            $parts,
-            'certificatepro-element-signature',
-            [
-                'style' => 'display:flex;flex-direction:column;justify-content:flex-end;height:100%;',
-            ]
-        );
+        return \html_writer::div($parts, 'certificatepro-element-signature', [
+            'style' => 'display:flex;flex-direction:column;justify-content:flex-end;height:100%;',
+        ]);
     }}

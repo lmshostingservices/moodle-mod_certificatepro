@@ -76,6 +76,50 @@ class artwork extends base {
     }
 
     /**
+     * Generated artwork covers the page, so there is nothing to resize.
+     *
+     * @return bool
+     */
+    public static function resizable(): bool {
+        return false;
+    }
+
+    /**
+     * Report the artwork to the designer as what it is: the whole page.
+     *
+     * {@see render_pdf()} draws the panel from the page dimensions and ignores
+     * the element box entirely, so a box of any other size is a promise the
+     * print will not keep.
+     *
+     * @param render_context $ctx the render context
+     * @return array
+     */
+    public function export_for_designer(render_context $ctx): array {
+        $data = parent::export_for_designer($ctx);
+
+        $data['posx'] = 0.0;
+        $data['posy'] = 0.0;
+        $data['width'] = $ctx->get_page_width();
+        $data['height'] = $ctx->get_page_height();
+        $data['refpoint'] = 'tl';
+        $data['rotation'] = 0.0;
+
+        return $data;
+    }
+
+    /**
+     * The configuration a newly dropped artwork panel starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'backgroundid' => 0,
+            'opacity' => 1.0,
+        ];
+    }
+
+    /**
      * Add the artwork settings.
      *
      * @param \MoodleQuickForm $mform the form to extend
@@ -83,20 +127,13 @@ class artwork extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'backgroundid',
+        $mform->addElement('select', 'backgroundid',
             get_string('artworkchoose', 'mod_certificatepro'),
-            \mod_certificatepro\local\ai\background_repository::menu($context)
-        );
+            \mod_certificatepro\local\ai\background_repository::menu($context));
         $mform->addHelpButton('backgroundid', 'artworkchoose', 'mod_certificatepro');
 
-        $mform->addElement(
-            'text',
-            'opacity',
-            get_string('elementopacity', 'mod_certificatepro'),
-            ['size' => 6]
-        );
+        $mform->addElement('text', 'opacity',
+            get_string('elementopacity', 'mod_certificatepro'), ['size' => 6]);
         $mform->setType('opacity', PARAM_FLOAT);
         $mform->setDefault('opacity', 1);
     }
@@ -153,23 +190,11 @@ class artwork extends base {
         file_put_contents($path, $svg);
 
         try {
-            $pdf->ImageSVG(
-                $path,
-                0,
-                0,
-                $ctx->get_page_width(),
-                $ctx->get_page_height(),
-                '',
-                '',
-                '',
-                0,
-                false
-            );
+            $pdf->ImageSVG($path, 0, 0, $ctx->get_page_width(), $ctx->get_page_height(),
+                '', '', '', 0, false);
         } catch (\Throwable $e) {
-            debugging(
-                'Certificate Pro could not draw generated artwork: ' . $e->getMessage(),
-                DEBUG_DEVELOPER
-            );
+            debugging('Certificate Pro could not draw generated artwork: ' . $e->getMessage(),
+                DEBUG_DEVELOPER);
         }
 
         if ($opacity < 1.0) {
@@ -188,11 +213,7 @@ class artwork extends base {
         if ($svg === '') {
             return \html_writer::div('', 'certificatepro-element-placeholder');
         }
-        return \html_writer::div(
-            $svg,
-            'certificatepro-element-artwork',
-            [
-                'style' => 'opacity:' . (float) $this->config('opacity', 1.0),
-            ]
-        );
+        return \html_writer::div($svg, 'certificatepro-element-artwork', [
+            'style' => 'opacity:' . (float) $this->config('opacity', 1.0),
+        ]);
     }}

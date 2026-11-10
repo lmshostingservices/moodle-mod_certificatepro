@@ -16,18 +16,35 @@
 
 namespace mod_certificatepro\local\ai;
 
+use mod_certificatepro\local\art\seal_engine;
+
 /**
- * A structured brief for a generated organisation seal.
+ * A structured brief for an organisation seal.
  *
- * Seals are the one piece of a certificate that everybody wants and nobody can
- * draw. The author supplies the things only they know — the organisation's
- * name, the year it was founded, a motto, what it does — picks a silhouette and
- * a drawing style, and this composes the instruction.
+ * WHY THE QUESTIONS ARE THE ENGINE'S OWN VOCABULARY
  *
- * The constraints matter more here than for a background, because a seal is
- * small, it carries lettering, and the failure modes are specific: models reach
- * for laurel wreaths and fake gold gradients, they set type too small to print,
- * and they centre a motif underneath the lettering.
+ * The first version of this class asked about "silhouette", "drawing style",
+ * "weight" and "what the organisation does", then guessed its way from those
+ * adjectives to the engine's nine edges, four rings and nine marks. Two
+ * consequences followed. The author was answering questions about a picture
+ * nobody had shown them, and two different adjective sets collapsed onto the
+ * same drawing, so the wizard could not honestly claim the answers mattered.
+ *
+ * The questions are now the engine's own axes, and every option is shown as a
+ * complete seal carrying the author's own name. Choosing an edge means looking
+ * at nine seals that differ only in their edge. Nothing has to be imagined and
+ * nothing is lost in translation: the thumbnail is the drawing that gets saved.
+ *
+ * The only things still typed are the things only the author knows — the name,
+ * the year, the motto.
+ *
+ * WHAT IS DELIBERATELY NOT ASKED
+ *
+ * The engine takes a numeric rule weight, but a placed seal element has nowhere
+ * to store one, so a wizard that offered a weight slider would preview
+ * something the design could not keep. The weight question therefore resolves
+ * only to settings that survive being saved: the inner keyline, the dividers,
+ * and which palette roles the ink and the metal take.
  *
  * @package    mod_certificatepro
  * @copyright  2026 LMS Labs <https://lms-labs.com>
@@ -42,6 +59,10 @@ class seal_brief {
 
     /**
      * The questions the author is asked.
+     *
+     * Every choice field names the language string prefix its options are
+     * labelled from, so the wizard and the element settings form call the same
+     * edge by the same name.
      *
      * @return array[] keyed by field name
      */
@@ -65,59 +86,79 @@ class seal_brief {
                 'limit' => self::RING_TEXT_LIMIT,
                 'default' => '',
             ],
-            'subject' => [
-                'label' => 'sealsubject',
-                'type' => 'text',
-                'limit' => 60,
-                'default' => '',
-            ],
-            'shape' => [
-                'label' => 'sealshape',
+            'edge' => [
+                'label' => 'sealedge',
                 'type' => 'choice',
-                'default' => 'circle',
-                'options' => [
-                    'circle' => 'Circle — the classic seal',
-                    'oval' => 'Oval — a little more formal',
-                    'shield' => 'Shield — institutional, crest-like',
-                    'hexagon' => 'Hexagon — modern and technical',
-                    'roundel' => 'Rounded square — contemporary badge',
-                    'starburst' => 'Scalloped edge — the pressed-wax silhouette',
-                ],
+                'default' => seal_engine::EDGE_DOUBLE,
+                'prefix' => 'wizedge_',
+                'altprefix' => 'sealedge_',
+                'options' => array_fill_keys(seal_engine::edges(), ''),
             ],
-            'style' => [
-                'label' => 'sealstyle',
+            'mark' => [
+                'label' => 'sealmark',
                 'type' => 'choice',
-                'default' => 'minimal',
-                'options' => [
-                    'minimal' => 'Modern minimal — few elements, generous space, one weight',
-                    'monoline' => 'Monoline — everything drawn at a single line weight',
-                    'engraved' => 'Engraved — fine concentric line work, banknote heritage',
-                    'geometric' => 'Geometric — built from circles and straight lines only',
-                    'wordmark' => 'Wordmark — the name is the seal, minimal ornament',
-                    'layered' => 'Layered — flat tints stacked into a solid, confident mark',
-                ],
+                'default' => seal_engine::MARK_MONOGRAM,
+                'prefix' => 'wizmark_',
+                'altprefix' => 'sealmark_',
+                'options' => array_fill_keys(seal_engine::marks(), ''),
             ],
-            'emblem' => [
-                'label' => 'sealemblem',
+            'ring' => [
+                'label' => 'sealring',
                 'type' => 'choice',
-                'default' => 'monogram',
-                'options' => [
-                    'monogram' => 'The organisation\'s initials',
-                    'abstract' => 'An abstract geometric mark',
-                    'symbolic' => 'A simple symbol drawn from what the organisation does',
-                    'star' => 'A single star or asterisk',
-                    'none' => 'Nothing in the middle — leave it open',
-                ],
+                'default' => seal_engine::RING_BOTH,
+                'prefix' => 'wizring_',
+                'altprefix' => 'sealring_',
+                'options' => array_fill_keys(seal_engine::ring_layouts(), ''),
             ],
             'weight' => [
-                'label' => 'sealweight',
+                'label' => 'wizsealweight',
                 'type' => 'choice',
                 'default' => 'balanced',
-                'options' => [
-                    'light' => 'Light — hairlines, quiet',
-                    'balanced' => 'Balanced',
-                    'strong' => 'Strong — heavy, reads at a glance',
-                ],
+                'prefix' => 'wizweight_',
+                'altprefix' => 'sealopt_weight_',
+                'options' => ['light' => '', 'balanced' => '', 'strong' => ''],
+            ],
+        ];
+    }
+
+    /**
+     * The screens the wizard shows, in order.
+     *
+     * Four screens: the things only the author knows, then three galleries of
+     * complete seals. Each entry names either the text fields it collects or
+     * the choice fields it draws as galleries.
+     *
+     * @return array[] each with id, title, hint, fields and galleries
+     */
+    public static function screens(): array {
+        return [
+            [
+                'id' => 'name',
+                'title' => 'wizsealtitlename',
+                'hint' => 'wizsealhintname',
+                'fields' => ['organisation', 'established', 'motto'],
+                'galleries' => [],
+            ],
+            [
+                'id' => 'outline',
+                'title' => 'wizsealtitleoutline',
+                'hint' => 'wizsealhintoutline',
+                'fields' => [],
+                'galleries' => ['edge'],
+            ],
+            [
+                'id' => 'centre',
+                'title' => 'wizsealtitlecentre',
+                'hint' => 'wizsealhintcentre',
+                'fields' => [],
+                'galleries' => ['mark'],
+            ],
+            [
+                'id' => 'lettering',
+                'title' => 'wizsealtitlelettering',
+                'hint' => 'wizsealhintlettering',
+                'fields' => [],
+                'galleries' => ['ring', 'weight'],
             ],
         ];
     }
@@ -168,11 +209,7 @@ class seal_brief {
     }
 
     /**
-     * Problems the author should know about before generating.
-     *
-     * Returned as language string identifiers with their placeholder data, so
-     * the form can show them inline rather than producing a seal that is
-     * technically valid and practically unreadable.
+     * Problems the author should know about before the seal is placed.
      *
      * @return array[] each with a key and its placeholder value
      */
@@ -188,12 +225,12 @@ class seal_brief {
             $out[] = ['key' => 'sealwarnringlong', 'a' => $ring];
         }
 
-        if ($this->answers['emblem'] === 'monogram'
-                && mb_strlen($this->initials()) > 4) {
+        if (in_array($this->answers['mark'], [seal_engine::MARK_MONOGRAM,
+                seal_engine::MARK_REVERSED], true) && mb_strlen($this->initials()) > 4) {
             $out[] = ['key' => 'sealwarnmonogramlong', 'a' => $this->initials()];
         }
 
-        if ($this->answers['style'] === 'wordmark'
+        if ($this->answers['mark'] === seal_engine::MARK_WORDMARK
                 && mb_strlen($this->answers['organisation']) > 28) {
             $out[] = ['key' => 'sealwarnwordmarklong', 'a' => null];
         }
@@ -225,6 +262,263 @@ class seal_brief {
         return mb_substr($letters, 0, 4);
     }
 
+    // ------------------------------------------------------------------
+    // From answers to a drawable, storable seal.
+    // ------------------------------------------------------------------
+
+    /**
+     * The settings a seal element stores, for these answers.
+     *
+     * Every key here is one the seal element reads back, so what the wizard
+     * previews is by construction what the design keeps. Overrides let a
+     * variant differ from the answered brief along one axis without the caller
+     * having to know how the rest is derived.
+     *
+     * @param array $overrides answers to substitute: edge, ring, mark, weight
+     * @return array the element's stored settings
+     */
+    public function to_spec(array $overrides = []): array {
+        $a = $this->answers;
+        foreach (['edge', 'ring', 'mark', 'weight'] as $axis) {
+            if (isset($overrides[$axis]) && isset(self::fields()[$axis]['options'][$overrides[$axis]])) {
+                $a[$axis] = $overrides[$axis];
+            }
+        }
+
+        $name = mb_strtoupper($a['organisation']);
+        $motto = $a['motto'] !== '' ? mb_strtoupper($a['motto']) : '';
+        $mark = $a['mark'];
+
+        // A wordmark IS the name, set large in the middle. Running it round the
+        // ring as well says it twice, which is the single commonest way a
+        // generated seal announces that nobody looked at it. The ring carries
+        // the motto instead, and the seal reads as one statement.
+        $top = $mark === seal_engine::MARK_WORDMARK ? $motto : $name;
+
+        $lower = [];
+        if ($a['established'] !== '') {
+            $lower[] = 'EST. ' . $a['established'];
+        }
+        // A crest already carries the motto on its ribbon.
+        if ($motto !== '' && $mark !== seal_engine::MARK_WORDMARK
+                && $mark !== seal_engine::MARK_CREST) {
+            $lower[] = $motto;
+        }
+        $bottom = implode(' · ', $lower);
+
+        $ring = $a['ring'];
+        if ($top === '') {
+            $ring = seal_engine::RING_NONE;
+        } else if ($ring === seal_engine::RING_BOTH && $bottom === '') {
+            // Asking for two arcs and having nothing to put in the second one
+            // leaves a bare band and dividers pointing at nothing.
+            $ring = seal_engine::RING_TOP;
+        }
+
+        if ($ring === seal_engine::RING_NONE && $mark === seal_engine::MARK_NONE) {
+            // An empty circle is not a seal.
+            $mark = seal_engine::MARK_MONOGRAM;
+        }
+
+        $centre = '';
+        if ($mark === seal_engine::MARK_WORDMARK) {
+            $centre = $name;
+        } else if (in_array($mark, [seal_engine::MARK_MONOGRAM, seal_engine::MARK_REVERSED], true)) {
+            $centre = $this->initials();
+        }
+
+        // The year is set under the centre mark only when the ring is not
+        // already carrying it. Printing "EST. 1994" twice on a mark the size of
+        // a coin is the commonest way a generated seal looks amateur.
+        $ringcarriesyear = in_array($ring, [seal_engine::RING_BOTH], true)
+            && $a['established'] !== '';
+        $year = $ringcarriesyear ? '' : $a['established'];
+
+        $weight = self::weights()[$a['weight']] ?? self::weights()['balanced'];
+
+        $spec = [
+            'sealedge' => $a['edge'],
+            'sealring' => $ring,
+            'sealmark' => $mark,
+            'toptext' => $top,
+            'bottomtext' => $ring === seal_engine::RING_BOTH ? $bottom : '',
+            'centretext' => $centre,
+            'yeartext' => $year,
+            'mottotext' => $motto,
+            'colour' => $weight['colour'],
+            'metal' => $weight['metal'],
+            'sealdivider' => ($ring === seal_engine::RING_BOTH && $bottom !== ''
+                && $weight['divider']) ? 1 : 0,
+            'sealkeyline' => $weight['keyline'],
+        ];
+
+        // Variants may name the fine detail directly.
+        foreach (['sealdivider', 'sealkeyline'] as $flag) {
+            if (isset($overrides[$flag])) {
+                $spec[$flag] = $overrides[$flag] ? 1 : 0;
+            }
+        }
+        if ($spec['sealring'] !== seal_engine::RING_BOTH || $spec['bottomtext'] === '') {
+            $spec['sealdivider'] = 0;
+        }
+
+        return $spec;
+    }
+
+    /**
+     * What each weight answer resolves to, in settings a seal can store.
+     *
+     * @return array[] keyed by weight
+     */
+    public static function weights(): array {
+        return [
+            // Hairline and monochrome: no keyline, no dividers, no second colour.
+            'light' => ['colour' => 'primary', 'metal' => 'paper',
+                'keyline' => 0, 'divider' => false],
+            'balanced' => ['colour' => 'primary', 'metal' => 'accent',
+                'keyline' => 1, 'divider' => true],
+            // Near-black ink is what makes a mark read at a glance; the accent
+            // dividers and the inner keyline give it the extra ring of weight.
+            'strong' => ['colour' => 'ink', 'metal' => 'accent',
+                'keyline' => 1, 'divider' => true],
+        ];
+    }
+
+    // ------------------------------------------------------------------
+    // Variants.
+    // ------------------------------------------------------------------
+
+    /**
+     * The axis order a variant key is written in.
+     *
+     * @return string[] the field names, in key order
+     */
+    public static function variant_axes(): array {
+        return ['edge', 'ring', 'mark', 'weight'];
+    }
+
+    /**
+     * Write a set of answers as an opaque variant key.
+     *
+     * @param array $choice the answers along each axis
+     * @return string the key
+     */
+    public static function encode_variant(array $choice): string {
+        $parts = [];
+        foreach (self::variant_axes() as $axis) {
+            $parts[] = (string) ($choice[$axis] ?? '');
+        }
+        return implode('-', $parts);
+    }
+
+    /**
+     * Read a variant key back, discarding anything not in the vocabulary.
+     *
+     * Every token is checked against the engine's own option list, so a
+     * tampered key can only ever name a seal the wizard would have drawn
+     * anyway.
+     *
+     * @param string $key the key
+     * @return array the answers along each axis, empty when the key is unusable
+     */
+    public static function decode_variant(string $key): array {
+        $axes = self::variant_axes();
+        $parts = explode('-', $key);
+        if (count($parts) !== count($axes)) {
+            return [];
+        }
+
+        $fields = self::fields();
+        $out = [];
+        foreach ($axes as $i => $axis) {
+            if (!isset($fields[$axis]['options'][$parts[$i]])) {
+                return [];
+            }
+            $out[$axis] = $parts[$i];
+        }
+
+        return $out;
+    }
+
+    /**
+     * A spread of seals around this brief.
+     *
+     * The first is always exactly what the answers describe, so the author can
+     * still take the thing they built. The rest walk the four axes by fixed
+     * offsets rather than at random: a variant set the author cannot tell apart
+     * from its neighbours is not a choice, and one that shares no family
+     * resemblance is not a variant.
+     *
+     * @param int $count how many to produce
+     * @param array $base the answers to vary around, or empty for this brief's own
+     * @param bool $near whether to stay close to the base, for "more like this"
+     * @return array[] each with key and the answers it names
+     */
+    public function variants(int $count, array $base = [], bool $near = false): array {
+        $axes = self::variant_axes();
+        $fields = self::fields();
+
+        $seed = [];
+        foreach ($axes as $axis) {
+            $seed[$axis] = $base[$axis] ?? $this->answers[$axis];
+        }
+
+        $pool = [];
+        foreach ($axes as $axis) {
+            $pool[$axis] = array_keys($fields[$axis]['options']);
+        }
+
+        // Steps along [edge, ring, mark, weight]. The near set moves one axis at
+        // a time by one place; the wide set moves two or three axes further, so
+        // nine tiles cover the vocabulary instead of clustering.
+        $steps = $near
+            ? [[0, 0, 0, 0], [1, 0, 0, 0], [-1, 0, 0, 0], [0, 0, 1, 0], [0, 0, -1, 0],
+               [0, 1, 0, 0], [0, 0, 0, 1], [2, 0, 0, 0], [0, 0, 2, 0], [-2, 0, 1, 0],
+               [1, 0, 1, 0], [0, -1, 0, -1]]
+            : [[0, 0, 0, 0], [1, 0, 3, 0], [3, 0, 1, 1], [5, 1, 5, 0], [2, 0, 6, 2],
+               [7, 0, 2, 1], [4, 3, 4, 0], [6, 1, 7, 2], [8, 0, 8, 1], [1, 3, 2, 2],
+               [5, 0, 4, 1], [3, 1, 6, 0]];
+
+        $out = [];
+        $seen = [];
+
+        foreach ($steps as $step) {
+            if (count($out) >= $count) {
+                break;
+            }
+
+            $choice = [];
+            foreach ($axes as $i => $axis) {
+                $list = $pool[$axis];
+                $at = array_search($seed[$axis], $list, true);
+                $at = $at === false ? 0 : $at;
+                $choice[$axis] = $list[(($at + $step[$i]) % count($list) + count($list))
+                    % count($list)];
+            }
+
+            // A seal with no ring lettering and nothing in the middle is a
+            // circle. Never offer one as a variant.
+            if ($choice['ring'] === seal_engine::RING_NONE
+                    && $choice['mark'] === seal_engine::MARK_NONE) {
+                $choice['mark'] = seal_engine::MARK_MONOGRAM;
+            }
+
+            $key = self::encode_variant($choice);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+
+            $out[] = ['key' => $key, 'choice' => $choice];
+        }
+
+        return $out;
+    }
+
+    // ------------------------------------------------------------------
+    // The model instruction.
+    // ------------------------------------------------------------------
+
     /**
      * Compose the instruction sent to the model.
      *
@@ -233,7 +527,6 @@ class seal_brief {
      * @return string
      */
     public function to_prompt(array $palette, float $diameter = 34.0): string {
-        $fields = self::fields();
         $a = $this->answers;
 
         $lines = [];
@@ -250,18 +543,16 @@ class seal_brief {
         if ($a['motto'] !== '') {
             $lines[] = '- Motto: ' . $a['motto'];
         }
-        if ($a['subject'] !== '') {
-            $lines[] = '- What it does: ' . $a['subject'];
-        }
 
         $lines[] = '';
         $lines[] = 'The design:';
-        $lines[] = '- Silhouette: ' . $this->describe('shape') . '.';
-        $lines[] = '- Drawing style: ' . $this->describe('style') . '.';
-        $lines[] = '- Centre: ' . $this->describe('emblem') . '.';
+        $lines[] = '- Outer edge: ' . $this->describe('edge') . '.';
+        $lines[] = '- Ring lettering: ' . $this->describe('ring') . '.';
+        $lines[] = '- Centre: ' . $this->describe('mark') . '.';
         $lines[] = '- Weight: ' . $this->describe('weight') . '.';
 
-        if ($a['emblem'] === 'monogram' && $this->initials() !== '') {
+        if (in_array($a['mark'], [seal_engine::MARK_MONOGRAM, seal_engine::MARK_REVERSED], true)
+                && $this->initials() !== '') {
             $lines[] = '- Use the monogram "' . $this->initials() . '".';
         }
 
@@ -289,22 +580,16 @@ class seal_brief {
         $lines[] = 'Hard constraints. A seal that breaks any of these is discarded:';
         $lines[] = '1. Vector only. No <image>, no raster, no external references, no <filter>, '
             . 'no blur, no drop shadow, no CSS.';
-        $lines[] = sprintf(
-            '2. No lettering below %.1fmm cap height. At this diameter that means '
-                . 'ring text of roughly %.1fmm and never smaller — small type fills in on a laser '
-                . 'printer and disappears on a photocopier.',
-            1.6,
-            max(1.8, $diameter * 0.058)
-        );
+        $lines[] = sprintf('2. No lettering below %.1fmm cap height. At this diameter that means '
+            . 'ring text of roughly %.1fmm and never smaller — small type fills in on a laser '
+            . 'printer and disappears on a photocopier.', 1.6, max(1.8, $diameter * 0.058));
         $lines[] = '3. No gold, no metallic effect, no gradient meant to imitate foil or emboss. '
             . 'This is printed flat in the brand colour.';
-        $lines[] = '4. No laurel wreaths, no ribbon banners, no rope borders, no eagles, no '
-            . 'generic heraldry. It should look like it was designed this decade.';
-        $lines[] = '5. It must read at 34mm and still read when photocopied in black and white, '
+        $lines[] = '4. It must read at 34mm and still read when photocopied in black and white, '
             . 'so carry contrast in value, not in hue.';
-        $lines[] = '6. Square viewBox, the design centred and touching the edges of it.';
-        $lines[] = '7. Keep it under 150 elements.';
-        $lines[] = '8. Return the SVG and nothing else. No commentary, no code fence.';
+        $lines[] = '5. Square viewBox, the design centred and touching the edges of it.';
+        $lines[] = '6. Keep it under 150 elements.';
+        $lines[] = '7. Return the SVG and nothing else. No commentary, no code fence.';
 
         return implode("\n", $lines);
     }
@@ -317,51 +602,30 @@ class seal_brief {
      */
     protected function describe(string $field): string {
         $fields = self::fields();
-        $value = $this->answers[$field] ?? '';
-        $label = $fields[$field]['options'][$value] ?? (string) $value;
-        return trim(str_replace('—', '-', $label));
+        $value = (string) ($this->answers[$field] ?? '');
+        // The long name, because a model reads the sentence and a thumbnail
+        // does not.
+        foreach ([$fields[$field]['altprefix'] ?? '', $fields[$field]['prefix'] ?? ''] as $prefix) {
+            if ($prefix !== '' && get_string_manager()->string_exists($prefix . $value,
+                    'mod_certificatepro')) {
+                return trim(str_replace('—', '-',
+                    get_string($prefix . $value, 'mod_certificatepro')));
+            }
+        }
+
+        return $value;
     }
 
     /**
-     * The procedural seal style that best matches this brief.
+     * A short sentence describing the seal these answers make.
      *
-     * Used when no model is configured, when the site is offline, or when
-     * nothing drawable survived sanitising.
-     *
-     * @return string a style identifier understood by the seal engine
+     * @return string
      */
-    public function to_procedural_style(): string {
-        $map = [
-            'minimal' => 'modern',
-            'monoline' => 'monoline',
-            'engraved' => 'engraved',
-            'geometric' => 'geometric',
-            'wordmark' => 'wordmark',
-            'layered' => 'layered',
-        ];
-        return $map[$this->answers['style']] ?? 'modern';
-    }
-
-    /**
-     * The ring text, split into its upper and lower arcs.
-     *
-     * The procedural seal engine takes this directly, so the fallback carries
-     * the same words as the generated version rather than a placeholder.
-     *
-     * @return array the top and bottom strings
-     */
-    public function ring_text(): array {
-        $bottom = [];
-        if ($this->answers['established'] !== '') {
-            $bottom[] = 'EST. ' . $this->answers['established'];
-        }
-        if ($this->answers['motto'] !== '') {
-            $bottom[] = mb_strtoupper($this->answers['motto']);
-        }
-
-        return [
-            'top' => mb_strtoupper($this->answers['organisation']),
-            'bottom' => implode(' · ', $bottom),
-        ];
+    public function summary(): string {
+        return implode(' · ', array_filter([
+            $this->describe('edge'),
+            $this->describe('mark'),
+            $this->describe('ring'),
+        ]));
     }
 }

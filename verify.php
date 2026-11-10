@@ -34,9 +34,10 @@ $code = optional_param('code', '', PARAM_TEXT);
 
 // This page is deliberately reachable without an account: the person checking a
 // certificate is usually an employer or a registrar who has none, and a scanned
-// QR code that lands on a login form is a dead end. Like core's public badge page it
-// therefore stays open when "Force users to log in" is on (the default on Moodle 5.0+
-// installs). Sites that want no anonymous verification switch the plugin setting off.
+// QR code that lands on a login form is a dead end. Reading forcelogin made every
+// QR code useless on a new Moodle 5.x site, where forcing login is the default, so
+// like core's public badge page this stays open and a plugin setting decides it
+// instead. A site that wants no anonymous verification unticks the setting.
 if (!get_config('mod_certificatepro', 'publicverify')) {
     require_login();
 }
@@ -69,10 +70,8 @@ if ($code !== '') {
 
             $allowed = $instance && !empty($instance->verifyany);
             if (!$allowed && isloggedin() && !isguestuser()) {
-                $allowed = has_capability(
-                    'mod/certificatepro:verifyallcertificates',
-                    context_system::instance()
-                );
+                $allowed = has_capability('mod/certificatepro:verifyallcertificates',
+                    context_system::instance());
             }
 
             if (!$allowed) {
@@ -80,6 +79,11 @@ if ($code !== '') {
                 $issue = null;
             } else {
                 $result = issue_service::status($issue);
+
+                // Name the award the way the document does. A cycle document is
+                // titled by the programme it renews, and the course hosting the
+                // issuing activity is an implementation detail nobody checking a
+                // certificate should be shown.
                 if (!empty($issue->cycleid) && class_exists('\\local_recertify\\cycle_service')) {
                     $cycle = $DB->get_record('local_recertify_cycles', ['id' => $issue->cycleid]);
                     if ($cycle) {
@@ -87,14 +91,13 @@ if ($code !== '') {
                         $instance->coursefullname = $cycle->name;
                     }
                 }
+
                 $recipient = $DB->get_record('user', ['id' => $issue->userid], '*', IGNORE_MISSING);
 
-                \mod_certificatepro\event\certificate_verified::create(
-                    [
-                        'objectid' => $issue->id,
-                        'context' => context_system::instance(),
-                    ]
-                )->trigger();
+                \mod_certificatepro\event\certificate_verified::create([
+                    'objectid' => $issue->id,
+                    'context' => context_system::instance(),
+                ])->trigger();
             }
         }
     }

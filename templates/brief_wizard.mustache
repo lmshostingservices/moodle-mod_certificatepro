@@ -17,99 +17,421 @@
 {{!
     @template mod_certificatepro/brief_wizard
 
-    One question at a time, then a result.
+    The shell both guided designers run inside.
 
-    Both guided wizards share this shell. The questions come from the brief
-    classes, so the wizard never states an option the brief would not accept and
-    the two cannot drift apart.
+    WHY THE STYLESHEET IS IN HERE
+
+    Moodle loads exactly one stylesheet per plugin, styles.css, and that file is
+    owned by the designer work happening alongside this. Rather than have two
+    people editing one file, every rule the wizard needs travels with the markup
+    and is scoped under .cpro-wiz, which nothing else in the plugin uses. The
+    block is emitted once per dialog and the dialog is destroyed on close.
+
+    WHY THE SCREENS ARE NOT IN HERE
+
+    A screen is a question, a live preview, and a gallery of thumbnails that the
+    server draws with the author's own answers substituted into each one. Which
+    thumbnails those are depends on what has been answered, so the screens are
+    built in the browser from what the screen service returns rather than baked
+    into a template that would have to be re-rendered on every keystroke.
 
     Context variables required for this template:
     * kind - artwork or seal
     * isartwork - whether this is the artwork wizard
     * isseal - whether this is the seal wizard
     * canusemodel - whether the author may ask a model
-    * steps - the questions, each with index, human, name, label, type, multiple,
-      required, maxlength, ischoice, istext and an options list
 
     Example context (json):
     {
         "kind": "seal",
         "isartwork": false,
         "isseal": true,
-        "canusemodel": false,
-        "total": 1,
-        "steps": [
-            {
-                "index": 0, "human": 1, "name": "shape", "label": "Silhouette",
-                "type": "choice", "multiple": false, "required": false, "maxlength": 0,
-                "ischoice": true, "istext": false, "first": true, "last": true,
-                "options": [{"value": "circle", "label": "Circle", "selected": true}]
-            }
-        ]
+        "canusemodel": false
     }
 }}
-<div class="cpro-library cpro-wizard" data-region="wizard" data-kind="{{kind}}">
-    <div class="cpro-wizard-progress">
-        <span data-region="progress" role="status" aria-live="polite"></span>
-        <div class="cpro-wizard-bar"><span data-region="bar"></span></div>
-    </div>
+<div class="cpro-wiz" data-region="wizard" data-kind="{{kind}}">
+<style>
+/* The dialog core/modal gives us is 800px wide, which is a reasonable size for
+   a form and much too narrow for nine pictures of a landscape page. Widened
+   from inside the body, because the wizard owns no stylesheet of its own.
+   :has() is the only way to reach an ancestor; browsers without it simply keep
+   the standard width and the galleries reflow to two columns. */
+.modal-dialog:has(.cpro-wiz) {
+    max-width: min(96vw, 74rem);
+}
+/* A seal is square and legible small; nine of them and a preview want far less
+   room than nine landscape pages do. */
+.modal-dialog:has(.cpro-wiz[data-kind="seal"]) {
+    max-width: min(96vw, 58rem);
+}
 
-    <div data-region="steps">
-        {{#steps}}
-            <fieldset class="cpro-wizard-step" data-region="step" data-index="{{index}}"
-                      data-name="{{name}}" data-multiple="{{#multiple}}1{{/multiple}}{{^multiple}}0{{/multiple}}"
-                      hidden>
-                <legend class="cpro-wizard-question">{{label}}</legend>
+.cpro-wiz {
+    --cpro-wiz-line: rgba(0, 0, 0, 0.14);
+    --cpro-wiz-sunk: rgba(0, 0, 0, 0.035);
+    --cpro-wiz-pick: #0f6cbf;
+    display: block;
+    font-size: 0.95rem;
+}
+.cpro-wiz *,
+.cpro-wiz *::before,
+.cpro-wiz *::after {
+    box-sizing: border-box;
+}
 
-                {{#ischoice}}
-                    <div class="cpro-wizard-options">
-                        {{#options}}
-                            <label class="cpro-wizard-option">
-                                {{#multiple}}
-                                    <input type="checkbox" name="cpro-{{name}}" value="{{value}}"
-                                           {{#selected}}checked{{/selected}}>
-                                {{/multiple}}
-                                {{^multiple}}
-                                    <input type="radio" name="cpro-{{name}}" value="{{value}}"
-                                           {{#selected}}checked{{/selected}}>
-                                {{/multiple}}
-                                <span>{{label}}</span>
+/* The step rail. Numbered, so "back" is a place and not just a direction. */
+.cpro-wiz-rail {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    list-style: none;
+}
+.cpro-wiz-rail li {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex: 1 1 0;
+    min-width: 0;
+}
+.cpro-wiz-rail li:last-child {
+    flex: 0 0 auto;
+}
+.cpro-wiz-pip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 1px solid var(--cpro-wiz-line);
+    background: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #6b7280;
+}
+.cpro-wiz-rail li.is-done .cpro-wiz-pip {
+    background: var(--cpro-wiz-pick);
+    border-color: var(--cpro-wiz-pick);
+    color: #fff;
+}
+.cpro-wiz-rail li.is-here .cpro-wiz-pip {
+    border-color: var(--cpro-wiz-pick);
+    color: var(--cpro-wiz-pick);
+    box-shadow: 0 0 0 3px rgba(15, 108, 191, 0.16);
+}
+.cpro-wiz-tick {
+    flex: 1 1 auto;
+    height: 1px;
+    min-width: 0.75rem;
+    background: var(--cpro-wiz-line);
+}
+.cpro-wiz-rail li.is-done .cpro-wiz-tick {
+    background: var(--cpro-wiz-pick);
+}
+
+/* Two panes: what is being asked, and what it looks like so far. */
+.cpro-wiz-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 18.5rem;
+    gap: 1.5rem;
+    align-items: start;
+}
+@media (max-width: 62rem) {
+    .cpro-wiz-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    /* Stacked, the preview goes first — it is the thing being made. It is also
+       capped, because a full-width seal on a phone is a poster. */
+    .cpro-wiz-side {
+        order: -1;
+        position: static;
+        max-width: 20rem;
+        margin: 0 auto 0.5rem;
+    }
+}
+.cpro-wiz-ask {
+    min-width: 0;
+}
+.cpro-wiz-title {
+    margin: 0 0 0.2rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+.cpro-wiz-hint {
+    margin: 0 0 1.1rem;
+    color: #6b7280;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    max-width: 44ch;
+}
+
+/* The live preview. Sticky, because it is the point of the screen. */
+.cpro-wiz-side {
+    position: sticky;
+    top: 0;
+    min-width: 0;
+}
+.cpro-wiz-stagelabel {
+    margin: 0 0 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+.cpro-wiz-stage {
+    position: relative;
+    border: 1px solid var(--cpro-wiz-line);
+    border-radius: 0.6rem;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    aspect-ratio: 297 / 210;
+}
+.cpro-wiz-stage.is-seal {
+    aspect-ratio: 1;
+    padding: 6%;
+    background: var(--cpro-wiz-sunk);
+    box-shadow: none;
+}
+.cpro-wiz-stage svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+.cpro-wiz-caption {
+    margin: 0.6rem 0 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+.cpro-wiz-warnings {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+    font-size: 0.78rem;
+    color: #8a5a00;
+}
+.cpro-wiz-extras {
+    margin-top: 0.9rem;
+    font-size: 0.82rem;
+}
+
+/* Galleries. Every tile is a whole result, drawn by the engine that prints. */
+.cpro-wiz-group + .cpro-wiz-group {
+    margin-top: 1.4rem;
+}
+.cpro-wiz-grouphead {
+    margin: 0 0 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+.cpro-wiz-gallery {
+    display: grid;
+    /* Three across. Nine edges, nine centre marks and nine variants all land
+       on a square grid, and a seal drawn at a hundred pixels is the smallest
+       size its ring lettering still reads at. */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+    /* A seal is legible from about a hundred pixels and gains nothing from
+       three hundred, so the square galleries stop growing. A page thumbnail
+       gains a great deal, so the wide ones do not. */
+    max-width: 34rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+/* Two galleries on one screen: smaller tiles, so both questions and the
+   buttons under them are on screen together. */
+.cpro-wiz-gallery.is-compact {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.cpro-wiz-gallery.is-wide {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: none;
+}
+.cpro-wiz-gallery.is-wide.is-compact {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.cpro-wiz-gallery.is-wide.is-tall {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.cpro-wiz-gallery.is-wide.is-tall.is-compact {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+@media (max-width: 48rem) {
+    .cpro-wiz-gallery,
+    .cpro-wiz-gallery.is-wide {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+.cpro-wiz-gallery:focus {
+    outline: none;
+}
+.cpro-wiz-tile {
+    display: block;
+    margin: 0;
+    padding: 0.35rem 0.35rem 0.5rem;
+    border: 1px solid var(--cpro-wiz-line);
+    border-radius: 0.5rem;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+.cpro-wiz-tile:hover {
+    border-color: rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+}
+.cpro-wiz-tile:focus-visible {
+    outline: 2px solid var(--cpro-wiz-pick);
+    outline-offset: 2px;
+}
+.cpro-wiz-tile[aria-selected="true"] {
+    border-color: var(--cpro-wiz-pick);
+    box-shadow: 0 0 0 2px var(--cpro-wiz-pick) inset;
+}
+.cpro-wiz-art {
+    position: relative;
+    display: block;
+    border-radius: 0.3rem;
+    overflow: hidden;
+    background: var(--cpro-wiz-sunk);
+    aspect-ratio: 1;
+}
+.is-wide .cpro-wiz-art {
+    aspect-ratio: 297 / 210;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.cpro-wiz-art svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+.cpro-wiz-name {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    text-align: center;
+    color: #374151;
+    overflow-wrap: anywhere;
+}
+.cpro-wiz-tile[aria-selected="true"] .cpro-wiz-name {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Typed answers: the three things only the author knows. */
+.cpro-wiz-fields {
+    display: grid;
+    gap: 0.9rem;
+    max-width: 30rem;
+    margin-bottom: 1.2rem;
+}
+.cpro-wiz-field label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.cpro-wiz-field input {
+    width: 100%;
+}
+.cpro-wiz-count {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.72rem;
+    color: #6b7280;
+}
+
+/* The variant grid. */
+.cpro-wiz-gallery.is-variants {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 34rem) {
+    .cpro-wiz-gallery.is-variants {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.cpro-wiz-foot {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cpro-wiz-line);
+}
+.cpro-wiz-note {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: 0.82rem;
+    color: #6b7280;
+    min-height: 1.2em;
+}
+.cpro-wiz-busy {
+    opacity: 0.45;
+    pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .cpro-wiz-tile {
+        transition: none;
+    }
+    .cpro-wiz-tile:hover {
+        transform: none;
+    }
+}
+</style>
+
+    <ol class="cpro-wiz-rail" data-region="rail"></ol>
+
+    <div class="cpro-wiz-body">
+        <div class="cpro-wiz-ask" data-region="ask">
+            <h3 class="cpro-wiz-title" data-region="title" tabindex="-1"></h3>
+            <p class="cpro-wiz-hint" data-region="hint"></p>
+            <div data-region="content"></div>
+        </div>
+
+        <aside class="cpro-wiz-side">
+            <p class="cpro-wiz-stagelabel" data-region="stagelabel">
+                {{#str}} wizpreviewlabel, mod_certificatepro {{/str}}
+            </p>
+            <div class="cpro-wiz-stage {{#isseal}}is-seal{{/isseal}}" data-region="preview"
+                 role="img" aria-label="{{#str}} briefpreviewalt, mod_certificatepro {{/str}}"></div>
+            <p class="cpro-wiz-caption" data-region="caption"></p>
+            <ul class="cpro-wiz-warnings" data-region="warnings"></ul>
+            <div class="cpro-wiz-extras" data-region="extras" hidden>
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        data-action="more" hidden>
+                    {{#str}} wizmorelikethis, mod_certificatepro {{/str}}
+                </button>
+                {{#isartwork}}
+                    {{#canusemodel}}
+                        <div class="form-check mt-2">
+                            <input type="checkbox" class="form-check-input" id="cpro-usemodel"
+                                   data-region="usemodel">
+                            <label class="form-check-label" for="cpro-usemodel">
+                                {{#str}} briefusemodel, mod_certificatepro {{/str}}
                             </label>
-                        {{/options}}
-                    </div>
-                {{/ischoice}}
-
-                {{#istext}}
-                    <input type="text" class="form-control" name="cpro-{{name}}"
-                           id="cpro-field-{{name}}" {{#hasmaxlength}}maxlength="{{maxlength}}"{{/hasmaxlength}}
-                           {{#required}}required{{/required}} autocomplete="off">
-                {{/istext}}
-            </fieldset>
-        {{/steps}}
+                        </div>
+                        <p class="text-muted small mb-0">
+                            {{#str}} briefusemodelhint, mod_certificatepro {{/str}}
+                        </p>
+                    {{/canusemodel}}
+                {{/isartwork}}
+            </div>
+        </aside>
     </div>
 
-    <div class="cpro-wizard-result" data-region="result" hidden>
-        <h4 data-region="resultheading"></h4>
-        <div class="cpro-wizard-preview {{#isseal}}cpro-wizard-preview-seal{{/isseal}}"
-             data-region="preview" role="img" aria-label="{{#str}} briefpreviewalt, mod_certificatepro {{/str}}"></div>
-        <p class="cpro-wizard-summary" data-region="summary"></p>
-        <ul class="cpro-wizard-warnings" data-region="warnings"></ul>
-
-        {{#isartwork}}
-            {{#canusemodel}}
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="cpro-usemodel" data-region="usemodel">
-                    <label class="form-check-label" for="cpro-usemodel">
-                        {{#str}} briefusemodel, mod_certificatepro {{/str}}
-                    </label>
-                </div>
-                <p class="text-muted small">{{#str}} briefusemodelhint, mod_certificatepro {{/str}}</p>
-            {{/canusemodel}}
-        {{/isartwork}}
-    </div>
-
-    <div class="cpro-library-actions">
-        <p class="cpro-library-note" data-region="note" role="status" aria-live="polite"></p>
+    <div class="cpro-wiz-foot">
+        <p class="cpro-wiz-note" data-region="note" role="status" aria-live="polite"></p>
         <button type="button" class="btn btn-secondary" data-action="back" hidden>
             {{#str}} briefback, mod_certificatepro {{/str}}
         </button>

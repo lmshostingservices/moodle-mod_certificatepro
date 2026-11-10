@@ -51,26 +51,12 @@ class styles_wash {
         $c->clip(0.0, 0.0, 1.0, 1.0);
 
         $c->alpha(0.90);
-        $c->linear_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $wash,
-            $paper,
-            $down ? [0.5, 1.0, 0.5, 0.0] : [0.5, 0.0, 0.5, 1.0]
-        );
+        $c->linear_gradient(0.0, 0.0, 1.0, 1.0, $wash, $paper,
+            $down ? [0.5, 1.0, 0.5, 0.0] : [0.5, 0.0, 0.5, 1.0]);
 
         $c->alpha(0.20);
-        $c->linear_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $light,
-            $paper,
-            $down ? [0.5, 1.0, 0.5, 0.28] : [0.5, 0.0, 0.5, 0.72]
-        );
+        $c->linear_gradient(0.0, 0.0, 1.0, 1.0, $light, $paper,
+            $down ? [0.5, 1.0, 0.5, 0.28] : [0.5, 0.0, 0.5, 0.72]);
 
         $c->restore();
 
@@ -111,37 +97,16 @@ class styles_wash {
         $c->rect(0.0, 0.0, 1.0, 1.0, 'F');
 
         $c->alpha(0.55);
-        $c->radial_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $light,
-            $paper,
-            [$au, 0.04, 0.0, $au, 0.04, 0.62]
-        );
+        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $light, $paper,
+            [$au, 0.04, 0.0, $au, 0.04, 0.62]);
 
         $c->alpha(0.34);
-        $c->radial_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $accent,
-            $paper,
-            [$bu, 0.96, 0.0, $bu, 0.96, 0.55]
-        );
+        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $accent, $paper,
+            [$bu, 0.96, 0.0, $bu, 0.96, 0.55]);
 
         $c->alpha(0.22);
-        $c->radial_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $wash,
-            $paper,
-            [0.5, 0.5, 0.0, 0.5, 0.5, 0.78]
-        );
+        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $wash, $paper,
+            [0.5, 0.5, 0.0, 0.5, 0.5, 0.78]);
 
         $c->restore();
     }
@@ -211,26 +176,12 @@ class styles_wash {
         // The bright centre, slightly above the middle where a page's optical
         // centre actually sits.
         $c->alpha(0.95);
-        $c->radial_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $paper,
-            $wash,
-            [0.5, 0.455, 0.0, 0.5, 0.455, 0.56]
-        );
+        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $paper, $wash,
+            [0.5, 0.455, 0.0, 0.5, 0.455, 0.56]);
 
         $c->alpha(0.28);
-        $c->radial_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $light,
-            $paper,
-            [0.5, 0.455, 0.0, 0.5, 0.455, 0.85]
-        );
+        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $light, $paper,
+            [0.5, 0.455, 0.0, 0.5, 0.455, 0.85]);
 
         $c->restore();
 
@@ -266,38 +217,17 @@ class styles_wash {
         $c->rect(0.0, 0.0, 1.0, 1.0, 'F');
 
         $c->alpha(0.42);
-        $c->radial_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $light,
-            $paper,
-            [$au, $av, 0.0, $au, $av, 0.78]
-        );
+        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $light, $paper,
+            [$au, $av, 0.0, $au, $av, 0.78]);
 
         $c->alpha(0.34);
-        $c->radial_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $accent,
-            $paper,
-            [1 - $au, 1 - $av, 0.0, 1 - $au, 1 - $av, 0.74]
-        );
+        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $accent, $paper,
+            [1 - $au, 1 - $av, 0.0, 1 - $au, 1 - $av, 0.74]);
 
         // A soft diagonal ramp tying the two together.
         $c->alpha(0.16);
-        $c->linear_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $accent,
-            $light,
-            [$au, $av, 1 - $au, 1 - $av]
-        );
+        $c->linear_gradient(0.0, 0.0, 1.0, 1.0, $accent, $light,
+            [$au, $av, 1 - $au, 1 - $av]);
 
         $c->restore();
     }
@@ -322,15 +252,8 @@ class styles_wash {
         $c->rect(0.0, 0.0, 1.0, 1.0, 'F');
 
         $c->alpha(0.30);
-        $c->radial_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $paper,
-            $wash,
-            [0.42, 0.40, 0.0, 0.42, 0.40, 0.70]
-        );
+        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $paper, $wash,
+            [0.42, 0.40, 0.0, 0.42, 0.40, 0.70]);
 
         // Laid lines: fine and close, the way a mould-made sheet shows them.
         $c->alpha(0.10);
@@ -385,15 +308,8 @@ class styles_wash {
         $c->linear_gradient(0.0, 0.0, 1.0, 1.0, $wash, $paper, [0.5, 1.0, 0.5, 0.0]);
 
         $c->alpha(0.26);
-        $c->radial_gradient(
-            0.0,
-            0.0,
-            1.0,
-            1.0,
-            $light,
-            $paper,
-            [0.5, 0.46, 0.0, 0.5, 0.46, 0.62]
-        );
+        $c->radial_gradient(0.0, 0.0, 1.0, 1.0, $light, $paper,
+            [0.5, 0.46, 0.0, 0.5, 0.46, 0.62]);
 
         // The figure: a broad ring of overlapping soft discs, which reads as a
         // watermark impressed into the sheet rather than as a drawn shape.
@@ -402,14 +318,8 @@ class styles_wash {
         $c->fill($primary);
         for ($i = 0; $i < 18; $i++) {
             $a = deg2rad($i * 20);
-            $c->circle(
-                0.5 + ($r * 0.62 * cos($a)) / $c->w(),
-                0.46 - ($r * 0.62 * sin($a)) / $c->h(),
-                $r * 0.52,
-                0,
-                360,
-                'F'
-            );
+            $c->circle(0.5 + ($r * 0.62 * cos($a)) / $c->w(),
+                0.46 - ($r * 0.62 * sin($a)) / $c->h(), $r * 0.52, 0, 360, 'F');
         }
 
         $c->alpha(0.07);

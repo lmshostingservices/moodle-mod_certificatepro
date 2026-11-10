@@ -70,12 +70,22 @@ class rule extends base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(
-            parent::default_style(),
-            [
-                'colour' => 'rule',
-            ]
-        );
+        return array_merge(parent::default_style(), [
+            'colour' => 'rule',
+        ]);
+    }
+
+    /**
+     * The configuration a newly dropped rule starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'linestyle' => 'solid',
+            'thickness' => 0.4,
+            'colour' => 'rule',
+        ];
     }
 
     /**
@@ -86,35 +96,23 @@ class rule extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'linestyle',
-            get_string('linestyle', 'mod_certificatepro'),
-            [
+        $mform->addElement('select', 'linestyle',
+            get_string('linestyle', 'mod_certificatepro'), [
                 'solid' => get_string('linestyle_solid', 'mod_certificatepro'),
                 'dashed' => get_string('linestyle_dashed', 'mod_certificatepro'),
                 'dotted' => get_string('linestyle_dotted', 'mod_certificatepro'),
                 'double' => get_string('linestyle_double', 'mod_certificatepro'),
                 'tapered' => get_string('linestyle_tapered', 'mod_certificatepro'),
-            ]
-        );
+            ]);
         $mform->setDefault('linestyle', 'solid');
 
-        $mform->addElement(
-            'text',
-            'thickness',
-            get_string('linethickness', 'mod_certificatepro'),
-            ['size' => 6]
-        );
+        $mform->addElement('text', 'thickness',
+            get_string('linethickness', 'mod_certificatepro'), ['size' => 6]);
         $mform->setType('thickness', PARAM_FLOAT);
         $mform->setDefault('thickness', 0.4);
 
-        $mform->addElement(
-            'text',
-            'colour',
-            get_string('elementcolour', 'mod_certificatepro'),
-            ['size' => 10]
-        );
+        $mform->addElement('text', 'colour',
+            get_string('elementcolour', 'mod_certificatepro'), ['size' => 10]);
         $mform->setType('colour', PARAM_TEXT);
         $mform->setDefault('colour', 'rule');
     }
@@ -225,23 +223,39 @@ class rule extends base {
         $hex = $palette[$key] ?? (brand::is_hex($key) ? brand::normalise_hex($key) : '#cccccc');
 
         $linestyle = (string) $this->config('linestyle', 'solid');
+        $thickness = max(0.05, (float) $this->config('thickness', 0.4));
+
+        if ($linestyle === 'tapered') {
+            // The print draws a lens shaped flourish that fades to nothing at
+            // both ends. A band that fades the same way is far closer to it than
+            // the plain rule the canvas used to draw in its place.
+            return \html_writer::div('', 'certificatepro-element-rule', [
+                'style' => 'width:100%;height:' . $this->canvas_mm($ctx, $thickness) . ';'
+                    . 'margin-top:auto;margin-bottom:auto;'
+                    . 'background:linear-gradient(to right,transparent,' . $hex
+                    . ' 22%,' . $hex . ' 78%,transparent);',
+            ]);
+        }
+
         $css = match ($linestyle) {
             'dashed' => 'dashed',
             'dotted' => 'dotted',
             'double' => 'double',
             default => 'solid',
         };
-        $thickness = max(1.0, (float) $this->config('thickness', 0.4) * 3);
         if ($linestyle === 'double') {
-            $thickness = max(3.0, $thickness);
+            // The print draws two lines a gap apart; the CSS double border packs
+            // line, gap and line into the one width, so ask for all three.
+            $thickness = (2 * $thickness) + max(0.6, $thickness * 2.5);
         }
 
-        return \html_writer::div(
-            '',
-            'certificatepro-element-rule',
-            [
-                'style' => 'width:100%;height:100%;display:flex;align-items:center;'
-                    . 'border-top:' . $thickness . 'px ' . $css . ' ' . $hex . ';',
-            ]
-        );
+        // Millimetres of paper rather than a fixed pixel guess, so the weight
+        // follows the zoom, with a floor so a hairline never vanishes on screen.
+        $weight = 'max(1px,' . $this->canvas_mm($ctx, $thickness) . ')';
+
+        // The print draws the rule down the middle of its box, not along the top.
+        return \html_writer::div('', 'certificatepro-element-rule', [
+            'style' => 'width:100%;height:0;margin-top:auto;margin-bottom:auto;'
+                . 'border-top:' . $weight . ' ' . $css . ' ' . $hex . ';',
+        ]);
     }}

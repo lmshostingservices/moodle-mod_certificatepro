@@ -71,6 +71,13 @@ class font_manager {
 
         $records = $DB->get_records('certificatepro_fonts', null, 'displayname ASC');
         foreach ($records as $record) {
+            // A bold or italic face is not a family an author chooses between:
+            // it is the same family, and asking for bold is what reaches it.
+            // Listing them made Lora appear four times in the font picker, each
+            // entry labelled "Lora" and three of them wrong to choose.
+            if ($record->style !== '') {
+                continue;
+            }
             $catalogue[strtolower($record->family)] = $record->displayname;
         }
 
@@ -112,6 +119,31 @@ class font_manager {
      */
     public static function family_key(string $displayname): string {
         return strtolower(preg_replace('/[^a-z0-9]/i', '', $displayname) ?? '');
+    }
+
+    /**
+     * The family key a styled face belongs to.
+     *
+     * TCPDF names a bold face by suffixing the family key, so "lora" bold is
+     * stored as "lorab". Anything that wants to talk about the family rather
+     * than the face has to take that suffix back off.
+     *
+     * @param string $family the stored family key, which may name a styled face
+     * @param string $style empty, B, I or BI
+     * @return string the family key without the style suffix
+     */
+    public static function base_family(string $family, string $style): string {
+        $family = strtolower($family);
+        $suffix = strtolower($style);
+
+        if ($suffix !== '' && str_ends_with($family, $suffix)) {
+            $stripped = substr($family, 0, -strlen($suffix));
+            if ($stripped !== '') {
+                return $stripped;
+            }
+        }
+
+        return $family;
     }
 
     /**
@@ -182,14 +214,8 @@ class font_manager {
         $contextid = \context_system::instance()->id;
 
         foreach ($records as $record) {
-            $files = $fs->get_area_files(
-                $contextid,
-                'mod_certificatepro',
-                self::FILEAREA,
-                $record->id,
-                'filename',
-                false
-            );
+            $files = $fs->get_area_files($contextid, 'mod_certificatepro', self::FILEAREA,
+                $record->id, 'filename', false);
             if (empty($files)) {
                 continue;
             }
@@ -204,7 +230,16 @@ class font_manager {
             );
             $weight = str_contains($record->style, 'B') ? '700' : '400';
             $fontstyle = str_contains($record->style, 'I') ? 'italic' : 'normal';
-            $css .= '@font-face{font-family:"cpro-' . strtolower($record->family) . '";'
+
+            // Every face of a family has to be published under the family's own
+            // CSS name, with the weight and slope that say which face it is.
+            // Publishing the bold as "cpro-lorab" meant the browser never found
+            // a real bold for "cpro-lora" and synthesised one, so the designer
+            // measured bold text differently from the PDF — the one thing this
+            // whole mechanism exists to prevent.
+            $cssfamily = self::base_family($record->family, $record->style);
+
+            $css .= '@font-face{font-family:"cpro-' . $cssfamily . '";'
                 . 'src:url("' . $url->out(false) . '");'
                 . 'font-weight:' . $weight . ';font-style:' . $fontstyle . ';font-display:block;}' . "\n";
         }
@@ -224,14 +259,20 @@ class font_manager {
     public static function install(\stored_file $file, string $displayname, string $style = ''): int {
         global $CFG, $DB, $USER;
 
+        // The custom font directory is created and seeded BEFORE pdflib is
+        // loaded, because loading it fixes K_PATH_FONTS as a constant. On a site
+        // where the directory does not exist yet, doing it the other way round
+        // pinned TCPDF to the core font directory for the rest of the request,
+        // and a font installed a moment earlier was invisible to any PDF drawn
+        // in that same request.
+        $targetdirectory = self::custom_font_directory();
+
         require_once($CFG->libdir . '/pdflib.php');
 
         $extension = strtolower(pathinfo($file->get_filename(), PATHINFO_EXTENSION));
         if (!in_array($extension, ['ttf', 'otf'], true)) {
             throw new \moodle_exception('errorfonttype', 'mod_certificatepro');
         }
-
-        $targetdirectory = self::custom_font_directory();
 
         // TCPDF derives the family key from the FILE NAME, not from anything we
         // pass it. So the file has to be named after the family we want, or a
@@ -271,23 +312,16 @@ class font_manager {
 
         // Keep the original file so the designer can load it as a web font.
         $fs = get_file_storage();
-        $fs->delete_area_files(
-            \context_system::instance()->id,
-            'mod_certificatepro',
-            self::FILEAREA,
-            $record->id
-        );
-        $fs->create_file_from_storedfile(
-            [
-                'contextid' => \context_system::instance()->id,
-                'component' => 'mod_certificatepro',
-                'filearea' => self::FILEAREA,
-                'itemid' => $record->id,
-                'filepath' => '/',
-                'filename' => $file->get_filename(),
-            ],
-            $file
-        );
+        $fs->delete_area_files(\context_system::instance()->id, 'mod_certificatepro',
+            self::FILEAREA, $record->id);
+        $fs->create_file_from_storedfile([
+            'contextid' => \context_system::instance()->id,
+            'component' => 'mod_certificatepro',
+            'filearea' => self::FILEAREA,
+            'itemid' => $record->id,
+            'filepath' => '/',
+            'filename' => $file->get_filename(),
+        ], $file);
 
         self::purge_cache();
 
@@ -361,12 +395,8 @@ class font_manager {
         }
 
         $fs = get_file_storage();
-        $fs->delete_area_files(
-            \context_system::instance()->id,
-            'mod_certificatepro',
-            self::FILEAREA,
-            $record->id
-        );
+        $fs->delete_area_files(\context_system::instance()->id, 'mod_certificatepro',
+            self::FILEAREA, $record->id);
 
         $DB->delete_records('certificatepro_fonts', ['id' => $fontid]);
 
@@ -570,6 +600,457 @@ class font_manager {
     }
 
     /**
+     * Fill the gaps in TCPDF's bidirectional character class table.
+     *
+     * TCPDF looks the class of every character up in a table it ships, and that
+     * table is incomplete: most CJK ideographs are missing from it, including
+     * common name characters. Every lookup of a missing one raises an undefined
+     * index warning, and a site with display debugging on used to have those
+     * warnings written into the middle of the PDF bytes. The table is a public
+     * static, so the honest fix is to supply the classes Unicode defines for the
+     * characters actually being drawn rather than to silence the warnings.
+     *
+     * @param string $text the text about to be measured or drawn
+     * @return void
+     */
+    public static function prime_bidi_table(string $text): void {
+        if ($text === '' || !preg_match('/[^\x00-\x7F]/', $text)) {
+            return;
+        }
+
+        if (!class_exists('\TCPDF_FONT_DATA')) {
+            return;
+        }
+
+        $characters = preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY);
+        if ($characters === false) {
+            return;
+        }
+
+        foreach ($characters as $character) {
+            $codepoint = \core_text::utf8ord($character);
+            if ($codepoint < 0x80 || isset(\TCPDF_FONT_DATA::$uni_type[$codepoint])) {
+                continue;
+            }
+
+            // The Unicode default for a code point with no explicit class is
+            // left to right, except inside the ranges the standard reserves for
+            // right to left scripts.
+            \TCPDF_FONT_DATA::$uni_type[$codepoint] = match (self::script_of($codepoint)) {
+                'arabic' => 'AL',
+                'hebrew' => 'R',
+                default => 'L',
+            };
+        }
+    }
+
+    /**
+     * The unicode script a single code point belongs to.
+     *
+     * Only the scripts a certificate plausibly has to draw are named. Spaces,
+     * digits and punctuation come back as "common", which means "whatever face
+     * the surrounding text is using" — that is what stops a space between two
+     * Han characters from splitting a run in two.
+     *
+     * @param int $codepoint the code point to classify
+     * @return string a script identifier, or "common"
+     */
+    public static function script_of(int $codepoint): string {
+        static $ranges = [
+            ['han', 0x2E80, 0x2FDF], ['han', 0x3400, 0x4DBF], ['han', 0x4E00, 0x9FFF],
+            ['han', 0xF900, 0xFAFF], ['han', 0x20000, 0x2FA1F],
+            ['kana', 0x3040, 0x30FF], ['kana', 0x31F0, 0x31FF],
+            ['hangul', 0x1100, 0x11FF], ['hangul', 0x3130, 0x318F], ['hangul', 0xAC00, 0xD7AF],
+            ['arabic', 0x0600, 0x06FF], ['arabic', 0x0750, 0x077F],
+            ['arabic', 0xFB50, 0xFDFF], ['arabic', 0xFE70, 0xFEFF],
+            ['hebrew', 0x0590, 0x05FF],
+            ['greek', 0x0370, 0x03FF], ['greek', 0x1F00, 0x1FFF],
+            ['cyrillic', 0x0400, 0x052F],
+            ['armenian', 0x0530, 0x058F],
+            ['devanagari', 0x0900, 0x097F],
+            ['bengali', 0x0980, 0x09FF],
+            ['tamil', 0x0B80, 0x0BFF],
+            ['thai', 0x0E00, 0x0E7F],
+            ['burmese', 0x1000, 0x109F],
+            ['georgian', 0x10A0, 0x10FF],
+            ['khmer', 0x1780, 0x17FF],
+            ['latin', 0x0041, 0x024F], ['latin', 0x1E00, 0x1EFF],
+        ];
+
+        // Anything below the Latin block, and the general punctuation and CJK
+        // punctuation blocks, belong to no script in particular.
+        if ($codepoint < 0x0041
+                || ($codepoint >= 0x2000 && $codepoint <= 0x206F)
+                || ($codepoint >= 0x3000 && $codepoint <= 0x303F)) {
+            return 'common';
+        }
+
+        foreach ($ranges as [$script, $from, $to]) {
+            if ($codepoint >= $from && $codepoint <= $to) {
+                return $script;
+            }
+        }
+
+        return 'common';
+    }
+
+    /**
+     * Every code point a font can draw, when that can be established exactly.
+     *
+     * TCPDF writes a width table keyed by code point for every TrueType font it
+     * converts, which is an exact answer to "can this face draw that character"
+     * for both the bundled faces and anything an administrator has installed.
+     * The CID keyed CJK faces are different: their glyph coverage lives in a
+     * character collection the viewer supplies, not in the definition file, so
+     * there is nothing to read and the answer has to come from the script table
+     * instead.
+     *
+     * @param string $family the family key
+     * @return array<int, true>|null the code points, or null when unknowable
+     */
+    protected static function coverage_set(string $family): ?array {
+        static $cache = [];
+
+        $family = strtolower($family);
+        if (array_key_exists($family, $cache)) {
+            return $cache[$family];
+        }
+
+        $cache[$family] = null;
+
+        $path = self::definition_path($family);
+        if ($path === null) {
+            return null;
+        }
+
+        // The definition file is plain PHP that assigns a handful of variables.
+        // Including it in this scope keeps those assignments local.
+        $cw = null;
+        $type = null;
+        try {
+            include($path);
+        } catch (\Throwable $e) {
+            debugging('Certificate Pro could not read the font definition ' . $path
+                . ': ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return null;
+        }
+
+        if (!is_array($cw) || $cw === [] || $type === 'cidfont0') {
+            return null;
+        }
+
+        $cache[$family] = array_fill_keys(array_keys($cw), true);
+
+        return $cache[$family];
+    }
+
+    /**
+     * Where a family's TCPDF definition file lives.
+     *
+     * @param string $family the family key
+     * @return string|null an absolute path, or null when there is no such file
+     */
+    protected static function definition_path(string $family): ?string {
+        global $CFG;
+
+        $family = preg_replace('/[^a-z0-9_]/', '', strtolower($family)) ?? '';
+        if ($family === '') {
+            return null;
+        }
+
+        $directories = [
+            defined('PDF_CUSTOM_FONT_PATH') ? PDF_CUSTOM_FONT_PATH : $CFG->dataroot . '/fonts/',
+            $CFG->libdir . '/tcpdf/fonts/',
+        ];
+
+        foreach ($directories as $directory) {
+            $path = rtrim($directory, '/') . '/' . $family . '.php';
+            if (is_readable($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The scripts a CID keyed CJK face can draw.
+     *
+     * @param string $family the family key
+     * @return string[]|null the scripts, or null when the family is not one of them
+     */
+    protected static function cid_scripts(string $family): ?array {
+        static $known = [
+            // Adobe Japan1: kana and the JIS kanji set.
+            'kozminproregular' => ['latin', 'common', 'han', 'kana'],
+            'kozgopromedium' => ['latin', 'common', 'han', 'kana'],
+            // Adobe GB1: simplified Chinese, with the traditional forms too.
+            'stsongstdlight' => ['latin', 'common', 'han'],
+            // Adobe CNS1: traditional Chinese.
+            'msungstdlight' => ['latin', 'common', 'han'],
+            // Adobe Korea1: hangul and hanja.
+            'hysmyeongjostdmedium' => ['latin', 'common', 'han', 'hangul'],
+        ];
+
+        return $known[strtolower($family)] ?? null;
+    }
+
+    /**
+     * Whether a family can draw a given code point.
+     *
+     * @param string $family the family key
+     * @param int $codepoint the code point
+     * @return bool
+     */
+    public static function covers(string $family, int $codepoint): bool {
+        $family = strtolower($family);
+
+        if (in_array($family, self::LEGACY_FAMILIES, true)) {
+            return $codepoint <= 0xFF;
+        }
+
+        $cid = self::cid_scripts($family);
+        if ($cid !== null) {
+            return in_array(self::script_of($codepoint), $cid, true);
+        }
+
+        $set = self::coverage_set($family);
+        if ($set === null) {
+            // Nothing readable. Assume Latin 1, which every face manages.
+            return $codepoint <= 0xFF;
+        }
+
+        return isset($set[$codepoint]);
+    }
+
+    /**
+     * The families to fall back through, best first, for a given script.
+     *
+     * @param string $script a script identifier from {@see script_of()}
+     * @return string[] family keys, which may not all be installed
+     */
+    protected static function fallbacks(string $script): array {
+        return match ($script) {
+            'kana' => ['kozminproregular', 'kozgopromedium', 'hysmyeongjostdmedium'],
+            'hangul' => ['hysmyeongjostdmedium', 'kozminproregular'],
+            'han' => ['stsongstdlight', 'msungstdlight', 'kozminproregular',
+                'hysmyeongjostdmedium'],
+            default => ['freeserif', 'freesans', 'freemono'],
+        };
+    }
+
+    /**
+     * Split text into the longest runs each of which one face can draw.
+     *
+     * A recipient's name is not negotiable, and no single face TCPDF ships can
+     * draw Latin, Arabic and Han at once. Rather than lose the name, or print it
+     * in a face that has glyphs for only part of it, the string is cut into runs
+     * and each run is given a face that actually covers it. The design's own
+     * choice always wins wherever it can draw the characters, so a name in the
+     * Latin alphabet is untouched by any of this.
+     *
+     * @param string $family the family the design asked for
+     * @param string $text the text about to be drawn
+     * @return array<int, array{family: string, text: string}> runs in order
+     */
+    public static function runs(string $family, string $text): array {
+        if ($text === '') {
+            return [];
+        }
+
+        $family = strtolower($family);
+        self::prime_bidi_table($text);
+
+        // The overwhelmingly common case: plain ASCII in the chosen face.
+        if (!preg_match('/[^\x00-\x7F]/', $text) && !in_array($family, self::LEGACY_FAMILIES, true)) {
+            return [['family' => $family, 'text' => $text]];
+        }
+
+        $characters = preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY);
+        if ($characters === false) {
+            return [['family' => $family, 'text' => $text]];
+        }
+
+        $runs = [];
+        $current = null;
+        $currentfamily = $family;
+
+        foreach ($characters as $character) {
+            $codepoint = \core_text::utf8ord($character);
+            $script = self::script_of($codepoint);
+
+            if ($script === 'common' && $current !== null) {
+                // Punctuation and spaces stay with the run they are inside, so
+                // that "李 小" does not become three runs.
+                $current .= $character;
+                continue;
+            }
+
+            $chosen = self::family_covering($family, $currentfamily, $codepoint, $script);
+
+            if ($current !== null && $chosen === $currentfamily) {
+                $current .= $character;
+                continue;
+            }
+
+            if ($current !== null) {
+                $runs[] = ['family' => $currentfamily, 'text' => $current];
+            }
+            $current = $character;
+            $currentfamily = $chosen;
+        }
+
+        if ($current !== null) {
+            $runs[] = ['family' => $currentfamily, 'text' => $current];
+        }
+
+        return $runs;
+    }
+
+    /**
+     * Pick the face for one character.
+     *
+     * @param string $preferred the design's chosen family
+     * @param string $currentfamily the family the run being built is using
+     * @param int $codepoint the character to draw
+     * @param string $script the script that character belongs to
+     * @return string a family key
+     */
+    protected static function family_covering(string $preferred, string $currentfamily,
+            int $codepoint, string $script): string {
+        // Staying in the current face avoids a needless run break mid word.
+        if (self::covers($currentfamily, $codepoint)) {
+            return $currentfamily;
+        }
+        if (self::covers($preferred, $codepoint)) {
+            return $preferred;
+        }
+
+        foreach (self::fallbacks($script) as $candidate) {
+            if (self::is_installed($candidate) && self::covers($candidate, $codepoint)) {
+                return $candidate;
+            }
+        }
+
+        // Nothing on this site can draw it. Keep the design's face so the
+        // character at least occupies its place rather than shifting the line.
+        return $preferred;
+    }
+
+    /**
+     * Make a family addressable from an HTML font-family declaration.
+     *
+     * TCPDF resolves a font-family value by stripping the words "regular",
+     * "bold", "italic" and "oblique" off the end of it before looking the name
+     * up, so a family whose key ends in one of those words — the bundled
+     * Japanese face kozminproregular is the example — can never be named in
+     * markup. Registering the same definition file under a second key that
+     * survives that stripping is the only way to reach it.
+     *
+     * @param \pdf $pdf the document the font has to be usable in
+     * @param string $family the family key
+     * @return string the name to write in the markup
+     */
+    public static function html_family(\pdf $pdf, string $family): string {
+        static $aliases = [];
+
+        $family = strtolower($family);
+
+        $stripped = preg_replace(
+            ['/regular$/', '/italic$/', '/oblique$/', '/bold([i]?)$/'],
+            ['', 'i', 'i', 'b$1'],
+            $family
+        ) ?? $family;
+
+        if ($stripped === $family) {
+            try {
+                $pdf->AddFont($family);
+            } catch (\Throwable $e) {
+                debugging('Certificate Pro could not load the font ' . $family . ': '
+                    . $e->getMessage(), DEBUG_DEVELOPER);
+            }
+            return $family;
+        }
+
+        if (isset($aliases[$family])) {
+            $alias = $aliases[$family];
+        } else {
+            $alias = 'cpro' . substr(md5($family), 0, 10);
+            $aliases[$family] = $alias;
+        }
+
+        $path = self::definition_path($family);
+        if ($path === null) {
+            return $family;
+        }
+
+        try {
+            $pdf->AddFont($alias, '', $path);
+        } catch (\Throwable $e) {
+            debugging('Certificate Pro could not alias the font ' . $family . ': '
+                . $e->getMessage(), DEBUG_DEVELOPER);
+            return $family;
+        }
+
+        return $alias;
+    }
+
+    /**
+     * Tag the parts of some markup that need a different face than the rest.
+     *
+     * Text nodes are the only thing touched: tags and attribute values pass
+     * through untouched, so an author's own markup keeps working.
+     *
+     * @param \pdf $pdf the document the text will be drawn into
+     * @param string $family the family the design asked for
+     * @param string $html the markup about to be written
+     * @return string the markup, with substituted runs wrapped in a span
+     */
+    public static function apply_font_runs(\pdf $pdf, string $family, string $html): string {
+        if ($html === '' || !preg_match('/[^\x00-\x7F]/', $html)) {
+            return $html;
+        }
+
+        self::prime_bidi_table($html);
+        $family = strtolower($family);
+        $parts = preg_split('/(<[^>]*>)/', $html, -1,
+            PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+        if ($parts === false) {
+            return $html;
+        }
+
+        $result = '';
+        foreach ($parts as $part) {
+            if ($part === '' || $part[0] === '<') {
+                $result .= $part;
+                continue;
+            }
+
+            // Entities are decoded so that a code point written as &#x674E; is
+            // classified by what it is rather than by its ASCII spelling, and
+            // re encoded on the way back out.
+            $plain = html_entity_decode($part, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $runs = self::runs($family, $plain);
+            if (count($runs) <= 1) {
+                $result .= $part;
+                continue;
+            }
+
+            foreach ($runs as $run) {
+                $escaped = htmlspecialchars($run['text'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                if ($run['family'] === $family) {
+                    $result .= $escaped;
+                    continue;
+                }
+                $result .= '<span style="font-family:'
+                    . self::html_family($pdf, $run['family']) . ';">' . $escaped . '</span>';
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * A warning for the author when the chosen font cannot draw the text it is given.
      *
      * @param string $family the family key
@@ -582,6 +1063,69 @@ class font_manager {
                 return get_string('warningfontlatinonly', 'mod_certificatepro');
             }
         }
+
+        $runs = self::runs($family, $text);
+        foreach ($runs as $run) {
+            if (strtolower($run['family']) !== strtolower($family)) {
+                return get_string('warningfontsubstituted', 'mod_certificatepro',
+                    self::prettify($run['family']));
+            }
+        }
+
         return null;
+    }
+
+    /**
+     * Drop the characters no available font can draw.
+     *
+     * Emoji are the practical case: a learner whose display name ends in an
+     * emoji is not unusual, and none of the faces TCPDF ships has a glyph for
+     * one. TCPDF answers with an undefined-index warning per character, which on
+     * a site with display debugging on used to end up inside the PDF bytes.
+     * Removing them is honest — the certificate simply prints the name without
+     * the decoration, rather than with a row of boxes or not at all.
+     *
+     * Pictographs, dingbats, flags, variation selectors and zero width joiners
+     * go; everything a writing system needs stays.
+     *
+     * @param string $text the text about to be drawn
+     * @return string the text with undrawable characters removed
+     */
+    public static function strip_undrawable(string $text): string {
+        $stripped = preg_replace(
+            '/[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{FE00}-\x{FE0F}\x{200D}\x{E0020}-\x{E007F}]/u',
+            '',
+            $text
+        );
+
+        if ($stripped === null) {
+            return $text;
+        }
+
+        // Collapse the gap a removed character leaves mid-string.
+        return trim(preg_replace('/\s{2,}/u', ' ', $stripped) ?? $stripped);
+    }
+
+    /**
+     * A family that can draw the first character of the text that needs one.
+     *
+     * Kept for the callers that can only set a single face for a whole string,
+     * such as the arc text on a seal. Everything that draws through the HTML
+     * writer should use {@see apply_font_runs()} instead, which keeps the
+     * design's own face wherever it works.
+     *
+     * @param string $family the family the design asked for
+     * @param string $text the text about to be drawn
+     * @return string a family that covers the text, which may be the one asked for
+     */
+    public static function family_for_text(string $family, string $text): string {
+        $runs = self::runs($family, $text);
+        foreach ($runs as $run) {
+            if (strtolower($run['family']) !== strtolower($family)) {
+                return $run['family'];
+            }
+        }
+
+        return $family;
     }
 }

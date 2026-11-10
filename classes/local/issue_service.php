@@ -55,6 +55,12 @@ class issue_service {
         global $CFG, $DB;
 
         $reasons = [];
+
+        // A cycle issuer never awards on course criteria, however well they are
+        // met: its documents come from the cycle ledger and nowhere else. The
+        // flag is read from the database rather than from the record passed in,
+        // because callers build that record in several different ways and one
+        // extra read costs far less than an award that should not exist.
         if ($DB->get_field('certificatepro', 'cycleonly', ['id' => $instance->id])) {
             $reasons[] = get_string('cycleonly', 'mod_certificatepro');
             return $reasons;
@@ -62,18 +68,19 @@ class issue_service {
 
         if (!empty($instance->requiredtime)) {
             $spent = course_helper::time_in_course((int) $course->id, (int) $user->id);
-            // The form's duration element stores seconds.
-            $required = (int) $instance->requiredtime;
+            $required = (int) $instance->requiredtime * MINSECS;
             if ($spent < $required) {
-                $reasons[] = get_string(
-                    'criteriontime',
-                    'mod_certificatepro',
-                    format_time($required)
-                );
+                $reasons[] = get_string('criteriontime', 'mod_certificatepro',
+                    format_time($required));
             }
         }
 
-        if ($instance->requiregrade !== null && $instance->requiregrade !== '') {
+        // Zero means "no grade requirement", not "must score at least nothing".
+        // The form stores a blank field as 0 — PARAM_FLOAT turns '' into 0.0
+        // before any null handling can see it — so a null check alone left every
+        // site that never set a minimum with an impossible criterion: a learner
+        // with no grade at all fails "reach at least 0.0%" forever.
+        if ((float) ($instance->requiregrade ?? 0) > 0) {
             require_once($CFG->libdir . '/gradelib.php');
 
             $item = \grade_item::fetch_course_item((int) $course->id);
@@ -88,19 +95,14 @@ class issue_service {
                 }
             }
             if ($achieved === null || $achieved < (float) $instance->requiregrade) {
-                $reasons[] = get_string(
-                    'criteriongrade',
-                    'mod_certificatepro',
-                    format_float((float) $instance->requiregrade, 1)
-                );
+                $reasons[] = get_string('criteriongrade', 'mod_certificatepro',
+                    format_float((float) $instance->requiregrade, 1));
             }
         }
 
         if (!empty($instance->requirecompletion)) {
-            $completion = $DB->get_record(
-                'course_completions',
-                ['course' => $course->id, 'userid' => $user->id]
-            );
+            $completion = $DB->get_record('course_completions',
+                ['course' => $course->id, 'userid' => $user->id]);
             if (!$completion || empty($completion->timecompleted)) {
                 $reasons[] = get_string('criterioncompletion', 'mod_certificatepro');
             }
@@ -110,7 +112,12 @@ class issue_service {
     }
 
     /**
-     * The issue a recipient already holds, if any.
+     * The ordinary course issue a recipient already holds, if any.
+     *
+     * Cycle documents are deliberately invisible here. A learner can hold one
+     * award per course activity and any number of cycle documents from the same
+     * activity, so a lookup that ignored the distinction would hand back a
+     * historical cycle document as though it were this course's award.
      *
      * @param int $certificateproid the activity instance id
      * @param int $userid the recipient
@@ -119,14 +126,11 @@ class issue_service {
     public static function get_issue(int $certificateproid, int $userid): ?\stdClass {
         global $DB;
 
-        $record = $DB->get_record(
-            'certificatepro_issues',
-            [
-                'certificateproid' => $certificateproid,
-                'userid' => $userid,
-                'cycleid' => null,
-            ]
-        );
+        $record = $DB->get_record('certificatepro_issues', [
+            'certificateproid' => $certificateproid,
+            'userid' => $userid,
+            'cycleid' => null,
+        ]);
 
         return $record ?: null;
     }
@@ -144,61 +148,116 @@ class issue_service {
     public static function issue(\stdClass $instance, \stdClass $course, \context $context,
             \stdClass $user, int $issuedby = 0): \stdClass {
         global $DB;
+
+        // Two requests can reach this at once — the activity page auto-issuing
+        // while the scheduled task runs, or a learner double-clicking — and both
+        // would find no existing award and mint one, leaving the learner with two
+        // codes for one achievement. The lock makes the check and the insert one
+        // decision, so the second request waits and then returns the first
+        // request's award.
         $lock = \core\lock\lock_config::get_lock_factory('mod_certificatepro')
             ->get_lock('issuer_' . $instance->id, 10);
         if (!$lock) {
             throw new \moodle_exception('locktimeout', 'moodle');
         }
+
         try {
+            // Re-read inside the lock: an activity can have been turned into a
+            // cycle issuer since the caller loaded its record.
             if ($DB->get_field('certificatepro', 'cycleonly', ['id' => $instance->id])) {
                 throw new \moodle_exception('cycleonly', 'mod_certificatepro');
             }
+
             return self::mint($instance, $course, $context, $user, $issuedby);
         } finally {
             $lock->release();
         }
     }
 
-    /** Issue exactly one document per achieved cycle; no caller-supplied award dates or evidence. */
+    /**
+     * Issue the one document a completed certification cycle is owed.
+     *
+     * This is the only way a cycle document is ever created. The award date, the
+     * expiry and the title all come from the ledger rather than from the caller,
+     * so a cycle document cannot be backdated or retitled by whoever happens to
+     * trigger the issue. Calling it again for the same cycle returns the document
+     * already minted instead of minting a second one, which is what makes a retry
+     * after a failed render safe.
+     *
+     * @param int $cycleid the Course Recertification cycle to issue for
+     * @return \stdClass the issue record
+     */
     public static function issue_cycle(int $cycleid): \stdClass {
         global $DB;
+
         if (!class_exists('\\local_recertify\\cycle_service')) {
             throw new \moodle_exception('error', 'error', '', 'Course Recertification is unavailable');
         }
+
         $cycle = $DB->get_record('local_recertify_cycles', ['id' => $cycleid], '*', MUST_EXIST);
-        \local_recertify\cycle_service::require_read((int)$cycle->userid);
-        $factory = \core\lock\lock_config::get_lock_factory('local_recertify');
-        $lock = $factory->get_lock('cycle_' . $cycleid, 10);
+        \local_recertify\cycle_service::require_read((int) $cycle->userid);
+
+        // The lock belongs to the ledger, not to this plugin: the cycle is the
+        // thing being awarded once, and Course Recertification takes the same
+        // lock around the transitions that make a cycle eligible.
+        $lock = \core\lock\lock_config::get_lock_factory('local_recertify')
+            ->get_lock('cycle_' . $cycleid, 10);
         if (!$lock) {
             throw new \moodle_exception('locktimeout', 'moodle');
         }
+
         try {
+            // Read again under the lock. The status and the evidence are exactly
+            // what another request may have been in the middle of changing.
             $cycle = $DB->get_record('local_recertify_cycles', ['id' => $cycleid], '*', MUST_EXIST);
             if ($cycle->status !== 'achieved' || empty($cycle->evidence)) {
                 throw new \moodle_exception('cycleincomplete', 'local_recertify');
             }
+
             $instance = $DB->get_record('certificatepro', ['id' => $cycle->certificateid], '*', MUST_EXIST);
             $course = get_course($instance->course);
             $cm = get_coursemodule_from_instance('certificatepro', $instance->id, $course->id, false, MUST_EXIST);
             $context = \context_module::instance($cm->id);
             $user = $DB->get_record('user', ['id' => $cycle->userid, 'deleted' => 0], '*', MUST_EXIST);
-            // The document's learning title is the frozen program/course title, not the hosting course.
+
+            // The document's learning title is the frozen programme title held by
+            // the cycle, not the name of whichever course hosts the activity.
             $course->fullname = $cycle->name;
             $instance->name = $cycle->name;
+
             $existing = $DB->get_record('certificatepro_issues', ['cycleid' => $cycleid]);
             if ($existing) {
+                // A retry after a render that failed finishes the document the
+                // first attempt started rather than allocating a second identity.
+                // A revoked award is left exactly as it is.
                 if (!$existing->pdfhash && !$existing->revoked) {
                     self::materialise($instance, $course, $context, $user, $existing);
                 }
+
                 return $DB->get_record('certificatepro_issues', ['id' => $existing->id], '*', MUST_EXIST);
             }
+
             return self::mint($instance, $course, $context, $user, 0, $cycle);
         } finally {
             $lock->release();
         }
     }
 
-    /** Internal minting; cycle eligibility is checked only by issue_cycle. */
+    /**
+     * Write one issue record and render its document.
+     *
+     * Eligibility is the caller's business: issue() refuses cycle issuers and
+     * issue_cycle() checks the ledger. Nothing here decides whether an award is
+     * deserved, only how one is recorded.
+     *
+     * @param \stdClass $instance the activity instance
+     * @param \stdClass $course the course
+     * @param \context $context the module context
+     * @param \stdClass $user the recipient
+     * @param int $issuedby the user issuing it, or 0 when the system did
+     * @param \stdClass|null $cycle the cycle being awarded, or null for a course award
+     * @return \stdClass the issue record
+     */
     private static function mint(\stdClass $instance, \stdClass $course, \context $context,
             \stdClass $user, int $issuedby, ?\stdClass $cycle = null): \stdClass {
         global $DB;
@@ -211,7 +270,7 @@ class issue_service {
         $now = time();
 
         $issue = new \stdClass();
-        $issue->cycleid = $cycle ? (int)$cycle->id : null;
+        $issue->cycleid = $cycle ? (int) $cycle->id : null;
         $issue->certificateproid = (int) $instance->id;
         $issue->userid = (int) $user->id;
         $issue->code = self::generate_code();
@@ -230,9 +289,14 @@ class issue_service {
         $issue->revokedreason = null;
         $issue->timerevoked = 0;
         $issue->issuedby = $issuedby;
-        $issue->timecreated = $cycle ? (int)$cycle->timeachieved : $now;
+        $issue->timecreated = $now;
+
         if ($cycle) {
-            $issue->expires = (int)$cycle->expires;
+            // A cycle document is dated and dated out by the ledger. Issuing it
+            // late — a retry the next morning, a cron run that was behind — must
+            // not move the award date or extend the period it covers.
+            $issue->timecreated = (int) $cycle->timeachieved;
+            $issue->expires = (int) $cycle->expires;
         }
 
         if (!empty($instance->serialprefix)) {
@@ -247,103 +311,14 @@ class issue_service {
 
         self::materialise($instance, $course, $context, $user, $issue);
 
-        \mod_certificatepro\event\certificate_issued::create(
-            [
-                'objectid' => $issue->id,
-                'context' => $context,
-                'relateduserid' => $user->id,
-                'other' => ['code' => $issue->code],
-            ]
-        )->trigger();
-
-        try {
-            self::notify_issued($instance, $course, $context, $user, $issue);
-        } catch (\Throwable $e) {
-            // A mail failure must never undo or block an issued certificate.
-            debugging('Certificate Pro could not send issue notifications: ' . $e->getMessage(), DEBUG_DEVELOPER);
-        }
+        \mod_certificatepro\event\certificate_issued::create([
+            'objectid' => $issue->id,
+            'context' => $context,
+            'relateduserid' => $user->id,
+            'other' => ['code' => $issue->code],
+        ])->trigger();
 
         return $DB->get_record('certificatepro_issues', ['id' => $issue->id], '*', MUST_EXIST);
-    }
-
-    /**
-     * Send the "certificate issued" notifications configured on the activity.
-     *
-     * @param \stdClass $instance the activity instance
-     * @param \stdClass $course the course
-     * @param \context $context the module context
-     * @param \stdClass $user the recipient
-     * @param \stdClass $issue the new issue
-     * @return void
-     */
-    protected static function notify_issued(\stdClass $instance, \stdClass $course, \context $context,
-            \stdClass $user, \stdClass $issue): void {
-        global $DB;
-
-        if (empty($instance->emailstudents) && empty($instance->emailteachers) && empty($instance->emailothers)) {
-            return;
-        }
-        $cmid = $context instanceof \context_module ? $context->instanceid : 0;
-        $url = new \moodle_url('/mod/certificatepro/view.php', ['id' => $cmid]);
-        $a = (object)[
-            'learner' => fullname($user),
-            'certificate' => format_string($instance->name, true, ['context' => $context]),
-            'course' => format_string($course->fullname, true, ['context' => $context]),
-            'code' => $issue->code,
-            'url' => $url->out(false),
-        ];
-        $subject = get_string('issuedemailsubject', 'mod_certificatepro', $a);
-        $sent = false;
-
-        $send = function (\stdClass $to, string $bodykey) use ($subject, $a, $course, $url, &$sent) {
-            $message = new \core\message\message();
-            $message->component = 'mod_certificatepro';
-            $message->name = 'issued';
-            $message->userfrom = \core_user::get_noreply_user();
-            $message->userto = $to;
-            $message->subject = $subject;
-            $message->fullmessage = get_string($bodykey, 'mod_certificatepro', $a);
-            $message->fullmessageformat = FORMAT_PLAIN;
-            $message->fullmessagehtml = text_to_html($message->fullmessage, false, false, true);
-            $message->smallmessage = $subject;
-            $message->notification = 1;
-            $message->contexturl = $url->out(false);
-            $message->contexturlname = $a->certificate;
-            $message->courseid = $course->id;
-            $sent = message_send($message) || $sent;
-        };
-
-        if (!empty($instance->emailstudents) && empty($user->deleted) && empty($user->suspended)) {
-            $send($user, 'issuedemailbody_learner');
-        }
-        if (!empty($instance->emailteachers)) {
-            $staff = get_enrolled_users($context, 'mod/certificatepro:receiveissuenotification', 0, 'u.*', null, 0, 0, true);
-            foreach ($staff as $teacher) {
-                if ((int)$teacher->id !== (int)$user->id) {
-                    $send($teacher, 'issuedemailbody_staff');
-                }
-            }
-        }
-        if (!empty($instance->emailothers)) {
-            foreach (explode(',', (string)$instance->emailothers) as $address) {
-                $address = trim($address);
-                if ($address === '' || !validate_email($address)) {
-                    continue;
-                }
-                $recipient = \core_user::get_noreply_user();
-                $recipient->email = $address;
-                $recipient->mailformat = 1;
-                $sent = email_to_user(
-                    $recipient,
-                    \core_user::get_noreply_user(),
-                    $subject,
-                    get_string('issuedemailbody_staff', 'mod_certificatepro', $a)
-                ) || $sent;
-            }
-        }
-        if ($sent) {
-            $DB->set_field('certificatepro_issues', 'emailed', 1, ['id' => $issue->id]);
-        }
     }
 
     /**
@@ -363,37 +338,29 @@ class issue_service {
         try {
             $template = template::load((int) $instance->templateid);
         } catch (\Throwable $e) {
-            debugging(
-                'Certificate Pro could not load a design to issue: ' . $e->getMessage(),
-                DEBUG_DEVELOPER
-            );
+            debugging('Certificate Pro could not load a design to issue: ' . $e->getMessage(),
+                DEBUG_DEVELOPER);
             return;
         }
 
         $ctx = render_context::for_issue($context, $instance, $course, $user, $issue);
         $renderer = new pdf_renderer($template);
 
-        $content = $renderer->render(
-            $ctx,
-            [
-                'title' => format_string($instance->name, true, ['context' => $context]),
-                'protection' => pdf_renderer::protection_flags($instance),
-            ]
-        );
+        $content = $renderer->render($ctx, [
+            'title' => format_string($instance->name, true, ['context' => $context]),
+            'protection' => pdf_renderer::protection_flags($instance),
+        ]);
 
         $fs = get_file_storage();
         $fs->delete_area_files($context->id, 'mod_certificatepro', self::FILEAREA, $issue->id);
-        $fs->create_file_from_string(
-            [
-                'contextid' => $context->id,
-                'component' => 'mod_certificatepro',
-                'filearea' => self::FILEAREA,
-                'itemid' => $issue->id,
-                'filepath' => '/',
-                'filename' => self::filename($instance, $course, $user, $issue),
-            ],
-            $content
-        );
+        $fs->create_file_from_string([
+            'contextid' => $context->id,
+            'component' => 'mod_certificatepro',
+            'filearea' => self::FILEAREA,
+            'itemid' => $issue->id,
+            'filepath' => '/',
+            'filename' => self::filename($instance, $course, $user, $issue),
+        ], $content);
 
         // The badge is drawn from the design's seal, and a design can be edited
         // after an issue is minted. Freeze the seal's settings alongside the
@@ -407,19 +374,22 @@ class issue_service {
         $issue->templaterevision = (int) $template->get_record()->revision;
         $issue->pdfhash = hash('sha256', $content);
 
-        $DB->update_record(
-            'certificatepro_issues',
-            (object) [
-                'id' => $issue->id,
-                'snapshot' => $issue->snapshot,
-                'templaterevision' => $issue->templaterevision,
-                'pdfhash' => $issue->pdfhash,
-            ]
-        );
+        $DB->update_record('certificatepro_issues', (object) [
+            'id' => $issue->id,
+            'snapshot' => $issue->snapshot,
+            'templaterevision' => $issue->templaterevision,
+            'pdfhash' => $issue->pdfhash,
+        ]);
     }
 
     /**
-     * The stored PDF for an issue, rendering it once if it is somehow missing.
+     * The stored PDF for an issue, rendering it once if it was never stored.
+     *
+     * A document that was stored and has since gone is not redrawn. The snapshot
+     * fixes the values but not the design they were drawn into, so a redraw after
+     * the design has been edited produces different bytes from the ones the holder
+     * was given and the ones pdfhash records. Saying the original is missing is
+     * honest; quietly substituting a different document is not.
      *
      * @param \stdClass $instance the activity instance
      * @param \stdClass $course the course
@@ -431,35 +401,103 @@ class issue_service {
     public static function get_file(\stdClass $instance, \stdClass $course, \context $context,
             \stdClass $user, \stdClass $issue): ?\stored_file {
         $fs = get_file_storage();
-        $files = $fs->get_area_files(
-            $context->id,
-            'mod_certificatepro',
-            self::FILEAREA,
-            $issue->id,
-            'id',
-            false
-        );
+        $files = $fs->get_area_files($context->id, 'mod_certificatepro', self::FILEAREA,
+            $issue->id, 'id', false);
 
         if (!empty($files)) {
             return reset($files);
         }
 
-        // A missing historical document must not be silently redrawn from today's template.
+        // A hash means bytes were issued once. Only an issue that never got as
+        // far as a stored document may be drawn now.
         if (!empty($issue->pdfhash)) {
             throw new \moodle_exception('historicaldocumentmissing', 'mod_certificatepro');
         }
+
         self::materialise($instance, $course, $context, $user, $issue);
 
-        $files = $fs->get_area_files(
-            $context->id,
-            'mod_certificatepro',
-            self::FILEAREA,
-            $issue->id,
-            'id',
-            false
-        );
+        $files = $fs->get_area_files($context->id, 'mod_certificatepro', self::FILEAREA,
+            $issue->id, 'id', false);
 
         return empty($files) ? null : reset($files);
+    }
+
+    /**
+     * The issues an activity has minted, lean enough to hold a whole course at once.
+     *
+     * Only the columns naming a file and finding its stored PDF are selected.
+     * A course with two thousand learners is a realistic load, and the point of
+     * a bulk download is that the certificates themselves stream rather than
+     * accumulate; loading two thousand full user records alongside them would
+     * put the memory back that the streaming was there to save.
+     *
+     * Revoked and expired certificates are separated because they are not the
+     * same kind of thing. An expired certificate is a true record of an award
+     * that was genuinely made and then lapsed, so a teacher archiving a cohort
+     * wants it. A revoked one has been withdrawn — the plugin already refuses
+     * to hand it to the learner it names — so it is left out unless the teacher
+     * asks for it, and it is marked when it goes in.
+     *
+     * Certificates belonging to deleted users are never returned. Their names
+     * have been scrubbed from the site, and a bulk export is not the place to
+     * bring them back.
+     *
+     * @param int $certificateproid the activity instance id
+     * @param bool $includerevoked whether withdrawn certificates belong in the set
+     * @param bool $includeexpired whether lapsed certificates belong in the set
+     * @return \stdClass[] issue rows in the report's order, each carrying a ->user
+     */
+    public static function download_set(int $certificateproid, bool $includerevoked = false,
+            bool $includeexpired = true): array {
+        global $DB;
+
+        $namefields = \core_user\fields::for_name()->get_sql('u', false, '', '', false)->selects;
+
+        $where = ['i.certificateproid = :instanceid', 'u.deleted = 0'];
+        $params = ['instanceid' => $certificateproid];
+
+        if (!$includerevoked) {
+            $where[] = 'i.revoked = 0';
+        }
+        if (!$includeexpired) {
+            // Zero means the certificate never lapses, so it is not an expiry.
+            $where[] = '(i.expires = 0 OR i.expires >= :now)';
+            $params['now'] = time();
+        }
+
+        $sql = "SELECT i.id, i.userid, i.code, i.serial, i.timecreated, i.revoked, i.expires,
+                       u.id AS uid, $namefields
+                  FROM {certificatepro_issues} i
+                  JOIN {user} u ON u.id = i.userid
+                 WHERE " . implode(' AND ', $where) . "
+              ORDER BY u.lastname ASC, u.firstname ASC, i.id ASC";
+
+        $rows = [];
+
+        $rs = $DB->get_recordset_sql($sql, $params);
+        foreach ($rs as $record) {
+            $row = (object) [
+                'id' => (int) $record->id,
+                'userid' => (int) $record->userid,
+                'code' => $record->code,
+                'serial' => $record->serial,
+                'timecreated' => (int) $record->timecreated,
+                'revoked' => (int) $record->revoked,
+                'expires' => (int) $record->expires,
+            ];
+
+            $user = new \stdClass();
+            $user->id = (int) $record->uid;
+            foreach (\core_user\fields::get_name_fields() as $field) {
+                $user->$field = $record->$field ?? null;
+            }
+            $row->user = $user;
+
+            $rows[$row->id] = $row;
+        }
+        $rs->close();
+
+        return $rows;
     }
 
     /**
@@ -473,24 +511,19 @@ class issue_service {
     public static function revoke(\stdClass $issue, \context $context, string $reason): void {
         global $DB, $USER;
 
-        $DB->update_record(
-            'certificatepro_issues',
-            (object) [
-                'id' => $issue->id,
-                'revoked' => 1,
-                'revokedby' => (int) $USER->id,
-                'revokedreason' => $reason,
-                'timerevoked' => time(),
-            ]
-        );
+        $DB->update_record('certificatepro_issues', (object) [
+            'id' => $issue->id,
+            'revoked' => 1,
+            'revokedby' => (int) $USER->id,
+            'revokedreason' => $reason,
+            'timerevoked' => time(),
+        ]);
 
-        \mod_certificatepro\event\certificate_revoked::create(
-            [
-                'objectid' => $issue->id,
-                'context' => $context,
-                'relateduserid' => $issue->userid,
-            ]
-        )->trigger();
+        \mod_certificatepro\event\certificate_revoked::create([
+            'objectid' => $issue->id,
+            'context' => $context,
+            'relateduserid' => $issue->userid,
+        ])->trigger();
     }
 
     /**
@@ -627,13 +660,10 @@ class issue_service {
                 $DB->set_field('certificatepro_serials', 'counter', $next, ['id' => $record->id]);
             } else {
                 $next = 1;
-                $DB->insert_record(
-                    'certificatepro_serials',
-                    (object) [
-                        'scope' => $scope,
-                        'counter' => $next,
-                    ]
-                );
+                $DB->insert_record('certificatepro_serials', (object) [
+                    'scope' => $scope,
+                    'counter' => $next,
+                ]);
             }
 
             $transaction->allow_commit();
@@ -669,11 +699,8 @@ class issue_service {
                 '{serial}' => $issue->serial ?? '',
                 '{date}' => userdate($issue->timecreated ?? time(), '%Y-%m-%d'),
             ];
-            $name = str_ireplace(
-                array_keys($replacements),
-                array_values($replacements),
-                (string) $instance->customfilenamepattern
-            );
+            $name = str_ireplace(array_keys($replacements), array_values($replacements),
+                (string) $instance->customfilenamepattern);
         } else {
             $name = format_string($instance->name, true) . ' - ' . fullname($user);
         }
@@ -688,24 +715,34 @@ class issue_service {
      * @return bool
      */
     public static function has_expired(\stdClass $issue): bool {
-        return !empty($issue->expires) && (int) $issue->expires <= time();
+        return !empty($issue->expires) && (int) $issue->expires < time();
     }
 
     /**
      * A one word status for an issue.
      *
+     * A cycle document answers to the ledger as well as to its own row, and the
+     * two can disagree: withdrawing a cycle withdraws its document without
+     * touching this table. Expiry is still read from the row, because a cycle
+     * that lapsed was genuinely awarded and an expired award is not a withdrawn
+     * one. Where the ledger cannot be consulted at all the honest answer is that
+     * the status is unknown rather than valid.
+     *
      * @param \stdClass $issue the issue to describe
-     * @return string one of valid, expired or revoked
+     * @return string one of valid, expired, revoked, pending or unknown
      */
     public static function status(\stdClass $issue): string {
         global $DB;
+
         if (!empty($issue->revoked)) {
             return 'revoked';
         }
+
         if (!empty($issue->cycleid)) {
             if (!class_exists('\\local_recertify\\cycle_service')) {
                 return 'unknown';
             }
+
             $cycle = $DB->get_record('local_recertify_cycles', ['id' => $issue->cycleid]);
             if (!$cycle) {
                 return 'unknown';
@@ -713,13 +750,18 @@ class issue_service {
             if ($cycle->status === 'revoked') {
                 return 'revoked';
             }
+            // Either the ledger has moved the cycle back out of "achieved" or the
+            // document has not finished rendering. Neither is something to show
+            // an employer as a valid award.
             if (empty($issue->pdfhash) || $cycle->status !== 'achieved') {
                 return 'pending';
             }
         }
+
         if (self::has_expired($issue)) {
             return 'expired';
         }
+
         return 'valid';
     }
 }

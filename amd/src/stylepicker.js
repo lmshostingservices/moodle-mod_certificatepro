@@ -26,7 +26,7 @@
  */
 define(['core/ajax', 'core/notification', 'core/templates', 'core/modal', 'core/str',
     'mod_certificatepro/gallery'],
-function(Ajax, Notification, Templates, Modal, Str, Gallery) {
+function (Ajax, Notification, Templates, Modal, Str, Gallery) {
 
     'use strict';
 
@@ -36,16 +36,16 @@ function(Ajax, Notification, Templates, Modal, Str, Gallery) {
      * @param {Object} config templateid, and a done callback
      * @return {Promise} resolves once the dialog is on screen
      */
-    var open = function(config) {
+    var open = function (config) {
         return Ajax.call([{
             methodname: 'mod_certificatepro_get_style_combinations',
             args: {templateid: config.templateid}
-        }])[0].then(function(response) {
+        }])[0].then(function (response) {
             return Promise.all([
                 Templates.render('mod_certificatepro/style_picker', response),
                 Str.get_string('stylepickertitle', 'mod_certificatepro')
             ]);
-        }).then(function(parts) {
+        }).then(function (parts) {
             return Modal.create({
                 title: parts[1],
                 body: parts[0],
@@ -53,8 +53,8 @@ function(Ajax, Notification, Templates, Modal, Str, Gallery) {
                 removeOnClose: true,
                 returnElement: config.returnElement
             });
-        }).then(function(modal) {
-            return modal.show().then(function() {
+        }).then(function (modal) {
+            return modal.show().then(function () {
                 wire(modal, config);
                 return modal;
             });
@@ -68,7 +68,7 @@ function(Ajax, Notification, Templates, Modal, Str, Gallery) {
      * @param {Object} config templateid, and a done callback
      * @return {void}
      */
-    var wire = function(modal, config) {
+    var wire = function (modal, config) {
         var root = modal.getBody()[0].querySelector('[data-region="stylepicker"]');
         if (!root) {
             return;
@@ -78,13 +78,13 @@ function(Ajax, Notification, Templates, Modal, Str, Gallery) {
         var apply = root.querySelector('[data-action="apply"]');
         var note = root.querySelector('[data-region="note"]');
 
-        var handle = Gallery.attach(gallery, function(value, tile) {
+        var handle = Gallery.attach(gallery, function (value, tile) {
             apply.disabled = !value;
             var name = tile.querySelector('.cpro-gallery-name');
             note.textContent = name ? name.textContent : '';
         });
 
-        apply.addEventListener('click', function() {
+        apply.addEventListener('click', function () {
             var chosen = handle.value();
             if (!chosen) {
                 return;
@@ -92,7 +92,7 @@ function(Ajax, Notification, Templates, Modal, Str, Gallery) {
 
             apply.disabled = true;
 
-            Str.get_string('styleapplying', 'mod_certificatepro').then(function(message) {
+            Str.get_string('styleapplying', 'mod_certificatepro').then(function (message) {
                 note.textContent = message;
                 return message;
             }).catch(Notification.exception);
@@ -100,13 +100,13 @@ function(Ajax, Notification, Templates, Modal, Str, Gallery) {
             Ajax.call([{
                 methodname: 'mod_certificatepro_apply_style_combination',
                 args: {templateid: config.templateid, combination: chosen}
-            }])[0].then(function(result) {
+            }])[0].then(function (result) {
                 modal.destroy();
                 if (config.done) {
                     config.done(result);
                 }
                 return result;
-            }).catch(function(error) {
+            }).catch(function (error) {
                 apply.disabled = false;
                 Notification.exception(error);
             });

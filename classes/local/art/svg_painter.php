@@ -147,10 +147,8 @@ class svg_painter {
 
             case 'rotate':
                 // TCPDF rotates counter-clockwise; SVG rotates clockwise.
-                $this->body[] = '<g transform="rotate(
-                    ' . self::n(-1 * (float) $op[1]) . ' '
-                        . self::n($op[2]) . ' ' . self::n($op[3]) . '
-                )">';
+                $this->body[] = '<g transform="rotate(' . self::n(-1 * (float) $op[1]) . ' '
+                    . self::n($op[2]) . ' ' . self::n($op[3]) . ')">';
                 $this->bump_group();
                 break;
 
@@ -179,29 +177,13 @@ class svg_painter {
                 break;
 
             case 'circle':
-                $this->arc(
-                    (float) $op[1],
-                    (float) $op[2],
-                    (float) $op[3],
-                    (float) $op[3],
-                    0.0,
-                    (float) $op[4],
-                    (float) $op[5],
-                    (string) $op[6]
-                );
+                $this->arc((float) $op[1], (float) $op[2], (float) $op[3], (float) $op[3],
+                    0.0, (float) $op[4], (float) $op[5], (string) $op[6]);
                 break;
 
             case 'ellipse':
-                $this->arc(
-                    (float) $op[1],
-                    (float) $op[2],
-                    (float) $op[3],
-                    (float) $op[4],
-                    (float) $op[5],
-                    (float) $op[6],
-                    (float) $op[7],
-                    (string) $op[8]
-                );
+                $this->arc((float) $op[1], (float) $op[2], (float) $op[3], (float) $op[4],
+                    (float) $op[5], (float) $op[6], (float) $op[7], (string) $op[8]);
                 break;
 
             case 'line':

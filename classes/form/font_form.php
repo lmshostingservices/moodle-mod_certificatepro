@@ -36,41 +36,26 @@ class font_form extends \moodleform {
     public function definition() {
         $mform = $this->_form;
 
-        $mform->addElement(
-            'header',
-            'uploadheader',
-            get_string('fontupload', 'mod_certificatepro')
-        );
+        $mform->addElement('header', 'uploadheader',
+            get_string('fontupload', 'mod_certificatepro'));
 
-        $mform->addElement(
-            'filepicker',
-            'fontfile',
-            get_string('fontfile', 'mod_certificatepro'),
-            null,
-            ['accepted_types' => ['.ttf', '.otf'], 'maxbytes' => 20 * 1024 * 1024]
-        );
+        $mform->addElement('filepicker', 'fontfile',
+            get_string('fontfile', 'mod_certificatepro'), null,
+            ['accepted_types' => ['.ttf', '.otf'], 'maxbytes' => 20 * 1024 * 1024]);
         $mform->addRule('fontfile', null, 'required', null, 'client');
 
-        $mform->addElement(
-            'text',
-            'displayname',
-            get_string('fontdisplayname', 'mod_certificatepro'),
-            ['size' => 40]
-        );
+        $mform->addElement('text', 'displayname',
+            get_string('fontdisplayname', 'mod_certificatepro'), ['size' => 40]);
         $mform->setType('displayname', PARAM_TEXT);
         $mform->addRule('displayname', null, 'required', null, 'client');
 
-        $mform->addElement(
-            'select',
-            'fontstyle',
-            get_string('fontstyle', 'mod_certificatepro'),
-            [
+        $mform->addElement('select', 'fontstyle',
+            get_string('fontstyle', 'mod_certificatepro'), [
                 '' => get_string('fontstyle_regular', 'mod_certificatepro'),
                 'B' => get_string('fontstyle_bold', 'mod_certificatepro'),
                 'I' => get_string('fontstyle_italic', 'mod_certificatepro'),
                 'BI' => get_string('fontstyle_bolditalic', 'mod_certificatepro'),
-            ]
-        );
+            ]);
 
         $this->add_action_buttons(false, get_string('fontupload', 'mod_certificatepro'));
     }

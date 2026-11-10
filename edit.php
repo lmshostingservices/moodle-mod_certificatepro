@@ -67,14 +67,11 @@ if ($action === 'editelement' && $elementid > 0) {
 
     $element = \mod_certificatepro\element\registry::instantiate($record);
 
-    $form = new \mod_certificatepro\form\element_form(
-        null,
-        [
-            'element' => $element,
-            'context' => $context,
-            'cmid' => $cm->id,
-        ]
-    );
+    $form = new \mod_certificatepro\form\element_form(null, [
+        'element' => $element,
+        'context' => $context,
+        'cmid' => $cm->id,
+    ]);
 
     if ($form->is_cancelled()) {
         redirect($url);
@@ -82,12 +79,8 @@ if ($action === 'editelement' && $elementid > 0) {
 
     if ($data = $form->get_data()) {
         $form->save($element, $data, $template);
-        redirect(
-            $url,
-            get_string('elementsaved', 'mod_certificatepro'),
-            null,
-            \core\output\notification::NOTIFY_SUCCESS
-        );
+        redirect($url, get_string('elementsaved', 'mod_certificatepro'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
     }
 
     echo $OUTPUT->header();

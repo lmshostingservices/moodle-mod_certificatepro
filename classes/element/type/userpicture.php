@@ -66,6 +66,24 @@ class userpicture extends image_base {
     }
 
     /**
+     * A profile picture is square, so its box may not be stretched.
+     *
+     * @return bool
+     */
+    public static function keepsquare(): bool {
+        return true;
+    }
+
+    /**
+     * The configuration a newly dropped picture starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return array_merge(parent::default_data(), ['circular' => 1]);
+    }
+
+    /**
      * A learner's own picture is never something the shared library holds.
      *
      * @return bool
@@ -82,11 +100,8 @@ class userpicture extends image_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'advcheckbox',
-            'circular',
-            get_string('picturecircular', 'mod_certificatepro')
-        );
+        $mform->addElement('advcheckbox', 'circular',
+            get_string('picturecircular', 'mod_certificatepro'));
         $mform->setDefault('circular', 1);
 
         $this->add_common_image_settings($mform);
@@ -99,12 +114,9 @@ class userpicture extends image_base {
      * @return array
      */
     public function save_form_data(\stdClass $data): array {
-        return array_merge(
-            $this->common_image_data($data),
-            [
-                'circular' => !empty($data->circular) ? 1 : 0,
-            ]
-        );
+        return array_merge($this->common_image_data($data), [
+            'circular' => !empty($data->circular) ? 1 : 0,
+        ]);
     }
 
     /**

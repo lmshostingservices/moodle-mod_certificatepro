@@ -16,6 +16,9 @@
 
 namespace mod_certificatepro\local\font;
 
+use mod_certificatepro\local\font_manager;
+use mod_certificatepro\local\type\style_library;
+
 /**
  * Access to the Google Fonts library, installed on demand.
  *
@@ -56,6 +59,40 @@ class google_fonts {
 
     /** @var string The plugin config name the catalogue is cached under. */
     protected const CACHE_KEY = 'googlefontscatalogue';
+
+    /**
+     * The four faces a family is installed as, in installation order.
+     *
+     * The key is the TCPDF style flag the font manager expects; the value is the
+     * numeric weight and whether the face is italic. Regular comes first on
+     * purpose: TCPDF derives a family's existence from the regular definition
+     * file, and a bold face installed without one registers as a family of its
+     * own called "somethingb" instead of as the bold of "something".
+     */
+    public const FACES = [
+        '' => [400, false],
+        'B' => [700, false],
+        'I' => [400, true],
+        'BI' => [700, true],
+    ];
+
+    /** @var string The last HTTP request succeeded. */
+    public const FAILURE_NONE = '';
+
+    /** @var string The service could not be reached at all. */
+    public const FAILURE_NETWORK = 'network';
+
+    /** @var string The service answered, and does not have what was asked for. */
+    public const FAILURE_NOTFOUND = 'notfound';
+
+    /** @var string Why the last HTTP request failed; one of the FAILURE_ constants. */
+    protected static $failure = self::FAILURE_NONE;
+
+    /** @var string The technical detail of the last failure, for an administrator. */
+    protected static $failuredetail = '';
+
+    /** @var array<string, array<string, string>>|null Installed families and their faces. */
+    protected static $familymap = null;
 
     /**
      * The catalogue, refreshing it from Google if the cached copy is stale.
@@ -122,7 +159,7 @@ class google_fonts {
         }
 
         $url = self::CATALOGUE_URL . '?sort=popularity&key=' . urlencode($key);
-        $body = self::get($url, []);
+        $body = static::get($url, []);
         if ($body === null) {
             return [];
         }
@@ -162,87 +199,406 @@ class google_fonts {
             : 'wght@' . $weight;
         $url = self::CSS_URL . '?family=' . rawurlencode($family) . ':' . $spec;
 
-        $css = self::get($url, ['User-Agent: ' . self::TTF_USER_AGENT]);
+        $css = static::get($url, ['User-Agent: ' . self::TTF_USER_AGENT]);
         if ($css === null) {
+            // The failure reason set by get() stands: either the service could
+            // not be reached, or it answered that there is no such face.
             return null;
         }
 
-        if (preg_match('#url\((https://[^)]+\.ttf)\)#i', $css, $m)) {
+        if (preg_match('#url\((https?://[^)]+\.ttf)\)#i', $css, $m)) {
+            self::$failure = self::FAILURE_NONE;
             return $m[1];
         }
+
+        // A stylesheet with no TrueType in it means Google has the family but
+        // not this face of it, which is an answer rather than a failure.
+        self::fail(self::FAILURE_NOTFOUND, $url, 200, '');
 
         return null;
     }
 
     /**
-     * Download one family at the given weights and install each face.
+     * Why the last request to Google failed.
      *
-     * Faces are installed through the existing font manager, so they get the
-     * same conversion, the same script-coverage detection and the same
-     * catalogue entry as a font an administrator uploaded by hand.
+     * Lets a caller tell "this family has no italic" apart from "this site has
+     * no outbound network", which are the same null from {@see ttf_url()} but
+     * need opposite handling: the first is a face to skip, the second is a
+     * reason to stop and tell the administrator.
+     *
+     * @return string one of the FAILURE_ constants
+     */
+    public static function last_failure(): string {
+        return self::$failure;
+    }
+
+    /**
+     * An empty install report for one family.
      *
      * @param string $family the family name
-     * @param int[] $weights the numeric weights to install
-     * @return array a report with the installed faces and any failures
+     * @return array
      */
-    public static function install(string $family, array $weights = [400, 700]): array {
-        $report = ['family' => $family, 'installed' => [], 'failed' => []];
+    protected static function blank_report(string $family): array {
+        return [
+            'family' => $family,
+            'installed' => [],
+            'present' => [],
+            'skipped' => [],
+            'failed' => [],
+            'error' => '',
+            'detail' => '',
+        ];
+    }
 
-        foreach ($weights as $weight) {
-            $weight = (int) $weight;
-            $url = self::ttf_url($family, $weight);
+    /**
+     * A report for a family nothing was installed for, and why.
+     *
+     * @param string $family the family name
+     * @param string $error the error key
+     * @return array
+     */
+    protected static function aborted_report(string $family, string $error): array {
+        $report = self::blank_report($family);
+        $report['error'] = $error;
+        $report['detail'] = self::last_failure_detail();
+        return $report;
+    }
+
+    /**
+     * Download one family and install it as one family with four faces.
+     *
+     * The point of this method is the difference between a family and a face.
+     * Regular, bold, italic and bold italic are four separate files, and TCPDF
+     * only treats them as one family when each is registered under the family's
+     * own key with the matching style flag — that is what the font manager's
+     * $style argument does. Handing bold over as a family in its own right,
+     * which is what this used to do, leaves SetFont('lato', 'B') with no bold
+     * face to find, and TCPDF then silently draws the regular one.
+     *
+     * Nothing is installed until every face that is going to be installed has
+     * been downloaded. A site that loses the network halfway through therefore
+     * ends up with the family untouched rather than with a regular face and no
+     * bold, which would be worse than not having the family at all.
+     *
+     * Faces Google does not publish — most display and handwriting families
+     * have no italic — are skipped and reported as skipped. That is an answer,
+     * not a failure, and it must not stop the rest of the family installing.
+     *
+     * @param string $family the family name, as Google spells it
+     * @param string[] $styles the TCPDF style flags to install, from {@see FACES}
+     * @param bool $force re-download faces that are already installed
+     * @return array a report: installed, present, skipped and failed faces, and
+     *               an error key that is non-empty when nothing was installed
+     */
+    public static function install(string $family, array $styles = ['', 'B', 'I', 'BI'],
+            bool $force = false): array {
+        $family = trim($family);
+        $report = self::blank_report($family);
+
+        $key = font_manager::family_key($family);
+        if ($family === '' || $key === '') {
+            $report['error'] = 'badfamily';
+            return $report;
+        }
+
+        if (!font_manager::can_install_fonts()) {
+            $report['error'] = 'notwritable';
+            return $report;
+        }
+
+        $existing = self::installed_faces($family);
+
+        // Phase one: fetch every face into memory, and give up on the whole
+        // family the moment the network rather than the catalogue is at fault.
+        $downloads = [];
+        foreach (array_keys(self::FACES) as $style) {
+            if (!in_array($style, $styles, true)) {
+                continue;
+            }
+            if (!$force && !empty($existing[$style])) {
+                $report['present'][] = $style;
+                continue;
+            }
+
+            [$weight, $italic] = self::FACES[$style];
+            $url = static::ttf_url($family, $weight, $italic);
 
             if ($url === null) {
-                $report['failed'][] = ['weight' => $weight, 'reason' => 'nosuchface'];
+                if (self::$failure === self::FAILURE_NETWORK) {
+                    return self::aborted_report($family, 'network');
+                }
+                $report['skipped'][] = $style;
                 continue;
             }
 
-            $binary = self::get($url, ['User-Agent: ' . self::TTF_USER_AGENT], true);
-            if ($binary === null || strlen($binary) < 1024) {
-                $report['failed'][] = ['weight' => $weight, 'reason' => 'downloadfailed'];
+            $binary = static::get($url, ['User-Agent: ' . self::TTF_USER_AGENT]);
+            if ($binary === null) {
+                if (self::$failure === self::FAILURE_NETWORK) {
+                    return self::aborted_report($family, 'network');
+                }
+                $report['failed'][$style] = 'downloadfailed';
                 continue;
             }
 
-            // A TrueType or OpenType file starts with one of these signatures.
-            $magic = substr($binary, 0, 4);
-            if ($magic !== "\x00\x01\x00\x00" && $magic !== 'true' && $magic !== 'OTTO'
-                    && $magic !== 'ttcf') {
-                $report['failed'][] = ['weight' => $weight, 'reason' => 'notafont'];
+            if (strlen($binary) < 1024 || !self::looks_like_font($binary)) {
+                $report['failed'][$style] = 'notafont';
                 continue;
             }
 
-            $path = make_request_directory() . '/'
-                . preg_replace('/[^a-z0-9]+/i', '', $family) . '-' . $weight . '.ttf';
-            file_put_contents($path, $binary);
+            $downloads[$style] = $binary;
+        }
+
+        // Without a regular face there is no family to hang the others off, so
+        // installing bold on its own would register a bogus family called
+        // "latob". Refuse instead, and say why.
+        if (!isset($downloads['']) && empty($existing[''])) {
+            $report['error'] = in_array('', $report['skipped'], true) ? 'nosuchfamily' : 'noregular';
+            $report['installed'] = [];
+            return $report;
+        }
+
+        // Phase two: hand each face to the font manager, regular first.
+        $directory = make_request_directory();
+        foreach ($downloads as $style => $binary) {
+            $path = $directory . '/' . $key . strtolower($style) . '.ttf';
+            if (file_put_contents($path, $binary) === false) {
+                $report['failed'][$style] = 'notwritable';
+                continue;
+            }
 
             try {
-                $installed = \mod_certificatepro\local\font_manager::install_from_path(
-                    $path,
-                    $family . ' ' . $weight
-                );
-                $report['installed'][] = ['weight' => $weight, 'name' => $installed];
+                $report['installed'][$style] = font_manager::install_from_path(
+                    $path, $family, $style);
             } catch (\Throwable $e) {
-                $report['failed'][] = ['weight' => $weight, 'reason' => $e->getMessage()];
+                $report['failed'][$style] = $e->getMessage();
             }
+        }
+
+        if ($report['installed']) {
+            self::purge_face_cache();
         }
 
         return $report;
     }
 
     /**
+     * Whether a downloaded blob begins with a TrueType or OpenType signature.
+     *
+     * @param string $binary the first bytes of the file
+     * @return bool
+     */
+    protected static function looks_like_font(string $binary): bool {
+        return in_array(substr($binary, 0, 4), ["\x00\x01\x00\x00", 'true', 'OTTO', 'ttcf'], true);
+    }
+
+    /**
      * Install every family the bundled text style combinations name.
      *
      * Saves an administrator from hunting through two thousand families to find
-     * the twenty-odd the presets actually use.
+     * the three dozen the presets actually use. The batch stops at the first
+     * network failure rather than grinding through another thirty-five families
+     * that are certain to fail the same way, and says which families it never
+     * got to.
      *
-     * @return array[] one report per family
+     * @param callable|null $progress called with each family's report as it finishes
+     * @param bool $missingonly skip families that already have all four faces
+     * @return array reports, plus error and notattempted keys
      */
-    public static function install_preset_families(): array {
-        $reports = [];
-        foreach (\mod_certificatepro\local\type\style_library::required_families() as $family) {
-            $reports[] = self::install($family);
+    public static function install_preset_families(?callable $progress = null,
+            bool $missingonly = true): array {
+        $families = $missingonly ? self::incomplete_families() : style_library::required_families();
+        $out = ['reports' => [], 'error' => '', 'notattempted' => []];
+
+        foreach ($families as $index => $family) {
+            $report = static::install($family);
+            $out['reports'][] = $report;
+
+            if ($progress !== null) {
+                $progress($report);
+            }
+
+            if ($report['error'] === 'network' || $report['error'] === 'notwritable') {
+                $out['error'] = $report['error'];
+                $out['notattempted'] = array_slice($families, $index + 1);
+                break;
+            }
         }
-        return $reports;
+
+        return $out;
+    }
+
+    /**
+     * Which of the four faces of a family are installed on this site.
+     *
+     * The answer comes from the font definition files TCPDF can actually see,
+     * not from the plugin's own catalogue table, because it is TCPDF that has to
+     * find a bold face at render time.
+     *
+     * @param string $family the family name or key
+     * @return array<string, bool> keyed by style flag: '', B, I and BI
+     */
+    public static function installed_faces(string $family): array {
+        $faces = ['' => false, 'B' => false, 'I' => false, 'BI' => false];
+
+        $key = font_manager::family_key($family);
+        if ($key === '') {
+            return $faces;
+        }
+
+        $styles = self::family_map()[$key] ?? null;
+        if ($styles === null) {
+            return $faces;
+        }
+
+        $faces[''] = isset($styles['R']);
+        $faces['B'] = isset($styles['B']);
+        $faces['I'] = isset($styles['I']);
+        $faces['BI'] = isset($styles['BI']);
+
+        return $faces;
+    }
+
+    /**
+     * Whether a family has all four faces installed.
+     *
+     * @param string $family the family name or key
+     * @return bool
+     */
+    public static function is_complete(string $family): bool {
+        foreach (self::installed_faces($family) as $present) {
+            if (!$present) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * How every family the bundled designs name stands on this site.
+     *
+     * This is what turns a silent fallback into something an author can see: a
+     * design that asks for Playfair Display and gets Free Serif looks fine until
+     * you know what it was supposed to look like.
+     *
+     * @return array[] one row per family, in name order
+     */
+    public static function preset_status(): array {
+        $rows = [];
+
+        foreach (style_library::required_families() as $family) {
+            $faces = self::installed_faces($family);
+            $rows[] = [
+                'family' => $family,
+                'faces' => $faces,
+                'installed' => $faces[''],
+                'complete' => !in_array(false, $faces, true),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The families the bundled designs name that this site cannot draw at all.
+     *
+     * @return string[] family names
+     */
+    public static function missing_families(): array {
+        $out = [];
+        foreach (self::preset_status() as $row) {
+            if (!$row['installed']) {
+                $out[] = $row['family'];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * The families the bundled designs name that are missing at least one face.
+     *
+     * This, not {@see missing_families()}, is what a batch install has to do:
+     * a family with a regular and no bold is not finished, it just fails less
+     * visibly.
+     *
+     * @return string[] family names
+     */
+    public static function incomplete_families(): array {
+        $out = [];
+        foreach (self::preset_status() as $row) {
+            if (!$row['complete']) {
+                $out[] = $row['family'];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Every installed family and the faces it has, keyed by family key.
+     *
+     * Reads the font definition directories rather than asking a \pdf object,
+     * because TCPDF fixes the directory it reads into a constant the first time
+     * anything in the request loads pdflib. On the request that creates the
+     * custom font directory that constant is already pointing at Moodle's own
+     * one, so a family installed a moment ago would be reported as missing.
+     * The directories are the same two {@see font_manager::definition_path()}
+     * looks in, and the grouping rule is TCPDF's own.
+     *
+     * @return array<string, array<string, string>>
+     */
+    protected static function family_map(): array {
+        global $CFG;
+
+        if (self::$familymap !== null) {
+            return self::$familymap;
+        }
+
+        $directories = [
+            defined('PDF_CUSTOM_FONT_PATH') ? PDF_CUSTOM_FONT_PATH : $CFG->dataroot . '/fonts/',
+            $CFG->libdir . '/tcpdf/fonts/',
+        ];
+
+        $keys = [];
+        foreach ($directories as $directory) {
+            foreach (glob(rtrim($directory, '/') . '/*.php') ?: [] as $path) {
+                $key = strtolower(basename($path, '.php'));
+                if (strpos($key, 'uni2cid') === 0) {
+                    // A character map, not a font.
+                    continue;
+                }
+                $keys[$key] = true;
+            }
+        }
+
+        $map = [];
+        foreach (array_keys($keys) as $key) {
+            $face = null;
+            foreach (['bi' => 'BI', 'i' => 'I', 'b' => 'B'] as $suffix => $style) {
+                $base = substr($key, 0, -strlen($suffix));
+                if (substr($key, -strlen($suffix)) === $suffix && $base !== ''
+                        && isset($keys[$base])) {
+                    $map[$base][$style] = $style;
+                    $face = $style;
+                    break;
+                }
+            }
+            if ($face === null) {
+                $map[$key]['R'] = 'R';
+            }
+        }
+
+        ksort($map);
+        self::$familymap = $map;
+
+        return $map;
+    }
+
+    /**
+     * Forget which families are installed, after installing or removing one.
+     *
+     * @return void
+     */
+    public static function purge_face_cache(): void {
+        self::$familymap = null;
     }
 
     /**
@@ -284,14 +640,26 @@ class google_fonts {
      * Uses the wrapper rather than raw curl so the site's proxy settings and
      * the security helper's blocked-host rules both apply.
      *
+     * Records why it failed, because the callers have to tell "Google says this
+     * family has no italic" apart from "this server cannot reach Google". Both
+     * are a null here; only one of them is a reason to abandon the install.
+     *
+     * There is deliberately no binary flag. CURLOPT_BINARYTRANSFER has done
+     * nothing since PHP 5.1 and is deprecated in PHP 8.4, where merely naming
+     * the constant raises a deprecation notice — which on a site with display
+     * debugging turned on used to land in the middle of this page. curl returns
+     * the bytes as they came either way.
+     *
      * @param string $url the URL
      * @param string[] $headers extra request headers
-     * @param bool $binary whether the response is binary
      * @return string|null the body, or null on any failure
      */
-    protected static function get(string $url, array $headers = [], bool $binary = false): ?string {
+    protected static function get(string $url, array $headers = []): ?string {
         global $CFG;
         require_once($CFG->libdir . '/filelib.php');
+
+        self::$failure = self::FAILURE_NONE;
+        self::$failuredetail = '';
 
         $curl = new \curl();
         $options = [
@@ -301,25 +669,66 @@ class google_fonts {
             'CURLOPT_MAXREDIRS' => 3,
             'CURLOPT_RETURNTRANSFER' => 1,
         ];
-        if ($binary) {
-            $options['CURLOPT_BINARYTRANSFER'] = 1;
-        }
         foreach ($headers as $header) {
             $curl->setHeader($header);
         }
 
         $body = $curl->get($url, [], $options);
         $info = $curl->get_info();
+        $status = (int) ($info['http_code'] ?? 0);
 
-        if ($curl->get_errno() || (int) ($info['http_code'] ?? 0) !== 200 || $body === false) {
-            debugging(
-                'Certificate Pro could not reach the Google Fonts service: ' . $url,
-                DEBUG_DEVELOPER
-            );
+        if ($curl->get_errno() || $status === 0 || $body === false) {
+            // Nothing answered. Every other family will fail the same way, so
+            // the caller is expected to stop rather than keep trying.
+            self::fail(self::FAILURE_NETWORK, $url, $status, $curl->error);
+            return null;
+        }
+
+        if ($status === 400 || $status === 404) {
+            // Google answered, and does not have that family or that face of it.
+            // The css2 endpoint uses 400 for both.
+            self::fail(self::FAILURE_NOTFOUND, $url, $status, '');
+            return null;
+        }
+
+        if ($status !== 200) {
+            // A server error or a rate limit: the service is there but not
+            // working, which is a network condition rather than an answer.
+            self::fail(self::FAILURE_NETWORK, $url, $status, '');
             return null;
         }
 
         return (string) $body;
+    }
+
+    /**
+     * Record why a request failed.
+     *
+     * Deliberately not debugging(): a site with no outbound access is an
+     * ordinary state for this code, and a developer notice on the expected path
+     * turns an administrator's install into a stack trace on any site running
+     * with display debugging on. The reason is returned to the caller instead,
+     * and the caller puts it on the page.
+     *
+     * @param string $reason one of the FAILURE_ constants
+     * @param string $url the URL that was asked for
+     * @param int $status the HTTP status, zero when nothing answered
+     * @param string $error the transport error, when there was one
+     * @return void
+     */
+    protected static function fail(string $reason, string $url, int $status, string $error): void {
+        self::$failure = $reason;
+        self::$failuredetail = 'HTTP ' . $status . ($error !== '' ? ' (' . $error . ')' : '')
+            . ' for ' . $url;
+    }
+
+    /**
+     * What went wrong on the last failed request, for an administrator to act on.
+     *
+     * @return string an untranslated technical detail, or an empty string
+     */
+    public static function last_failure_detail(): string {
+        return self::$failuredetail;
     }
 
     /**

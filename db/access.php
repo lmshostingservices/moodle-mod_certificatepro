@@ -48,14 +48,6 @@ $capabilities = [
         ],
     ],
 
-    'mod/certificatepro:receive' => [
-        'captype' => 'read',
-        'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => [
-            'student' => CAP_ALLOW,
-        ],
-    ],
-
     'mod/certificatepro:manage' => [
         'riskbitmask' => RISK_SPAM | RISK_XSS,
         'captype' => 'write',

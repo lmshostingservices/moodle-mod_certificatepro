@@ -36,6 +36,7 @@ use mod_certificatepro\local\art\canvas;
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(canvas::class)]
 final class canvas_test extends \advanced_testcase {
+
     /**
      * A canvas with a predictable measurer, so widths do not depend on a font.
      *
@@ -47,21 +48,14 @@ final class canvas_test extends \advanced_testcase {
      * @return canvas
      */
     protected function canvas(float $width = 100.0, float $height = 100.0): canvas {
-        $c = new canvas(
-            $width,
-            $height,
-            [
-                'primary' => '#0f6cbf', 'primarydark' => '#0a4a83', 'accent' => '#b08432',
-                'ink' => '#1d2125', 'muted' => '#6b7377', 'paper' => '#ffffff',
-            ],
-            7
-        );
+        $c = new canvas($width, $height, [
+            'primary' => '#0f6cbf', 'primarydark' => '#0a4a83', 'accent' => '#b08432',
+            'ink' => '#1d2125', 'muted' => '#6b7377', 'paper' => '#ffffff',
+        ], 7);
 
-        $c->set_measurer(
-            function (string $text, string $family, string $style, float $sizept): float {
-                return \core_text::strlen($text) * $sizept * canvas::PT_TO_MM * 0.5;
-            }
-        );
+        $c->set_measurer(function (string $text, string $family, string $style, float $sizept): float {
+            return \core_text::strlen($text) * $sizept * canvas::PT_TO_MM * 0.5;
+        });
 
         return $c;
     }
@@ -74,14 +68,9 @@ final class canvas_test extends \advanced_testcase {
      * @return array[] the matching operations
      */
     protected function ops_of(canvas $c, string $kind): array {
-        return array_values(
-            array_filter(
-                $c->ops(),
-                function ($op) use ($kind) {
-                    return ($op[0] ?? '') === $kind;
-                }
-            )
-        );
+        return array_values(array_filter($c->ops(), function ($op) use ($kind) {
+            return ($op[0] ?? '') === $kind;
+        }));
     }
 
     // ------------------------------------------------------------------
@@ -243,12 +232,8 @@ final class canvas_test extends \advanced_testcase {
         // must never be far off it.
         foreach ($this->ops_of($c, 'glyphs')[0][1] as $glyph) {
             $distance = sqrt(pow($glyph[1] - 50.0, 2) + pow($glyph[2] - 50.0, 2));
-            $this->assertEqualsWithDelta(
-                $radius,
-                $distance,
-                1.5,
-                'glyph ' . $glyph[0] . ' left the baseline circle'
-            );
+            $this->assertEqualsWithDelta($radius, $distance, 1.5,
+                'glyph ' . $glyph[0] . ' left the baseline circle');
         }
     }
 
@@ -314,26 +299,17 @@ final class canvas_test extends \advanced_testcase {
         // keeps the run upright and reading left to right underneath the
         // centre instead of upside down.
         foreach ($topglyphs as $i => $glyph) {
-            $this->assertEqualsWithDelta(
-                -$this->normalise($glyph[3]),
-                $this->normalise($bottomglyphs[$i][3]),
-                0.001,
-                'glyph ' . $i . ' does not mirror on the bottom arc'
-            );
+            $this->assertEqualsWithDelta(-$this->normalise($glyph[3]),
+                $this->normalise($bottomglyphs[$i][3]), 0.001,
+                'glyph ' . $i . ' does not mirror on the bottom arc');
         }
 
         // And the two runs really are different: the outer glyphs lean, so a
         // mirrored rotation is not the same rotation.
-        $this->assertNotEqualsWithDelta(
-            $this->normalise($topglyphs[0][3]),
-            $this->normalise($bottomglyphs[0][3]),
-            1.0
-        );
-        $this->assertNotEqualsWithDelta(
-            $this->normalise($topglyphs[4][3]),
-            $this->normalise($bottomglyphs[4][3]),
-            1.0
-        );
+        $this->assertNotEqualsWithDelta($this->normalise($topglyphs[0][3]),
+            $this->normalise($bottomglyphs[0][3]), 1.0);
+        $this->assertNotEqualsWithDelta($this->normalise($topglyphs[4][3]),
+            $this->normalise($bottomglyphs[4][3]), 1.0);
     }
 
     /**
@@ -380,23 +356,13 @@ final class canvas_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $short = $this->canvas();
-        $shortresult = $short->arc_text(
-            0.5,
-            0.5,
-            40.0,
-            'ABC',
-            ['sizept' => 8.0, 'maxsweep' => 160.0]
-        );
+        $shortresult = $short->arc_text(0.5, 0.5, 40.0, 'ABC',
+            ['sizept' => 8.0, 'maxsweep' => 160.0]);
 
         $long = $this->canvas();
         $longtext = 'THE VERY LONG NAME OF A LARGE AND ANCIENT INSTITUTION OF LEARNING';
-        $longresult = $long->arc_text(
-            0.5,
-            0.5,
-            40.0,
-            $longtext,
-            ['sizept' => 8.0, 'maxsweep' => 160.0]
-        );
+        $longresult = $long->arc_text(0.5, 0.5, 40.0, $longtext,
+            ['sizept' => 8.0, 'maxsweep' => 160.0]);
 
         // A short run is left at the size it was asked for.
         $this->assertEqualsWithDelta(8.0, $shortresult['sizept'], 0.0001);
@@ -405,10 +371,8 @@ final class canvas_test extends \advanced_testcase {
         // A long one is set smaller, and fits.
         $this->assertLessThan(8.0, $longresult['sizept']);
         $this->assertLessThanOrEqual(160.0, $longresult['sweep']);
-        $this->assertSame(
-            \core_text::strlen($longtext),
-            count($this->ops_of($long, 'glyphs')[0][1])
-        );
+        $this->assertSame(\core_text::strlen($longtext),
+            count($this->ops_of($long, 'glyphs')[0][1]));
     }
 
     /**
@@ -420,17 +384,11 @@ final class canvas_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $c = $this->canvas();
-        $result = $c->arc_text(
-            0.5,
-            0.5,
-            4.0,
-            str_repeat('W', 400),
-            [
-                'sizept' => 9.0,
-                'maxsweep' => 100.0,
-                'minsizept' => 4.0,
-            ]
-        );
+        $result = $c->arc_text(0.5, 0.5, 4.0, str_repeat('W', 400), [
+            'sizept' => 9.0,
+            'maxsweep' => 100.0,
+            'minsizept' => 4.0,
+        ]);
 
         // The run cannot possibly fit, so the size stops at the floor rather
         // than shrinking towards zero.
@@ -446,17 +404,11 @@ final class canvas_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $c = $this->canvas();
-        $result = $c->arc_text(
-            0.5,
-            0.5,
-            20.0,
-            str_repeat('M', 60),
-            [
-                'sizept' => 9.0,
-                'maxsweep' => 90.0,
-                'autofit' => false,
-            ]
-        );
+        $result = $c->arc_text(0.5, 0.5, 20.0, str_repeat('M', 60), [
+            'sizept' => 9.0,
+            'maxsweep' => 90.0,
+            'autofit' => false,
+        ]);
 
         $this->assertEqualsWithDelta(9.0, $result['sizept'], 0.0001);
         $this->assertGreaterThan(90.0, $result['sweep']);
@@ -471,22 +423,12 @@ final class canvas_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $tight = $this->canvas();
-        $tightresult = $tight->arc_text(
-            0.5,
-            0.5,
-            10.0,
-            'CERTIFIED',
-            ['sizept' => 5.0, 'autofit' => false]
-        );
+        $tightresult = $tight->arc_text(0.5, 0.5, 10.0, 'CERTIFIED',
+            ['sizept' => 5.0, 'autofit' => false]);
 
         $wide = $this->canvas();
-        $wideresult = $wide->arc_text(
-            0.5,
-            0.5,
-            30.0,
-            'CERTIFIED',
-            ['sizept' => 5.0, 'autofit' => false]
-        );
+        $wideresult = $wide->arc_text(0.5, 0.5, 30.0, 'CERTIFIED',
+            ['sizept' => 5.0, 'autofit' => false]);
 
         $this->assertGreaterThan($wideresult['sweep'], $tightresult['sweep']);
     }

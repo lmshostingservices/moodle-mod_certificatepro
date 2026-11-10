@@ -46,15 +46,8 @@ class styles_engraved {
         ornament::guilloche_frame($c, $inset, $band, 9, $dark, $primary, 0.58);
 
         // An inner, finer band running counter to the outer one.
-        ornament::guilloche_frame(
-            $c,
-            $inset + $band + 0.010 * $c->s(),
-            $band * 0.40,
-            5,
-            $primary,
-            $dark,
-            0.42
-        );
+        ornament::guilloche_frame($c, $inset + $band + 0.010 * $c->s(), $band * 0.40, 5,
+            $primary, $dark, 0.42);
 
         $ou = $inset / $c->w();
         $ov = $inset / $c->h();
@@ -102,37 +95,18 @@ class styles_engraved {
         $g = 0.011 * $c->s();
         $c->alpha(0.55);
         $c->stroke($primary, 0.4);
-        $c->rect(
-            $ou + $g / $c->w(),
-            $ov + $g / $c->h(),
-            1 - 2 * ($ou + $g / $c->w()),
-            1 - 2 * ($ov + $g / $c->h()),
-            'D'
-        );
+        $c->rect($ou + $g / $c->w(), $ov + $g / $c->h(),
+            1 - 2 * ($ou + $g / $c->w()), 1 - 2 * ($ov + $g / $c->h()), 'D');
 
         // A linked chain running the long edges between the corners.
         // A fine chain. At a larger ring size this read as a caterpillar
         // rather than as ornament.
         $c->alpha(0.30);
         $c->stroke($primary, 0.26);
-        ornament::chain(
-            $c,
-            $ou + (2 * $rr) / $c->w(),
-            $ov,
-            1 - $ou - (2 * $rr) / $c->w(),
-            $ov,
-            $rr * 0.13,
-            0.50
-        );
-        ornament::chain(
-            $c,
-            $ou + (2 * $rr) / $c->w(),
-            1 - $ov,
-            1 - $ou - (2 * $rr) / $c->w(),
-            1 - $ov,
-            $rr * 0.13,
-            0.50
-        );
+        ornament::chain($c, $ou + (2 * $rr) / $c->w(), $ov, 1 - $ou - (2 * $rr) / $c->w(), $ov,
+            $rr * 0.13, 0.50);
+        ornament::chain($c, $ou + (2 * $rr) / $c->w(), 1 - $ov,
+            1 - $ou - (2 * $rr) / $c->w(), 1 - $ov, $rr * 0.13, 0.50);
 
         foreach ([[$ou, $ov], [1 - $ou, $ov], [$ou, 1 - $ov], [1 - $ou, 1 - $ov]] as $corner) {
             $c->alpha(1.0);
@@ -229,11 +203,8 @@ class styles_engraved {
             $ds = 0.011 * $c->s();
             $c->alpha(1.0);
             $c->fill($accent);
-            $c->poly(
-                [0.5, $v - $ds / $c->h(), 0.5 + $ds / $c->w(), $v,
-                    0.5, $v + $ds / $c->h(), 0.5 - $ds / $c->w(), $v],
-                'F'
-            );
+            $c->poly([0.5, $v - $ds / $c->h(), 0.5 + $ds / $c->w(), $v,
+                0.5, $v + $ds / $c->h(), 0.5 - $ds / $c->w(), $v], 'F');
         }
 
         // Rules running out to the trim from each arc.
@@ -306,13 +277,8 @@ class styles_engraved {
         $g = 0.016 * $c->s();
         $c->alpha(0.6);
         $c->stroke($primary, 0.45);
-        $c->rect(
-            $ou + $g / $c->w(),
-            $ov + $g / $c->h(),
-            1 - 2 * ($ou + $g / $c->w()),
-            1 - 2 * ($ov + $g / $c->h()),
-            'D'
-        );
+        $c->rect($ou + $g / $c->w(), $ov + $g / $c->h(),
+            1 - 2 * ($ou + $g / $c->w()), 1 - 2 * ($ov + $g / $c->h()), 'D');
 
         // The medallion.
         $c->save();
@@ -352,13 +318,8 @@ class styles_engraved {
         $g = 0.013 * $c->s();
         $c->alpha(0.65);
         $c->stroke($primary, 0.42);
-        $c->rect(
-            $ou + $g / $c->w(),
-            $ov + $g / $c->h(),
-            1 - 2 * ($ou + $g / $c->w()),
-            1 - 2 * ($ov + $g / $c->h()),
-            'D'
-        );
+        $c->rect($ou + $g / $c->w(), $ov + $g / $c->h(),
+            1 - 2 * ($ou + $g / $c->w()), 1 - 2 * ($ov + $g / $c->h()), 'D');
 
         // The cartouche the title sits inside.
         // Positioned to sit behind the title, not above it.
@@ -373,18 +334,8 @@ class styles_engraved {
 
         $c->alpha(0.35);
         $c->stroke($primary, 0.3);
-        ornament::strand_band(
-            $c,
-            false,
-            $cu,
-            $cu + $cw,
-            $cv + $ch / 2,
-            $ch * 0.36 * $c->h(),
-            5,
-            $primary,
-            $accent,
-            0.30
-        );
+        ornament::strand_band($c, false, $cu, $cu + $cw, $cv + $ch / 2,
+            $ch * 0.36 * $c->h(), 5, $primary, $accent, 0.30);
 
         $c->alpha(0.95);
         $c->stroke($dark, 0.9);
@@ -395,11 +346,8 @@ class styles_engraved {
             $ds = 0.013 * $c->s();
             $c->alpha(1.0);
             $c->fill($dark);
-            $c->poly(
-                [$du, $cv + $ch / 2 - $ds / $c->h(), $du + $ds / $c->w(), $cv + $ch / 2,
-                    $du, $cv + $ch / 2 + $ds / $c->h(), $du - $ds / $c->w(), $cv + $ch / 2],
-                'F'
-            );
+            $c->poly([$du, $cv + $ch / 2 - $ds / $c->h(), $du + $ds / $c->w(), $cv + $ch / 2,
+                $du, $cv + $ch / 2 + $ds / $c->h(), $du - $ds / $c->w(), $cv + $ch / 2], 'F');
         }
 
         // A matching rule at the foot with a centred rosette.
@@ -445,19 +393,8 @@ class styles_engraved {
         $bands = 15;
         for ($b = 0; $b < $bands; $b++) {
             $centre = $ov + (1 - 2 * $ov) * (($b + 0.5) / $bands);
-            ornament::strand_band(
-                $c,
-                false,
-                $ou,
-                1 - $ou,
-                $centre,
-                (1 - 2 * $ov) * $c->h() / $bands * 0.55,
-                5,
-                $primary,
-                $dark,
-                0.115,
-                0.26
-            );
+            ornament::strand_band($c, false, $ou, 1 - $ou, $centre,
+                (1 - 2 * $ov) * $c->h() / $bands * 0.55, 5, $primary, $dark, 0.115, 0.26);
         }
 
         $c->restore();
@@ -469,13 +406,8 @@ class styles_engraved {
         $g = 0.012 * $c->s();
         $c->alpha(0.6);
         $c->stroke($primary, 0.4);
-        $c->rect(
-            $ou + $g / $c->w(),
-            $ov + $g / $c->h(),
-            1 - 2 * ($ou + $g / $c->w()),
-            1 - 2 * ($ov + $g / $c->h()),
-            'D'
-        );
+        $c->rect($ou + $g / $c->w(), $ov + $g / $c->h(),
+            1 - 2 * ($ou + $g / $c->w()), 1 - 2 * ($ov + $g / $c->h()), 'D');
     }
 
     /**
@@ -498,18 +430,8 @@ class styles_engraved {
             $centre = $spec[0];
             $dir = $spec[1];
 
-            ornament::strand_band(
-                $c,
-                false,
-                0.05,
-                0.95,
-                $centre,
-                $band * 0.44,
-                9,
-                $dark,
-                $primary,
-                0.55
-            );
+            ornament::strand_band($c, false, 0.05, 0.95, $centre, $band * 0.44, 9,
+                $dark, $primary, 0.55);
 
             $c->alpha(0.9);
             $c->stroke($dark, 1.2);

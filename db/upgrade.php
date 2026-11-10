@@ -66,43 +66,64 @@ function xmldb_certificatepro_upgrade($oldversion) {
     }
 
     if ($oldversion < 2026101200) {
+        // A certification cycle awards exactly one document. The unique index is
+        // what enforces that: two requests racing to issue for the same cycle can
+        // both pass an application level check, and only the database can refuse
+        // the second insert. NULL is outside a unique index on every database
+        // Moodle supports, so ordinary course awards are unaffected by it.
         $table = new xmldb_table('certificatepro_issues');
+
         $field = new xmldb_field('cycleid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
+
         $index = new xmldb_index('cycleid', XMLDB_INDEX_UNIQUE, ['cycleid']);
         if (!$dbman->index_exists($table, $index)) {
             $dbman->add_index($table, $index);
         }
+
         upgrade_mod_savepoint(true, 2026101200, 'certificatepro');
     }
+
     if ($oldversion < 2026101201) {
         $table = new xmldb_table('certificatepro');
+
         $field = new xmldb_field('cycleonly', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
+
+        // An activity that a cycle already points at was always meant to be a
+        // cycle issuer; it simply had no way to say so. Marking it here means an
+        // upgraded site does not start handing out ordinary course awards from an
+        // activity whose documents come from the cycle ledger.
         if ($dbman->table_exists(new xmldb_table('local_recertify_cycles'))) {
             $DB->execute(
                 'UPDATE {certificatepro} SET cycleonly = 1
                     WHERE id IN (SELECT certificateid FROM {local_recertify_cycles})'
             );
         }
+
         upgrade_mod_savepoint(true, 2026101201, 'certificatepro');
     }
+
     if ($oldversion < 2026110200) {
         // The settings form used to save a blank "required grade" as 0, which silently required every
         // learner to hold a course grade. A 0% threshold has no other meaning, so treat it as "no requirement".
         $DB->set_field('certificatepro', 'requiregrade', null, ['requiregrade' => 0]);
+
         upgrade_mod_savepoint(true, 2026110200, 'certificatepro');
     }
+
     if ($oldversion < 2026110201) {
         // Keep verification public on sites with forcelogin (the default on Moodle 5.0+), matching core badges.
         if (get_config('mod_certificatepro', 'publicverify') === false) {
             set_config('publicverify', 1, 'mod_certificatepro');
         }
+
         upgrade_mod_savepoint(true, 2026110201, 'certificatepro');
     }
+
     return true;
 }

@@ -81,6 +81,25 @@ class shape extends base {
     }
 
     /**
+     * The configuration a newly dropped shape starts with.
+     *
+     * Without a fill an author dropped a shape and saw nothing at all: the
+     * element was there, selectable in the layers panel, and invisible until
+     * its settings form had been opened and saved once.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'shape' => 'rounded',
+            'fillcolour' => 'primarywash',
+            'strokecolour' => '',
+            'thickness' => 0.4,
+            'radius' => 3.0,
+        ];
+    }
+
+    /**
      * Add the shape settings.
      *
      * @param \MoodleQuickForm $mform the form to extend
@@ -88,47 +107,27 @@ class shape extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'shape',
-            get_string('shape', 'mod_certificatepro'),
-            self::shapes()
-        );
+        $mform->addElement('select', 'shape',
+            get_string('shape', 'mod_certificatepro'), self::shapes());
         $mform->setDefault('shape', 'rounded');
 
-        $mform->addElement(
-            'text',
-            'fillcolour',
-            get_string('fillcolour', 'mod_certificatepro'),
-            ['size' => 12]
-        );
+        $mform->addElement('text', 'fillcolour',
+            get_string('fillcolour', 'mod_certificatepro'), ['size' => 12]);
         $mform->setType('fillcolour', PARAM_TEXT);
         $mform->setDefault('fillcolour', 'primarywash');
 
-        $mform->addElement(
-            'text',
-            'strokecolour',
-            get_string('strokecolour', 'mod_certificatepro'),
-            ['size' => 12]
-        );
+        $mform->addElement('text', 'strokecolour',
+            get_string('strokecolour', 'mod_certificatepro'), ['size' => 12]);
         $mform->setType('strokecolour', PARAM_TEXT);
         $mform->setDefault('strokecolour', '');
 
-        $mform->addElement(
-            'text',
-            'thickness',
-            get_string('linethickness', 'mod_certificatepro'),
-            ['size' => 6]
-        );
+        $mform->addElement('text', 'thickness',
+            get_string('linethickness', 'mod_certificatepro'), ['size' => 6]);
         $mform->setType('thickness', PARAM_FLOAT);
         $mform->setDefault('thickness', 0.4);
 
-        $mform->addElement(
-            'text',
-            'radius',
-            get_string('cornerradius', 'mod_certificatepro'),
-            ['size' => 6]
-        );
+        $mform->addElement('text', 'radius',
+            get_string('cornerradius', 'mod_certificatepro'), ['size' => 6]);
         $mform->setType('radius', PARAM_FLOAT);
         $mform->setDefault('radius', 3);
         $mform->hideIf('radius', 'shape', 'neq', 'rounded');
@@ -219,30 +218,14 @@ class shape extends base {
         switch ($this->config('shape', 'rounded')) {
             case 'circle':
                 $radius = min($width, $height) / 2;
-                $pdf->Circle(
-                    $left + ($width / 2),
-                    $top + ($height / 2),
-                    $radius,
-                    0,
-                    360,
-                    $mode,
-                    $border['all'] ?? [],
-                    $fillcolour
-                );
+                $pdf->Circle($left + ($width / 2), $top + ($height / 2), $radius, 0, 360,
+                    $mode, $border['all'] ?? [], $fillcolour);
                 break;
 
             case 'rounded':
-                $pdf->RoundedRect(
-                    $left,
-                    $top,
-                    $width,
-                    $height,
-                    (float) $this->config('radius', 3),
-                    '1111',
-                    $mode,
-                    $border['all'] ?? [],
-                    $fillcolour
-                );
+                $pdf->RoundedRect($left, $top, $width, $height,
+                    (float) $this->config('radius', 3), '1111', $mode, $border['all'] ?? [],
+                    $fillcolour);
                 break;
 
             case 'ribbon':
@@ -294,15 +277,19 @@ class shape extends base {
 
         $fill = $resolve((string) $this->config('fillcolour', ''));
         $stroke = $resolve((string) $this->config('strokecolour', ''));
-        $thickness = max(0.0, (float) $this->config('thickness', 0.4)) * 3;
+        $thickness = max(0.0, (float) $this->config('thickness', 0.4));
 
         $styles = [
             'width:100%',
             'height:100%',
+            // The border and the radius are millimetres of paper in the print,
+            // so they are stated as millimetres of paper here too rather than as
+            // a fixed pixel guess that only looked right at one zoom level.
+            'box-sizing:border-box',
             'background:' . $fill,
         ];
         if ($stroke !== 'transparent' && $thickness > 0) {
-            $styles[] = 'border:' . $thickness . 'px solid ' . $stroke;
+            $styles[] = 'border:' . $this->canvas_mm($ctx, $thickness) . ' solid ' . $stroke;
         }
 
         switch ($this->config('shape', 'rounded')) {
@@ -310,7 +297,8 @@ class shape extends base {
                 $styles[] = 'border-radius:50%';
                 break;
             case 'rounded':
-                $styles[] = 'border-radius:' . ((float) $this->config('radius', 3) * 3) . 'px';
+                $styles[] = 'border-radius:'
+                    . $this->canvas_mm($ctx, max(0.0, (float) $this->config('radius', 3)));
                 break;
             case 'ribbon':
                 $styles[] = 'clip-path:polygon(0 0,100% 0,92% 50%,100% 100%,0 100%,8% 50%)';
@@ -320,11 +308,7 @@ class shape extends base {
                 break;
         }
 
-        return \html_writer::div(
-            '',
-            'certificatepro-element-shape',
-            [
-                'style' => implode(';', $styles),
-            ]
-        );
+        return \html_writer::div('', 'certificatepro-element-shape', [
+            'style' => implode(';', $styles),
+        ]);
     }}

@@ -20,6 +20,7 @@ use mod_certificatepro\element\base as element_base;
 use mod_certificatepro\element\registry;
 use mod_certificatepro\element\render_context;
 use mod_certificatepro\local\brand;
+use mod_certificatepro\local\starter_templates;
 use mod_certificatepro\local\zone\zone_library;
 
 /**
@@ -153,11 +154,8 @@ class template {
     public function get_pages(): array {
         global $DB;
 
-        return $DB->get_records(
-            'certificatepro_pages',
-            ['templateid' => $this->get_id()],
-            'sequence ASC, id ASC'
-        );
+        return $DB->get_records('certificatepro_pages', ['templateid' => $this->get_id()],
+            'sequence ASC, id ASC');
     }
 
     /**
@@ -169,11 +167,8 @@ class template {
     public function get_elements(int $pageid): array {
         global $DB;
 
-        $records = $DB->get_records(
-            'certificatepro_elements',
-            ['pageid' => $pageid],
-            'zindex ASC, sequence ASC, id ASC'
-        );
+        $records = $DB->get_records('certificatepro_elements', ['pageid' => $pageid],
+            'zindex ASC, sequence ASC, id ASC');
 
         $elements = [];
         foreach ($records as $record) {
@@ -218,6 +213,211 @@ class template {
     }
 
     /**
+     * Change a page's shape, and rearrange what is on it to suit.
+     *
+     * A zone is defined as a fraction of the page, so turning a landscape page
+     * portrait moves and resizes every zone. An element left where it was would
+     * therefore no longer be in the zone it belongs to: a title that spanned a
+     * 297mm page would hang 87mm off the edge of a 210mm one. Every docked
+     * element is re-measured against its own zone at the new size and re-docked,
+     * so the design still reads as a design afterwards.
+     *
+     * @param int $pageid the page to reshape
+     * @param string $orientation zone_library::LANDSCAPE or zone_library::PORTRAIT
+     * @param string $pagesize a key from {@see zone_library::page_sizes()}
+     * @return \stdClass the updated page record
+     */
+    public function set_page_geometry(int $pageid, string $orientation, string $pagesize): \stdClass {
+        global $DB;
+
+        $page = $DB->get_record('certificatepro_pages',
+            ['id' => $pageid, 'templateid' => $this->get_id()], '*', MUST_EXIST);
+
+        $orientation = $orientation === zone_library::PORTRAIT
+            ? zone_library::PORTRAIT
+            : zone_library::LANDSCAPE;
+        if (!array_key_exists($pagesize, zone_library::page_sizes())) {
+            $pagesize = 'A4';
+        }
+
+        $oldwidth = (float) $page->width;
+        $oldheight = (float) $page->height;
+        $oldzones = zone_library::resolve($page->orientation, $oldwidth, $oldheight);
+
+        [$width, $height] = zone_library::dimensions($pagesize, $orientation);
+
+        $page->width = $width;
+        $page->height = $height;
+        $page->orientation = $orientation;
+        $page->pagesize = $pagesize;
+        $page->timemodified = time();
+        $DB->update_record('certificatepro_pages', $page);
+
+        $zones = zone_library::resolve($orientation, $width, $height);
+
+        foreach ($DB->get_records('certificatepro_elements', ['pageid' => $pageid]) as $record) {
+            $zoneid = (string) $record->zoneid;
+            if ($zoneid !== '' && isset($zones[$zoneid])) {
+                $this->redock_element($record, $zones[$zoneid], $oldzones[$zoneid] ?? null);
+            } else {
+                $this->refit_element($record, $oldwidth, $oldheight, $width, $height);
+            }
+        }
+
+        $this->touch();
+
+        return $page;
+    }
+
+    /**
+     * Fit one element back into its zone after the zone has changed size.
+     *
+     * The element keeps the proportion of its zone that the author gave it,
+     * rather than merely being clamped, so that a headline which filled its zone
+     * still fills it and switching orientation twice returns where it started.
+     *
+     * @param \stdClass $record the element record
+     * @param array $zone the zone at its new size, from {@see zone_library::resolve()}
+     * @param array|null $oldzone the same zone at its previous size, when it is known
+     * @return void
+     */
+    protected function redock_element(\stdClass $record, array $zone, ?array $oldzone): void {
+        global $DB;
+
+        $width = (float) $record->width;
+        $height = (float) $record->height;
+
+        if ($oldzone !== null && $oldzone['w'] > 0 && $oldzone['h'] > 0) {
+            $width *= $zone['w'] / $oldzone['w'];
+            $height *= $zone['h'] / $oldzone['h'];
+
+            // A seal, a badge or a QR code is square, and no zone keeps its
+            // proportions through a change of orientation. Scaling the two sides
+            // by different factors would leave a circle drawn as an ellipse, so
+            // anything that arrived square leaves square.
+            if (abs((float) $record->width - (float) $record->height) < 0.01) {
+                $width = $height = min($width, $height);
+            }
+        }
+
+        $width = round(min($width, $zone['w']), 3);
+        $height = round(min($height, $zone['h']), 3);
+        $anchored = zone_library::anchor($zone, $width, $height);
+
+        $DB->update_record('certificatepro_elements', (object) [
+            'id' => (int) $record->id,
+            'posx' => $anchored['posx'],
+            'posy' => $anchored['posy'],
+            'width' => $width,
+            'height' => $height,
+            'refpoint' => $zone['refpoint'],
+            'alignment' => $zone['alignment'],
+            'valignment' => $zone['valignment'],
+            'timemodified' => time(),
+        ]);
+    }
+
+    /**
+     * Bring a freely positioned element back inside a page that has changed shape.
+     *
+     * A hand chosen position is the author's decision and is left alone wherever
+     * it still fits, so this only moves what would otherwise fall off the canvas.
+     *
+     * @param \stdClass $record the element record
+     * @param float $oldwidth the page width before the change, in millimetres
+     * @param float $oldheight the page height before the change, in millimetres
+     * @param float $width the new page width in millimetres
+     * @param float $height the new page height in millimetres
+     * @return void
+     */
+    protected function refit_element(\stdClass $record, float $oldwidth, float $oldheight,
+            float $width, float $height): void {
+        global $DB;
+
+        $box = $this->box_for($record);
+
+        // Artwork and borders are commonly dropped straight onto the canvas
+        // without a zone. Clamping one would leave a bare strip down the side of
+        // the page, so anything that covered the whole page still covers it.
+        if ($box['left'] <= 0.5 && $box['top'] <= 0.5
+                && $box['width'] >= $oldwidth - 0.5 && $box['height'] >= $oldheight - 0.5) {
+            $box = ['left' => 0.0, 'top' => 0.0, 'width' => $width, 'height' => $height];
+        } else {
+            $box['width'] = min($box['width'], $width);
+            $box['height'] = min($box['height'], $height);
+            $box['left'] = max(0.0, min($box['left'], $width - $box['width']));
+            $box['top'] = max(0.0, min($box['top'], $height - $box['height']));
+        }
+
+        $anchored = $this->anchor_for($record, $box);
+
+        $DB->update_record('certificatepro_elements', (object) [
+            'id' => (int) $record->id,
+            'posx' => $anchored['posx'],
+            'posy' => $anchored['posy'],
+            'width' => round($box['width'], 3),
+            'height' => round($box['height'], 3),
+            'timemodified' => time(),
+        ]);
+    }
+
+    /**
+     * The top left corner and size of an element, in millimetres.
+     *
+     * Stored coordinates are those of the element's reference point rather than
+     * of its corner, so they have to be unpacked before any geometry is done.
+     *
+     * @param \stdClass $record the element record
+     * @return array{left: float, top: float, width: float, height: float}
+     */
+    protected function box_for(\stdClass $record): array {
+        $width = (float) $record->width;
+        $height = (float) $record->height;
+        $refpoint = (string) ($record->refpoint ?: 'tl');
+        $left = (float) $record->posx;
+        $top = (float) $record->posy;
+
+        $left -= match (substr($refpoint, 1, 1)) {
+            'c' => $width / 2,
+            'r' => $width,
+            default => 0.0,
+        };
+
+        $top -= match (substr($refpoint, 0, 1)) {
+            'm' => $height / 2,
+            'b' => $height,
+            default => 0.0,
+        };
+
+        return ['left' => $left, 'top' => $top, 'width' => $width, 'height' => $height];
+    }
+
+    /**
+     * The stored coordinates for a box, given the element's reference point.
+     *
+     * @param \stdClass $record the element record
+     * @param array $box left, top, width and height in millimetres
+     * @return array{posx: float, posy: float}
+     */
+    protected function anchor_for(\stdClass $record, array $box): array {
+        $refpoint = (string) ($record->refpoint ?: 'tl');
+
+        $posx = $box['left'] + match (substr($refpoint, 1, 1)) {
+            'c' => $box['width'] / 2,
+            'r' => $box['width'],
+            default => 0.0,
+        };
+
+        $posy = $box['top'] + match (substr($refpoint, 0, 1)) {
+            'm' => $box['height'] / 2,
+            'b' => $box['height'],
+            default => 0.0,
+        };
+
+        return ['posx' => round($posx, 3), 'posy' => round($posy, 3)];
+    }
+
+    /**
      * Remove a page and everything on it.
      *
      * @param int $pageid the page to remove
@@ -253,6 +453,44 @@ class template {
     }
 
     /**
+     * Put this design's pages into a given order.
+     *
+     * The order is stated as the whole list rather than as one page and a
+     * destination, because that is what makes the result independent of what
+     * the browser believed the order was when the author took hold of a page.
+     * A list that is not a rearrangement of exactly this design's pages is
+     * refused outright: renumbering from a partial list would silently drop
+     * pages to the end of the design in an order nobody chose.
+     *
+     * @param int[] $pageids every page of this design, in the order wanted
+     * @return bool true when the order was applied, false when the list did not match
+     */
+    public function reorder_pages(array $pageids): bool {
+        global $DB;
+
+        $wanted = array_values(array_unique(array_map('intval', $pageids)));
+        $known = array_map('intval', array_keys($this->get_pages()));
+
+        $sorted = $wanted;
+        sort($sorted);
+        sort($known);
+        if ($sorted !== $known) {
+            return false;
+        }
+
+        $sequence = 1;
+        foreach ($wanted as $pageid) {
+            $DB->set_field('certificatepro_pages', 'sequence', $sequence,
+                ['id' => $pageid, 'templateid' => $this->get_id()]);
+            $sequence++;
+        }
+
+        $this->touch();
+
+        return true;
+    }
+
+    /**
      * Add an element to a page, docking it into a zone when one is named.
      *
      * @param int $pageid the page to add to
@@ -263,12 +501,8 @@ class template {
     public function add_element(int $pageid, string $type, ?string $zoneid = null): int {
         global $DB;
 
-        $page = $DB->get_record(
-            'certificatepro_pages',
-            ['id' => $pageid, 'templateid' => $this->get_id()],
-            '*',
-            MUST_EXIST
-        );
+        $page = $DB->get_record('certificatepro_pages',
+            ['id' => $pageid, 'templateid' => $this->get_id()], '*', MUST_EXIST);
 
         $element = registry::create($type, $pageid);
         $record = $element->get_record();
@@ -277,8 +511,19 @@ class template {
             $zones = zone_library::resolve($page->orientation, (float) $page->width, (float) $page->height);
             if (isset($zones[$zoneid])) {
                 $zone = $zones[$zoneid];
-                $record->width = min((float) $record->width, $zone['w']);
-                $record->height = min((float) $record->height, $zone['h']);
+                $width = min((float) $record->width, $zone['w']);
+                $height = min((float) $record->height, $zone['h']);
+
+                // Fitting a square into a zone means the smaller side, not each
+                // side clamped on its own: a seal dropped into a wide, shallow
+                // signature zone would otherwise be created as an oval and stay
+                // that way until someone dragged it.
+                if ($element::keepsquare()) {
+                    $width = $height = min($width, $height);
+                }
+
+                [$record->width, $record->height] = $element::constrain_size(
+                    $width, $height, (float) $record->width, (float) $record->height);
                 $anchored = zone_library::anchor($zone, (float) $record->width, (float) $record->height);
                 $record->posx = $anchored['posx'];
                 $record->posy = $anchored['posy'];
@@ -323,7 +568,21 @@ class template {
     }
 
     /**
-     * Remove an element and any files it owns.
+     * Remove an element, leaving the files it owns where they are.
+     *
+     * Deleting an element can be taken back, and destroying the picture on the
+     * way out made that promise a lie: everything else about a picture element
+     * came back and the picture did not, which is the one loss an author cannot
+     * repair from inside the designer. The files therefore outlive the row that
+     * pointed at them, filed under the id the element had.
+     *
+     * Nothing is leaked by that. A file whose element has gone is reachable only
+     * through this design, and {@see self::delete()} sweeps every one of them up
+     * when the design itself goes. Holding them until then rather than until
+     * some shorter deadline is deliberate: the undo window lives in the author's
+     * browser, the server is never told when it closes, and any timer invented
+     * here would eventually expire while an author still had the undo in front
+     * of them.
      *
      * @param int $elementid the element to remove
      * @return void
@@ -336,13 +595,143 @@ class template {
             return;
         }
 
-        $fs = get_file_storage();
-        foreach (registry::all_file_areas() as $area) {
-            $fs->delete_area_files($this->context->id, 'mod_certificatepro', $area, $elementid);
-        }
-
         $DB->delete_records('certificatepro_elements', ['id' => $elementid]);
         $this->touch();
+    }
+
+    /**
+     * Destroy the files a set of elements owned.
+     *
+     * @param int[] $elementids the elements whose files are to go
+     * @return void
+     */
+    protected function purge_element_files(array $elementids): void {
+        $fs = get_file_storage();
+        $areas = registry::all_file_areas();
+
+        foreach ($elementids as $elementid) {
+            foreach ($areas as $area) {
+                $fs->delete_area_files($this->context->id, 'mod_certificatepro', $area,
+                    (int) $elementid);
+            }
+        }
+    }
+
+    /**
+     * Give one element a copy of every file another element owns.
+     *
+     * An element's files are filed under its own id, so an element written as a
+     * new row - a duplicate, or one put back by a restore - starts with none of
+     * them however faithfully the rest of it was copied. This is what carries
+     * them across, and it is the call any code that rebuilds an element under a
+     * new id has to make before asking that element to draw itself, because a
+     * picture element with an empty file area exports no picture at all.
+     *
+     * The count is handed back so a caller can tell an element that gained a
+     * picture from one that never had one, and re-export only the elements whose
+     * drawing has actually changed.
+     *
+     * @param int $fromid the element whose files are to be copied
+     * @param int $toid the element to give them to
+     * @param \context|null $target the context to copy into, or null for this design's own
+     * @return int how many files were copied
+     */
+    public function adopt_element_files(int $fromid, int $toid, ?\context $target = null): int {
+        $fs = get_file_storage();
+        $destination = $target ?? $this->context;
+        $copied = 0;
+
+        foreach (registry::all_file_areas() as $area) {
+            $files = $fs->get_area_files($this->context->id, 'mod_certificatepro', $area,
+                $fromid, 'id', false);
+
+            foreach ($files as $file) {
+                $fs->create_file_from_storedfile([
+                    'contextid' => $destination->id,
+                    'itemid' => $toid,
+                ], $file);
+                $copied++;
+            }
+        }
+
+        return $copied;
+    }
+
+    /**
+     * Whether an element id names a row that still exists anywhere on this site.
+     *
+     * Files left behind by a delete are filed under the id their element had, and
+     * that id is the only handle on them. Handing one to
+     * {@see self::adopt_element_files()} is therefore how a restored element gets
+     * its picture back — and it would equally be how one element could help
+     * itself to a live element's picture, so a caller acting on an id that came
+     * from a browser has to be able to insist the id is a dead one.
+     *
+     * @param int $elementid the id to test
+     * @return bool true when an element row still holds that id
+     */
+    public function element_exists(int $elementid): bool {
+        global $DB;
+
+        return $DB->record_exists('certificatepro_elements', ['id' => $elementid]);
+    }
+
+    /**
+     * Every element id this design still holds, across all of its pages.
+     *
+     * @return int[]
+     */
+    protected function all_element_ids(): array {
+        global $DB;
+
+        $pageids = array_keys($this->get_pages());
+        if (!$pageids) {
+            return [];
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($pageids);
+
+        return array_map('intval',
+            $DB->get_fieldset_select('certificatepro_elements', 'id', "pageid $insql", $params));
+    }
+
+    /**
+     * Destroy element files this context holds that no element points at any more.
+     *
+     * The files an element delete leaves behind are only findable through the
+     * id that element had, and that id is gone from the table the moment the row
+     * is deleted, so a design cannot simply list them when it comes to be
+     * removed. They are found the other way round instead: every element file in
+     * this context is looked at, and one whose itemid names no element at all is
+     * a file no design can ever draw again.
+     *
+     * Sweeping the whole context rather than this design alone is safe because
+     * of that test - a file still owned by a second design in the same context
+     * names a live element and is left alone - and it is what keeps a site whose
+     * authors delete elements but never delete designs from growing files it can
+     * never use.
+     *
+     * @return void
+     */
+    protected function purge_orphan_files(): void {
+        global $DB;
+
+        $fs = get_file_storage();
+
+        foreach (registry::all_file_areas() as $area) {
+            $itemids = $DB->get_fieldset_select('files', 'DISTINCT itemid',
+                'contextid = ? AND component = ? AND filearea = ? AND itemid > 0',
+                [$this->context->id, 'mod_certificatepro', $area]);
+
+            foreach ($itemids as $itemid) {
+                if ($DB->record_exists('certificatepro_elements', ['id' => (int) $itemid])) {
+                    continue;
+                }
+
+                $fs->delete_area_files($this->context->id, 'mod_certificatepro', $area,
+                    (int) $itemid);
+            }
+        }
     }
 
     /**
@@ -407,9 +796,6 @@ class template {
         $copy->timemodified = time();
         $copy->id = $DB->insert_record('certificatepro_templates', $copy);
 
-        $fs = get_file_storage();
-        $areas = registry::all_file_areas();
-
         foreach ($this->get_pages() as $page) {
             $pagecopy = clone $page;
             unset($pagecopy->id);
@@ -418,11 +804,8 @@ class template {
             $pagecopy->timemodified = time();
             $newpageid = (int) $DB->insert_record('certificatepro_pages', $pagecopy);
 
-            $elements = $DB->get_records(
-                'certificatepro_elements',
-                ['pageid' => $page->id],
-                'zindex ASC, id ASC'
-            );
+            $elements = $DB->get_records('certificatepro_elements', ['pageid' => $page->id],
+                'zindex ASC, id ASC');
 
             foreach ($elements as $element) {
                 $oldid = (int) $element->id;
@@ -433,25 +816,7 @@ class template {
                 $elementcopy->timemodified = time();
                 $newid = (int) $DB->insert_record('certificatepro_elements', $elementcopy);
 
-                foreach ($areas as $area) {
-                    $files = $fs->get_area_files(
-                        $this->context->id,
-                        'mod_certificatepro',
-                        $area,
-                        $oldid,
-                        'id',
-                        false
-                    );
-                    foreach ($files as $file) {
-                        $fs->create_file_from_storedfile(
-                            [
-                                'contextid' => $target->id,
-                                'itemid' => $newid,
-                            ],
-                            $file
-                        );
-                    }
-                }
+                $this->adopt_element_files($oldid, $newid, $target);
             }
         }
 
@@ -469,14 +834,11 @@ class template {
         $this->record->revision = (int) $this->record->revision + 1;
         $this->record->timemodified = time();
 
-        $DB->update_record(
-            'certificatepro_templates',
-            (object) [
-                'id' => $this->record->id,
-                'revision' => $this->record->revision,
-                'timemodified' => $this->record->timemodified,
-            ]
-        );
+        $DB->update_record('certificatepro_templates', (object) [
+            'id' => $this->record->id,
+            'revision' => $this->record->revision,
+            'timemodified' => $this->record->timemodified,
+        ]);
     }
 
     /**
@@ -504,16 +866,76 @@ class template {
     }
 
     /**
+     * Throw away every page of this design and rebuild it from its starter.
+     *
+     * The design is rebuilt in place rather than replaced, because the activity,
+     * every issued certificate and every backup refer to this design by id.
+     * The starter is asked for a scratch design and its pages are re-parented
+     * here, which keeps one description of what a starter contains instead of a
+     * second copy of it that would drift out of step.
+     *
+     * @return self
+     */
+    public function reset_to_starter(): self {
+        global $DB;
+
+        // A design that was never built from a starter still has to revert to
+        // something, and the catalogue itself treats classic as the default.
+        $starter = (string) ($this->record->starter ?: 'classic');
+        $fresh = starter_templates::build($starter, $this->get_name(), $this->context);
+
+        // Reverting is the one destructive act the designer offers that undo
+        // cannot walk back, so the pictures of the elements it throws away have
+        // nothing left to come back for. They are noted before the elements go,
+        // because afterwards there is no id left to find them by.
+        $discarded = $this->all_element_ids();
+
+        foreach ($this->get_pages() as $page) {
+            $this->delete_page((int) $page->id);
+        }
+
+        $this->purge_element_files($discarded);
+
+        $DB->set_field('certificatepro_pages', 'templateid', $this->get_id(),
+            ['templateid' => $fresh->get_id()]);
+
+        // The scratch design existed only to be rebuilt into this one, and its
+        // pages have moved here, so only the now empty row is left to remove.
+        $DB->delete_records('certificatepro_templates', ['id' => $fresh->get_id()]);
+
+        // The author's own colours are a property of the design rather than of
+        // the starter, so reverting the layout must not silently rebrand it.
+        $this->update([
+            'fontpairing' => $fresh->get_record()->fontpairing,
+            'starter' => $starter,
+        ]);
+
+        return $this;
+    }
+
+    /**
      * Delete this design and everything belonging to it.
+     *
+     * This is where element files finally go. An element delete leaves them
+     * behind so that undo can put a picture back; nothing else in the plugin
+     * ever removes them, so a design that is being removed has to take both its
+     * own elements' files and the ones its earlier deletes left stranded.
      *
      * @return void
      */
     public function delete(): void {
         global $DB;
 
+        // Read before the pages go: once the element rows are deleted their ids
+        // are the only handle on their files and the table no longer has them.
+        $owned = $this->all_element_ids();
+
         foreach ($this->get_pages() as $page) {
             $this->delete_page((int) $page->id);
         }
+
+        $this->purge_element_files($owned);
+        $this->purge_orphan_files();
 
         $DB->delete_records('certificatepro_templates', ['id' => $this->get_id()]);
     }
@@ -563,13 +985,8 @@ class template {
                 ],
                 'backgroundcolour' => $page->backgroundcolour,
                 'sequence' => (int) $page->sequence,
-                'zones' => array_values(
-                    zone_library::resolve(
-                        $page->orientation,
-                        (float) $page->width,
-                        (float) $page->height
-                    )
-                ),
+                'zones' => array_values(zone_library::resolve(
+                    $page->orientation, (float) $page->width, (float) $page->height)),
                 'guides' => zone_library::guides(
                     (float) $page->width,
                     (float) $page->height,

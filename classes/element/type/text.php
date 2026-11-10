@@ -67,6 +67,17 @@ class text extends text_base {
     }
 
     /**
+     * The configuration a newly dropped line of text starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'content' => '',
+        ];
+    }
+
+    /**
      * Add the text area and the token helper.
      *
      * @param \MoodleQuickForm $mform the form to extend
@@ -74,12 +85,9 @@ class text extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'textarea',
-            'content',
+        $mform->addElement('textarea', 'content',
             get_string('elementtext', 'mod_certificatepro'),
-            ['rows' => 4, 'cols' => 60]
-        );
+            ['rows' => 4, 'cols' => 60]);
         $mform->setType('content', PARAM_TEXT);
         $mform->addHelpButton('content', 'elementtext', 'mod_certificatepro');
     }

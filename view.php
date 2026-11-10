@@ -36,10 +36,17 @@ $context = context_module::instance($cm->id);
 
 require_login($course, true, $cm);
 require_capability('mod/certificatepro:view', $context);
+
+// A cycle issuer has nothing of its own to show: its documents are listed
+// against the cycles that earned them, and this page would only offer a course
+// award that this activity is forbidden to make. Send the learner where their
+// documents actually are. Refusing outright when the ledger is absent is
+// deliberate — the alternative is an activity that silently looks ordinary.
 if (!empty($instance->cycleonly)) {
     if (!class_exists('\\local_recertify\\cycle_service')) {
         throw new moodle_exception('cycleproviderunavailable', 'mod_certificatepro');
     }
+
     redirect(new moodle_url('/local/recertify/cycles.php'));
 }
 
@@ -50,15 +57,13 @@ $PAGE->set_context($context);
 $PAGE->set_cm($cm, $course, $instance);
 $PAGE->set_title(format_string($instance->name));
 $PAGE->set_heading(format_string($course->fullname));
-$PAGE->set_activity_record($instance);
 
 certificatepro_view($instance, $course, $cm, $context);
 
 $unmet = issue_service::unmet_criteria($instance, $USER, $course, $cm);
 $issue = issue_service::get_issue((int) $instance->id, (int) $USER->id);
 
-if ($issue === null && empty($unmet) && !empty($instance->autoissue) &&
-        has_capability('mod/certificatepro:receive', $context, null, false)) {
+if ($issue === null && empty($unmet) && !empty($instance->autoissue)) {
     $issue = issue_service::issue($instance, $course, $context, $USER);
 }
 
@@ -69,30 +74,17 @@ if ($badge && $issue !== null && empty($issue->revoked)) {
     require_sesskey();
 
     $svg = \mod_certificatepro\local\credential\badge_service::badge(
-        $issue,
-        $instance,
-        $course,
-        $USER
-    );
+        $issue, $instance, $course, $USER);
 
-    \mod_certificatepro\event\certificate_downloaded::create(
-        [
-            'objectid' => $issue->id,
-            'context' => $context,
-            'relateduserid' => $USER->id,
-            'other' => ['format' => 'badge'],
-        ]
-    )->trigger();
+    \mod_certificatepro\event\certificate_downloaded::create([
+        'objectid' => $issue->id,
+        'context' => $context,
+        'relateduserid' => $USER->id,
+        'other' => ['format' => 'badge'],
+    ])->trigger();
 
-    send_file(
-        $svg,
-        \mod_certificatepro\local\credential\badge_service::filename($issue),
-        0,
-        0,
-        true,
-        true,
-        'image/svg+xml'
-    );
+    send_file($svg, \mod_certificatepro\local\credential\badge_service::filename($issue),
+        0, 0, true, true, 'image/svg+xml');
     exit;
 }
 
@@ -102,32 +94,23 @@ if ($download && $issue !== null && empty($issue->revoked)) {
     $file = issue_service::get_file($instance, $course, $context, $USER, $issue);
 
     if ($file) {
-        \mod_certificatepro\event\certificate_downloaded::create(
-            [
-                'objectid' => $issue->id,
-                'context' => $context,
-                'relateduserid' => $USER->id,
-            ]
-        )->trigger();
+        \mod_certificatepro\event\certificate_downloaded::create([
+            'objectid' => $issue->id,
+            'context' => $context,
+            'relateduserid' => $USER->id,
+        ])->trigger();
 
-        send_stored_file(
-            $file,
-            0,
-            0,
-            $instance->deliveryoption === 'D',
-            [
-                'filename' => issue_service::filename($instance, $course, $USER, $issue),
-            ]
-        );
+        send_stored_file($file, 0, 0, $instance->deliveryoption === 'D', [
+            'filename' => issue_service::filename($instance, $course, $USER, $issue),
+        ]);
         exit;
     }
 }
 
+// The description is drawn by the activity header, which set_cm() above has
+// already been given the activity record for. Printing it a second time here
+// put two copies on the page, both carrying id="intro".
 echo $OUTPUT->header();
-
-if (!empty($instance->intro)) {
-    echo $OUTPUT->box(format_module_intro('certificatepro', $instance, $cm->id), 'generalbox', 'intro');
-}
 
 $renderer = $PAGE->get_renderer('mod_certificatepro');
 echo $renderer->render_learner_view($instance, $course, $cm, $context, $issue, $unmet);

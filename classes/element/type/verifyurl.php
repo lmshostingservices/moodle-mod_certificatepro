@@ -69,15 +69,23 @@ class verifyurl extends text_base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(
-            parent::default_style(),
-            [
-                'font' => 'accent',
-                'scalerole' => 'footer',
-                'size' => null,
-                'colour' => 'muted',
-            ]
-        );
+        return array_merge(parent::default_style(), [
+            'font' => 'accent',
+            'scalerole' => 'footer',
+            'size' => null,
+            'colour' => 'muted',
+        ]);
+    }
+
+    /**
+     * The configuration a newly dropped verification address starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'label' => get_string('verifyurllabeldefault', 'mod_certificatepro'),
+        ];
     }
 
     /**
@@ -88,12 +96,8 @@ class verifyurl extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'text',
-            'label',
-            get_string('verifyurllabel', 'mod_certificatepro'),
-            ['size' => 50]
-        );
+        $mform->addElement('text', 'label',
+            get_string('verifyurllabel', 'mod_certificatepro'), ['size' => 50]);
         $mform->setType('label', PARAM_TEXT);
         $mform->setDefault('label', get_string('verifyurllabeldefault', 'mod_certificatepro'));
     }

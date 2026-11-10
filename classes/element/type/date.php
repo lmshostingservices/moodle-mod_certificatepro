@@ -73,14 +73,11 @@ class date extends text_base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(
-            parent::default_style(),
-            [
-                'font' => 'body',
-                'scalerole' => 'meta',
-                'size' => null,
-            ]
-        );
+        return array_merge(parent::default_style(), [
+            'font' => 'body',
+            'scalerole' => 'meta',
+            'size' => null,
+        ]);
     }
 
     /**
@@ -128,6 +125,23 @@ class date extends text_base {
     }
 
     /**
+     * The configuration a newly dropped date starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'datesource' => 'issued',
+            'dateformat' => '%d %B %Y',
+            'datecustom' => '',
+            'datelanguage' => '',
+            'datetimezone' => '99',
+            'datenumerals' => 'default',
+            'dateprefix' => '',
+        ];
+    }
+
+    /**
      * Add the date source, format, language and timezone choices.
      *
      * @param \MoodleQuickForm $mform the form to extend
@@ -135,70 +149,42 @@ class date extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'datesource',
-            get_string('datesource', 'mod_certificatepro'),
-            self::sources()
-        );
+        $mform->addElement('select', 'datesource',
+            get_string('datesource', 'mod_certificatepro'), self::sources());
         $mform->setDefault('datesource', 'issued');
 
-        $mform->addElement(
-            'select',
-            'dateformat',
-            get_string('dateformat', 'mod_certificatepro'),
-            self::formats()
-        );
+        $mform->addElement('select', 'dateformat',
+            get_string('dateformat', 'mod_certificatepro'), self::formats());
         $mform->setDefault('dateformat', '%d %B %Y');
 
-        $mform->addElement(
-            'text',
-            'datecustom',
-            get_string('date_custom', 'mod_certificatepro'),
-            ['size' => 30]
-        );
+        $mform->addElement('text', 'datecustom',
+            get_string('date_custom', 'mod_certificatepro'), ['size' => 30]);
         $mform->setType('datecustom', PARAM_TEXT);
         $mform->hideIf('datecustom', 'dateformat', 'neq', 'custom');
         $mform->addHelpButton('datecustom', 'date_custom', 'mod_certificatepro');
 
         $languages = ['' => get_string('datelanguagedefault', 'mod_certificatepro')]
             + get_string_manager()->get_list_of_translations();
-        $mform->addElement(
-            'select',
-            'datelanguage',
-            get_string('datelanguage', 'mod_certificatepro'),
-            $languages
-        );
+        $mform->addElement('select', 'datelanguage',
+            get_string('datelanguage', 'mod_certificatepro'), $languages);
 
         $timezones = ['99' => get_string('datetimezoneserver', 'mod_certificatepro')]
             + \core_date::get_list_of_timezones();
-        $mform->addElement(
-            'select',
-            'datetimezone',
-            get_string('datetimezone', 'mod_certificatepro'),
-            $timezones
-        );
+        $mform->addElement('select', 'datetimezone',
+            get_string('datetimezone', 'mod_certificatepro'), $timezones);
         $mform->setDefault('datetimezone', '99');
 
-        $mform->addElement(
-            'select',
-            'datenumerals',
-            get_string('datenumerals', 'mod_certificatepro'),
-            [
+        $mform->addElement('select', 'datenumerals',
+            get_string('datenumerals', 'mod_certificatepro'), [
                 'default' => get_string('datenumerals_default', 'mod_certificatepro'),
                 'western' => get_string('datenumerals_western', 'mod_certificatepro'),
                 'arabic' => get_string('datenumerals_arabic', 'mod_certificatepro'),
                 'devanagari' => get_string('datenumerals_devanagari', 'mod_certificatepro'),
-            ]
-        );
+            ]);
         $mform->setDefault('datenumerals', 'default');
 
-        $mform->addElement(
-            'text',
-            'dateprefix',
-            get_string('dateprefix', 'mod_certificatepro'),
-            ['size' => 40]
-        );
+        $mform->addElement('text', 'dateprefix',
+            get_string('dateprefix', 'mod_certificatepro'), ['size' => 40]);
         $mform->setType('dateprefix', PARAM_TEXT);
     }
 

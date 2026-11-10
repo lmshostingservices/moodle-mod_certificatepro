@@ -115,7 +115,11 @@ class registry {
         $record->pageid = $pageid;
         $record->element = $type;
         $record->name = $class::display_name();
-        $record->data = json_encode([]);
+        // The type's own defaults, not an empty configuration. A shape created
+        // with no fill, or a date with no format, draws nothing at all until the
+        // author has opened and saved its settings form once - which looks like
+        // the element failed to be added rather than like an empty element.
+        $record->data = json_encode($class::default_data(), JSON_PRESERVE_ZERO_FRACTION);
         $record->style = json_encode($class::default_style(), JSON_PRESERVE_ZERO_FRACTION);
         $record->posx = 0.0;
         $record->posy = 0.0;
@@ -171,12 +175,9 @@ class registry {
             if (empty($items)) {
                 continue;
             }
-            usort(
-                $items,
-                static function (array $a, array $b): int {
-                    return strcmp($a['name'], $b['name']);
-                }
-            );
+            usort($items, static function (array $a, array $b): int {
+                return strcmp($a['name'], $b['name']);
+            });
             $catalogue[] = [
                 'id' => $category,
                 'name' => get_string('elementcategory_' . $category, 'mod_certificatepro'),

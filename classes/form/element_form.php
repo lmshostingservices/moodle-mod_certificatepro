@@ -36,6 +36,16 @@ require_once($GLOBALS['CFG']->libdir . '/formslib.php');
  */
 class element_form extends \moodleform {
     /**
+     * The emphasis checkboxes, keyed by form field name and mapped to the
+     * style key each one is stored under.
+     */
+    protected const EMPHASIS = [
+        'stylebold' => 'bold',
+        'styleitalic' => 'italic',
+        'styleunderline' => 'underline',
+    ];
+
+    /**
      * Build the form.
      *
      * @return void
@@ -46,8 +56,12 @@ class element_form extends \moodleform {
         $element = $this->_customdata['element'];
         $context = $this->_customdata['context'];
 
-        // The form posts back to edit.php without a query string, so 'id' must carry the course module id.
-        $mform->addElement('hidden', 'id', $this->_customdata['cmid']);
+        // The page this form posts back to reads "id" as the course module id,
+        // the way every activity page in Moodle does, and names the element with
+        // "elementid" instead. Posting the element's id as "id" sent the page
+        // looking for a course module that does not exist, and every attempt to
+        // save an element's settings ended in a database exception.
+        $mform->addElement('hidden', 'id', (int) $this->_customdata['cmid']);
         $mform->setType('id', PARAM_INT);
         $mform->addElement('hidden', 'action', 'editelement');
         $mform->setType('action', PARAM_ALPHA);
@@ -63,11 +77,8 @@ class element_form extends \moodleform {
 
         // Typography, but only for elements that draw words.
         if ($element instanceof \mod_certificatepro\element\text_base) {
-            $mform->addElement(
-                'header',
-                'typographyheader',
-                get_string('designer_inspector', 'mod_certificatepro')
-            );
+            $mform->addElement('header', 'typographyheader',
+                get_string('designer_inspector', 'mod_certificatepro'));
 
             $fonts = [
                 'heading' => get_string('elementfont_heading', 'mod_certificatepro'),
@@ -75,128 +86,92 @@ class element_form extends \moodleform {
                 'accent' => get_string('elementfont_accent', 'mod_certificatepro'),
             ] + font_manager::catalogue();
 
-            $mform->addElement(
-                'select',
-                'stylefont',
-                get_string('elementfont', 'mod_certificatepro'),
-                $fonts
-            );
+            $mform->addElement('select', 'stylefont',
+                get_string('elementfont', 'mod_certificatepro'), $fonts);
             $mform->addHelpButton('stylefont', 'elementfont', 'mod_certificatepro');
 
-            $mform->addElement(
-                'text',
-                'stylesize',
-                get_string('elementsize', 'mod_certificatepro'),
-                ['size' => 6]
-            );
-            $mform->setType('stylesize', PARAM_TEXT);
+            $mform->addElement('text', 'stylesize',
+                get_string('elementsize', 'mod_certificatepro'), ['size' => 6]);
+            $mform->setType('stylesize', PARAM_FLOAT);
 
-            $mform->addElement(
-                'text',
-                'stylecolour',
-                get_string('elementcolour', 'mod_certificatepro'),
-                ['size' => 14]
-            );
+            $mform->addElement('text', 'stylecolour',
+                get_string('elementcolour', 'mod_certificatepro'), ['size' => 14]);
             $mform->setType('stylecolour', PARAM_TEXT);
             $mform->addHelpButton('stylecolour', 'elementcolour', 'mod_certificatepro');
 
             $emphasis = [
                 $mform->createElement('advcheckbox', 'stylebold', '', get_string('bold', 'editor')),
                 $mform->createElement('advcheckbox', 'styleitalic', '', get_string('italic', 'editor')),
-                $mform->createElement(
-                    'advcheckbox',
-                    'styleunderline',
-                    '',
-                    get_string('underline', 'editor')
-                ),
+                $mform->createElement('advcheckbox', 'styleunderline', '',
+                    get_string('underline', 'editor')),
             ];
-            $mform->addGroup(
-                $emphasis,
-                'emphasisgroup',
-                get_string('elementemphasis', 'mod_certificatepro'),
-                ' ',
-                false
-            );
+            // The group appends its own name to each checkbox, so they arrive
+            // as emphasisgroup[stylebold] and can be given a default that
+            // actually reaches them. Without the appended name a default set
+            // on "stylebold" lands nowhere, the form redisplays saved emphasis
+            // as unticked, and re-saving that form writes the emphasis away.
+            $mform->addGroup($emphasis, 'emphasisgroup',
+                get_string('elementemphasis', 'mod_certificatepro'), ' ', true);
 
-            $mform->addElement(
-                'select',
-                'stylecase',
-                get_string('elementcase', 'mod_certificatepro'),
-                [
+            $mform->addElement('select', 'stylecase',
+                get_string('elementcase', 'mod_certificatepro'), [
                     'none' => get_string('elementcase_none', 'mod_certificatepro'),
                     'upper' => get_string('elementcase_upper', 'mod_certificatepro'),
                     'lower' => get_string('elementcase_lower', 'mod_certificatepro'),
                     'title' => get_string('elementcase_title', 'mod_certificatepro'),
-                ]
-            );
+                ]);
 
-            $mform->addElement(
-                'text',
-                'styletracking',
-                get_string('elementtracking', 'mod_certificatepro'),
-                ['size' => 6]
-            );
+            $mform->addElement('text', 'styletracking',
+                get_string('elementtracking', 'mod_certificatepro'), ['size' => 6]);
             $mform->setType('styletracking', PARAM_FLOAT);
 
-            $mform->addElement(
-                'text',
-                'stylelineheight',
-                get_string('elementlineheight', 'mod_certificatepro'),
-                ['size' => 6]
-            );
+            $mform->addElement('text', 'stylelineheight',
+                get_string('elementlineheight', 'mod_certificatepro'), ['size' => 6]);
             $mform->setType('stylelineheight', PARAM_FLOAT);
 
-            $mform->addElement(
-                'select',
-                'alignment',
-                get_string('elementalignment', 'mod_certificatepro'),
-                [
+            $mform->addElement('select', 'alignment',
+                get_string('elementalignment', 'mod_certificatepro'), [
                     'L' => get_string('elementalignment_left', 'mod_certificatepro'),
                     'C' => get_string('elementalignment_centre', 'mod_certificatepro'),
                     'R' => get_string('elementalignment_right', 'mod_certificatepro'),
                     'J' => get_string('elementalignment_justify', 'mod_certificatepro'),
-                ]
-            );
+                ]);
             $mform->addHelpButton('alignment', 'elementalignment', 'mod_certificatepro');
 
-            $mform->addElement(
-                'advcheckbox',
-                'stylefit',
-                get_string('elementfit', 'mod_certificatepro')
-            );
+            $mform->addElement('advcheckbox', 'stylefit',
+                get_string('elementfit', 'mod_certificatepro'));
             $mform->addHelpButton('stylefit', 'elementfit', 'mod_certificatepro');
 
-            $mform->addElement(
-                'text',
-                'stylemaxlines',
-                get_string('elementmaxlines', 'mod_certificatepro'),
-                ['size' => 6]
-            );
+            $mform->addElement('text', 'stylemaxlines',
+                get_string('elementmaxlines', 'mod_certificatepro'), ['size' => 6]);
             $mform->setType('stylemaxlines', PARAM_INT);
         }
 
         // Position, for anyone who prefers numbers to dragging.
-        $mform->addElement(
-            'header',
-            'positionheader',
-            get_string('elementposition', 'mod_certificatepro')
-        );
+        $mform->addElement('header', 'positionheader',
+            get_string('elementposition', 'mod_certificatepro'));
 
         foreach (['posx', 'posy', 'width', 'height', 'rotation'] as $field) {
-            $mform->addElement(
-                'text',
-                $field,
-                get_string('designer_' . $field, 'mod_certificatepro'),
-                ['size' => 8]
-            );
+            $mform->addElement('text', $field,
+                get_string('designer_' . $field, 'mod_certificatepro'), ['size' => 8]);
             $mform->setType($field, PARAM_FLOAT);
         }
 
-        $mform->addElement(
-            'select',
-            'refpoint',
-            get_string('elementrefpoint', 'mod_certificatepro'),
-            [
+        // A type that settles its own size says so rather than offering two
+        // boxes and then ignoring what is typed into them. save() enforces this
+        // as well - a frozen field is only a courtesy, and the request that
+        // arrives is not obliged to have come from this form.
+        if (!$element::resizable()) {
+            $mform->addElement('static', 'sizefixed', '',
+                get_string('elementsizefixed', 'mod_certificatepro'));
+            $mform->hardFreeze(['width', 'height']);
+        } else if ($element::keepsquare()) {
+            $mform->addElement('static', 'sizesquare', '',
+                get_string('elementsizesquare', 'mod_certificatepro'));
+        }
+
+        $mform->addElement('select', 'refpoint',
+            get_string('elementrefpoint', 'mod_certificatepro'), [
                 'tl' => get_string('refpoint_tl', 'mod_certificatepro'),
                 'tc' => get_string('refpoint_tc', 'mod_certificatepro'),
                 'tr' => get_string('refpoint_tr', 'mod_certificatepro'),
@@ -206,20 +181,15 @@ class element_form extends \moodleform {
                 'bl' => get_string('refpoint_bl', 'mod_certificatepro'),
                 'bc' => get_string('refpoint_bc', 'mod_certificatepro'),
                 'br' => get_string('refpoint_br', 'mod_certificatepro'),
-            ]
-        );
+            ]);
         $mform->addHelpButton('refpoint', 'elementrefpoint', 'mod_certificatepro');
 
-        $mform->addElement(
-            'select',
-            'valignment',
-            get_string('elementvalignment', 'mod_certificatepro'),
-            [
+        $mform->addElement('select', 'valignment',
+            get_string('elementvalignment', 'mod_certificatepro'), [
                 'T' => get_string('elementvalignment_top', 'mod_certificatepro'),
                 'M' => get_string('elementvalignment_middle', 'mod_certificatepro'),
                 'B' => get_string('elementvalignment_bottom', 'mod_certificatepro'),
-            ]
-        );
+            ]);
 
         $this->add_action_buttons();
 
@@ -249,11 +219,8 @@ class element_form extends \moodleform {
             'alignment' => $element->get_alignment(),
             'valignment' => $element->get_valignment(),
             'stylefont' => $style['font'] ?? 'body',
-            'stylesize' => isset($style['size']) && $style['size'] !== null ? format_float((float)$style['size'], -1) : '',
+            'stylesize' => $style['size'],
             'stylecolour' => $style['colour'] ?? 'ink',
-            'stylebold' => !empty($style['bold']) ? 1 : 0,
-            'styleitalic' => !empty($style['italic']) ? 1 : 0,
-            'styleunderline' => !empty($style['underline']) ? 1 : 0,
             'stylecase' => $style['case'] ?? 'none',
             'styletracking' => $style['tracking'] ?? 0,
             'stylelineheight' => $style['lineheight'] ?? 1.25,
@@ -267,6 +234,16 @@ class element_form extends \moodleform {
             }
         }
 
+        // Bold, italic and underline sit inside a group, so the name the form
+        // knows each one by is the group's name with the checkbox's name in
+        // brackets. They are set apart from the flat fields above because
+        // elementExists() only ever sees the group itself.
+        if ($mform->elementExists('emphasisgroup')) {
+            foreach (self::EMPHASIS as $field => $key) {
+                $mform->setDefault('emphasisgroup[' . $field . ']', !empty($style[$key]) ? 1 : 0);
+            }
+        }
+
         $element->prepare_form($mform);
 
         // Files live in a draft area until the form is submitted.
@@ -275,19 +252,40 @@ class element_form extends \moodleform {
                 continue;
             }
             $draftitemid = file_get_submitted_draft_itemid('imagefile');
-            file_prepare_draft_area(
-                $draftitemid,
-                $context->id,
-                'mod_certificatepro',
-                $area,
-                $element->get_id(),
-                ['subdirs' => 0, 'maxfiles' => 1]
-            );
+            file_prepare_draft_area($draftitemid, $context->id, 'mod_certificatepro',
+                $area, $element->get_id(), ['subdirs' => 0, 'maxfiles' => 1]);
             $mform->getElement('imagefile')->setValue($draftitemid);
             break;
         }
 
         unset($record);
+    }
+
+    /**
+     * Unfold the emphasis group back into the flat fields the rest of the
+     * class works with.
+     *
+     * Grouping the three checkboxes is a layout decision; nothing downstream
+     * should have to know about it, so the group is flattened away here and
+     * save() goes on reading plain stylebold, styleitalic and styleunderline.
+     *
+     * @return \stdClass|null the submitted data
+     */
+    public function get_data() {
+        $data = parent::get_data();
+
+        if ($data === null) {
+            return null;
+        }
+
+        if (isset($data->emphasisgroup) && is_array($data->emphasisgroup)) {
+            foreach (array_keys(self::EMPHASIS) as $field) {
+                $data->{$field} = !empty($data->emphasisgroup[$field]) ? 1 : 0;
+            }
+            unset($data->emphasisgroup);
+        }
+
+        return $data;
     }
 
     /**
@@ -302,12 +300,6 @@ class element_form extends \moodleform {
         /** @var element_base $element */
         $element = $this->_customdata['element'];
 
-        if (isset($data['stylesize']) && trim((string)$data['stylesize']) !== '') {
-            $size = unformat_float($data['stylesize'], true);
-            if ($size === false || $size === null || $size <= 0 || $size > 400) {
-                $errors['stylesize'] = get_string('err_numeric', 'form');
-            }
-        }
         return array_merge($errors, $element->validate_form($data, $files));
     }
 
@@ -348,11 +340,7 @@ class element_form extends \moodleform {
                 if (in_array($key, ['bold', 'italic', 'underline', 'fit'], true)) {
                     $value = !empty($value);
                 } else if ($key === 'size') {
-                    $value = trim((string)$value);
-                    $value = ($value === '') ? null : (float) unformat_float($value);
-                    if ($value !== null && $value <= 0) {
-                        $value = null;
-                    }
+                    $value = ($value === '' || $value === null) ? null : (float) $value;
                 } else if (in_array($key, ['tracking', 'lineheight'], true)) {
                     $value = (float) $value;
                 } else if ($key === 'maxlines') {
@@ -363,11 +351,24 @@ class element_form extends \moodleform {
         }
         $record->style = json_encode($style, JSON_PRESERVE_ZERO_FRACTION);
 
+        // Read before the loop writes over them: a type that settles its own
+        // size is entitled to keep the box it already has, and the record is
+        // the only place that box still exists once the submitted values land.
+        $storedwidth = (float) $record->width;
+        $storedheight = (float) $record->height;
+
         foreach (['posx', 'posy', 'width', 'height', 'rotation'] as $field) {
             if (property_exists($data, $field)) {
                 $record->{$field} = round((float) $data->{$field}, 3);
             }
         }
+
+        // The same rule the designer's own save applies. Typing an oval into a
+        // seal's two boxes has to be as impossible as dragging one.
+        [$width, $height] = $element::constrain_size((float) $record->width,
+            (float) $record->height, $storedwidth, $storedheight);
+        $record->width = round($width, 3);
+        $record->height = round($height, 3);
         foreach (['refpoint', 'alignment', 'valignment'] as $field) {
             if (property_exists($data, $field)) {
                 $record->{$field} = clean_param($data->{$field}, PARAM_ALPHA);

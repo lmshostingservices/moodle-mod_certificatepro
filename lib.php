@@ -113,18 +113,24 @@ function certificatepro_update_instance($data, $mform = null) {
 function certificatepro_delete_instance($id) {
     global $DB;
 
-    // Serialize with issuer binding and ordinary issuance. Checking only issued
-    // documents strands an allocated learner before their first award exists.
+    // The same lock issuing takes, so a delete cannot run between the moment an
+    // award is allocated and the moment its document exists.
     $lock = \core\lock\lock_config::get_lock_factory('mod_certificatepro')
         ->get_lock('issuer_' . $id, 10);
     if (!$lock) {
         throw new moodle_exception('locktimeout', 'moodle');
     }
+
     try {
         $instance = $DB->get_record('certificatepro', ['id' => $id]);
         if (!$instance) {
             return false;
         }
+
+        // Certification history outlives the course it was issued from, and this
+        // delete would take the documents with it. A cycle the ledger still holds
+        // counts even before its first document exists, which is why the ledger is
+        // asked as well as this plugin's own rows.
         $hascycles = $DB->get_manager()->table_exists(new xmldb_table('local_recertify_cycles'))
             && $DB->record_exists('local_recertify_cycles', ['certificateid' => $id]);
         if ($hascycles || $DB->record_exists_select(
@@ -134,9 +140,11 @@ function certificatepro_delete_instance($id) {
         )) {
             throw new moodle_exception('cyclehistoryprotected', 'mod_certificatepro');
         }
+
         $cm = get_coursemodule_from_instance('certificatepro', $id, $instance->course, false, IGNORE_MISSING);
         if ($cm) {
             $context = context_module::instance($cm->id);
+
             try {
                 $template = \mod_certificatepro\template::load((int) $instance->templateid);
                 if ($template->get_context()->id === $context->id) {
@@ -145,10 +153,13 @@ function certificatepro_delete_instance($id) {
             } catch (Throwable $e) {
                 debugging('Certificate Pro could not delete a design: ' . $e->getMessage(), DEBUG_DEVELOPER);
             }
+
             get_file_storage()->delete_area_files($context->id, 'mod_certificatepro');
         }
+
         $DB->delete_records('certificatepro_issues', ['certificateproid' => $id]);
         $DB->delete_records('certificatepro', ['id' => $id]);
+
         return true;
     } finally {
         $lock->release();
@@ -216,18 +227,16 @@ function certificatepro_pluginfile($course, $cm, $context, string $filearea, arr
 
     // A rendered certificate belongs to one person.
     if ($filearea === \mod_certificatepro\local\issue_service::FILEAREA) {
-        if ($context->contextlevel !== CONTEXT_MODULE || empty($cm->instance)) {
-            return false;
-        }
         $issueid = (int) ($args[0] ?? 0);
         $issue = $DB->get_record('certificatepro_issues', ['id' => $issueid]);
         if (!$issue) {
             return false;
         }
-        // Revocation applies to ordinary awards as well as certification cycles.
-        // A copied URL must not bypass the download controls in the interface.
-        if ((int)$issue->certificateproid !== (int)$cm->instance
-                || !in_array(\mod_certificatepro\local\issue_service::status($issue), ['valid', 'expired'], true)) {
+        // Withdrawing an award has to withdraw the document as well. The
+        // interface stops offering it, but the holder may already have copied
+        // this URL, and a cycle document can be withdrawn by the ledger without
+        // anything here changing, so the status is asked for rather than assumed.
+        if (!in_array(\mod_certificatepro\local\issue_service::status($issue), ['valid', 'expired'], true)) {
             return false;
         }
         if ((int) $issue->userid !== (int) $USER->id
@@ -305,6 +314,10 @@ function certificatepro_reset_userdata($data): array {
         $instances = $DB->get_records('certificatepro', ['course' => $data->courseid], '', 'id');
 
         foreach ($instances as $instance) {
+            // Resetting a course is for clearing out a run of teaching. A
+            // certification document is evidence that outlives the course copy it
+            // happens to sit in, so the reset reports that it was refused rather
+            // than destroying the history quietly.
             if ($DB->record_exists_select(
                 'certificatepro_issues',
                 'certificateproid = :id AND cycleid IS NOT NULL',
@@ -317,13 +330,9 @@ function certificatepro_reset_userdata($data): array {
                 ];
                 continue;
             }
-            $cm = get_coursemodule_from_instance(
-                'certificatepro',
-                $instance->id,
-                $data->courseid,
-                false,
-                IGNORE_MISSING
-            );
+
+            $cm = get_coursemodule_from_instance('certificatepro', $instance->id,
+                $data->courseid, false, IGNORE_MISSING);
             if ($cm) {
                 get_file_storage()->delete_area_files(
                     context_module::instance($cm->id)->id,
@@ -351,16 +360,10 @@ function certificatepro_reset_userdata($data): array {
  * @return void
  */
 function certificatepro_reset_course_form_definition(&$mform): void {
-    $mform->addElement(
-        'header',
-        'certificateproheader',
-        get_string('modulenameplural', 'mod_certificatepro')
-    );
-    $mform->addElement(
-        'advcheckbox',
-        'reset_certificatepro_issues',
-        get_string('resetissues', 'mod_certificatepro')
-    );
+    $mform->addElement('header', 'certificateproheader',
+        get_string('modulenameplural', 'mod_certificatepro'));
+    $mform->addElement('advcheckbox', 'reset_certificatepro_issues',
+        get_string('resetissues', 'mod_certificatepro'));
 }
 
 /**
@@ -383,11 +386,8 @@ function certificatepro_scale_used_anywhere($scaleid): bool {
 function certificatepro_get_coursemodule_info($coursemodule) {
     global $DB;
 
-    $instance = $DB->get_record(
-        'certificatepro',
-        ['id' => $coursemodule->instance],
-        'id, name, intro, introformat'
-    );
+    $instance = $DB->get_record('certificatepro', ['id' => $coursemodule->instance],
+        'id, name, intro, introformat');
 
     if (!$instance) {
         return null;
@@ -413,12 +413,10 @@ function certificatepro_get_coursemodule_info($coursemodule) {
  * @return void
  */
 function certificatepro_view($instance, $course, $cm, $context): void {
-    \mod_certificatepro\event\course_module_viewed::create(
-        [
-            'objectid' => $instance->id,
-            'context' => $context,
-        ]
-    )->trigger();
+    \mod_certificatepro\event\course_module_viewed::create([
+        'objectid' => $instance->id,
+        'context' => $context,
+    ])->trigger();
 
     $completion = new completion_info($course);
     $completion->set_module_viewed($cm);

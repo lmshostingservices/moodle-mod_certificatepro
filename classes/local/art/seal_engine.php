@@ -218,6 +218,16 @@ class seal_engine {
         $heavy = max(0.35, 1.6 * $unit * (float) $s['weight']);
         $hair = max(0.18, 0.5 * $unit * (float) $s['weight']);
 
+        // A stroke is painted centred on the line, so the outermost rule spills
+        // half its width beyond the radius it was given. The canvas clips at the
+        // element's box and the PDF does not, which left every seal about one
+        // per cent bigger on paper than on screen. Pulling the radius in by that
+        // half width makes the element's square its true extent in both. The
+        // stroke widths here are in points and the radius is in millimetres, so
+        // the conversion is not optional: taking the half width raw pulled the
+        // seal in nearly three times too far.
+        $rmm = max(0.5, $rmm - (($heavy * canvas::PT_TO_MM) / 2.0));
+
         $c->save();
 
         $inner = self::draw_edge($c, $u, $v, $rmm, $heavy, $hair, $s);
@@ -440,17 +450,15 @@ class seal_engine {
         $cx = $c->x($u);
         $cy = $c->y($v);
 
+        // Each dot is filled from its centre outwards, so seating the centres
+        // on the rim itself would put half of every dot outside the element.
+        $seat = $rmm - $dot;
+
         $c->fill($ink);
         for ($i = 0; $i < $count; $i++) {
             $angle = ($i / $count) * 2.0 * M_PI;
-            $c->circle_mm(
-                $cx + $rmm * sin($angle),
-                $cy - $rmm * cos($angle),
-                $dot,
-                0.0,
-                360.0,
-                'F'
-            );
+            $c->circle_mm($cx + $seat * sin($angle), $cy - $seat * cos($angle),
+                $dot, 0.0, 360.0, 'F');
         }
     }
 
@@ -472,11 +480,16 @@ class seal_engine {
         $cy = $c->y($v);
         $bead = max(0.5, $rmm * 0.055);
 
+        // The bead is drawn from its centre, so the centre line has to sit a
+        // bead's radius plus half its stroke inside the rim or the moulding
+        // paints outside the square the element declares.
+        $seat = $rmm - $bead - (($hair * 1.4 * canvas::PT_TO_MM) / 2.0);
+
         $c->stroke($ink, $hair * 1.4);
         for ($i = 0; $i < $count; $i++) {
             $angle = ($i / $count) * 2.0 * M_PI;
-            $px = $cx + $rmm * 0.965 * sin($angle);
-            $py = $cy - $rmm * 0.965 * cos($angle);
+            $px = $cx + $seat * sin($angle);
+            $py = $cy - $seat * cos($angle);
             // Each bead is an arc leaning with the tangent, which is what
             // gives a rope its twist rather than a bead-and-reel's symmetry.
             $lean = rad2deg($angle) + 34.0;
@@ -519,19 +532,13 @@ class seal_engine {
             // ring is for. Count the repeats the ring actually needs.
             $unit = $phrase . '  ·  ';
             $repeats = self::repeats_to_fill($c, $unit, $ringradius, $size, $s['family'], 'B');
-            $c->arc_text(
-                $u,
-                $v,
-                $ringradius,
-                str_repeat($unit, $repeats),
-                [
-                    'family' => $s['family'],
-                    'style' => 'B',
-                    'sizept' => $size,
-                    'align' => 'top',
-                    'maxsweep' => 358.0,
-                ]
-            );
+            $c->arc_text($u, $v, $ringradius, str_repeat($unit, $repeats), [
+                'family' => $s['family'],
+                'style' => 'B',
+                'sizept' => $size,
+                'align' => 'top',
+                'maxsweep' => 358.0,
+            ]);
             return null;
         }
 
@@ -540,19 +547,13 @@ class seal_engine {
             return null;
         }
 
-        $result = $c->arc_text(
-            $u,
-            $v,
-            $ringradius,
-            $top,
-            [
-                'family' => $s['family'],
-                'style' => 'B',
-                'sizept' => $size,
-                'align' => 'top',
-                'maxsweep' => $s['ring'] === self::RING_TOP ? 250.0 : 200.0,
-            ]
-        );
+        $result = $c->arc_text($u, $v, $ringradius, $top, [
+            'family' => $s['family'],
+            'style' => 'B',
+            'sizept' => $size,
+            'align' => 'top',
+            'maxsweep' => $s['ring'] === self::RING_TOP ? 250.0 : 200.0,
+        ]);
 
         if ($s['ring'] === self::RING_TOP) {
             return null;
@@ -565,18 +566,12 @@ class seal_engine {
         $junction = min(168.0, $result['sweep'] / 2.0 + self::DIVIDER_GAP);
 
         if ($bottom !== '') {
-            $c->arc_text(
-                $u,
-                $v,
-                $ringradius,
-                $bottom,
-                [
-                    'family' => $s['family'],
-                    'sizept' => $size * 0.84,
-                    'align' => 'bottom',
-                    'maxsweep' => max(24.0, 2.0 * (180.0 - $junction - self::DIVIDER_GAP)),
-                ]
-            );
+            $c->arc_text($u, $v, $ringradius, $bottom, [
+                'family' => $s['family'],
+                'sizept' => $size * 0.84,
+                'align' => 'bottom',
+                'maxsweep' => max(24.0, 2.0 * (180.0 - $junction - self::DIVIDER_GAP)),
+            ]);
         }
 
         return $junction;
@@ -609,15 +604,12 @@ class seal_engine {
             $rad = deg2rad($bearing);
             $px = $cx + $ringradius * sin($rad);
             $py = $cy - $ringradius * cos($rad);
-            $c->poly_mm(
-                [
-                    $px, $py - $size,
-                    $px + $size, $py,
-                    $px, $py + $size,
-                    $px - $size, $py,
-                ],
-                'F'
-            );
+            $c->poly_mm([
+                $px, $py - $size,
+                $px + $size, $py,
+                $px, $py + $size,
+                $px - $size, $py,
+            ], 'F');
         }
     }
 
@@ -709,18 +701,13 @@ class seal_engine {
 
         $c->fill($ink);
         $lift = $year !== '' ? $markradius * 0.16 : 0.0;
-        $c->text_mm(
-            $c->x($u),
-            $c->y($v) + $size * canvas::PT_TO_MM * 0.34 - $lift,
-            $text,
-            [
-                'family' => $s['family'],
-                'style' => 'B',
-                'sizept' => $size,
-                'anchor' => 'C',
-                'tracking' => 0.05,
-            ]
-        );
+        $c->text_mm($c->x($u), $c->y($v) + $size * canvas::PT_TO_MM * 0.34 - $lift, $text, [
+            'family' => $s['family'],
+            'style' => 'B',
+            'sizept' => $size,
+            'anchor' => 'C',
+            'tracking' => 0.05,
+        ]);
 
         if ($year === '') {
             return;
@@ -732,17 +719,12 @@ class seal_engine {
         $c->line_mm($c->x($u) - $rule, $ry, $c->x($u) + $rule, $ry);
 
         $c->fill($ink);
-        $c->text_mm(
-            $c->x($u),
-            $ry + max(1.6, $rmm * 0.10),
-            $year,
-            [
-                'family' => $s['family'],
-                'sizept' => max(3.2, $rmm * 0.22),
-                'anchor' => 'C',
-                'tracking' => 0.22,
-            ]
-        );
+        $c->text_mm($c->x($u), $ry + max(1.6, $rmm * 0.10), $year, [
+            'family' => $s['family'],
+            'sizept' => max(3.2, $rmm * 0.22),
+            'anchor' => 'C',
+            'tracking' => 0.22,
+        ]);
     }
 
     /**
@@ -791,18 +773,13 @@ class seal_engine {
 
         $c->fill($ink);
         foreach ($lines as $i => $line) {
-            $c->text_mm(
-                $c->x($u),
-                $top + $i * $leading,
-                $line,
-                [
-                    'family' => $s['family'],
-                    'style' => 'B',
-                    'sizept' => $size,
-                    'anchor' => 'C',
-                    'tracking' => 0.08,
-                ]
-            );
+            $c->text_mm($c->x($u), $top + $i * $leading, $line, [
+                'family' => $s['family'],
+                'style' => 'B',
+                'sizept' => $size,
+                'anchor' => 'C',
+                'tracking' => 0.08,
+            ]);
         }
 
         if ($year === '') {
@@ -814,17 +791,12 @@ class seal_engine {
         $c->stroke($ink, $hair);
         $c->line_mm($c->x($u) - $rule, $ry, $c->x($u) + $rule, $ry);
         $c->fill($ink);
-        $c->text_mm(
-            $c->x($u),
-            $ry + max(1.5, $rmm * 0.095),
-            $year,
-            [
-                'family' => $s['family'],
-                'sizept' => max(3.0, $size * 0.62),
-                'anchor' => 'C',
-                'tracking' => 0.22,
-            ]
-        );
+        $c->text_mm($c->x($u), $ry + max(1.5, $rmm * 0.095), $year, [
+            'family' => $s['family'],
+            'sizept' => max(3.0, $size * 0.62),
+            'anchor' => 'C',
+            'tracking' => 0.22,
+        ]);
     }
 
     /**
@@ -848,17 +820,12 @@ class seal_engine {
             return;
         }
         $c->fill($ink);
-        $c->text_mm(
-            $c->x($u),
-            $c->y($v) + $markradius * $drop,
-            $year,
-            [
-                'family' => $s['family'],
-                'sizept' => max(3.0, $rmm * 0.20),
-                'anchor' => 'C',
-                'tracking' => 0.22,
-            ]
-        );
+        $c->text_mm($c->x($u), $c->y($v) + $markradius * $drop, $year, [
+            'family' => $s['family'],
+            'sizept' => max(3.0, $rmm * 0.20),
+            'anchor' => 'C',
+            'tracking' => 0.22,
+        ]);
     }
 
     // ------------------------------------------------------------------
@@ -979,30 +946,22 @@ class seal_engine {
         $rh = max(1.4, $markradius * 0.22);
         $c->fill($s['metal'] ?: $s['paper']);
         $c->stroke($ink, $hair);
-        $c->poly_mm(
-            [
-                $cx - $rw, $ry - $rh * 0.5,
-                $cx + $rw, $ry - $rh * 0.5,
-                $cx + $rw * 0.86, $ry,
-                $cx + $rw, $ry + $rh * 0.5,
-                $cx - $rw, $ry + $rh * 0.5,
-                $cx - $rw * 0.86, $ry,
-            ],
-            'FD'
-        );
+        $c->poly_mm([
+            $cx - $rw, $ry - $rh * 0.5,
+            $cx + $rw, $ry - $rh * 0.5,
+            $cx + $rw * 0.86, $ry,
+            $cx + $rw, $ry + $rh * 0.5,
+            $cx - $rw, $ry + $rh * 0.5,
+            $cx - $rw * 0.86, $ry,
+        ], 'FD');
 
         $c->fill($ink);
-        $c->text_mm(
-            $cx,
-            $ry + $rh * 0.30,
-            $motto,
-            [
-                'family' => $s['family'],
-                'sizept' => max(2.8, $markradius * 0.30),
-                'anchor' => 'C',
-                'tracking' => 0.14,
-            ]
-        );
+        $c->text_mm($cx, $ry + $rh * 0.30, $motto, [
+            'family' => $s['family'],
+            'sizept' => max(2.8, $markradius * 0.30),
+            'anchor' => 'C',
+            'tracking' => 0.14,
+        ]);
     }
 
     /**
@@ -1026,15 +985,12 @@ class seal_engine {
         $c->stroke($ink, $hair * 1.6);
         // Two leaves meeting at the spine, each with a sagging fore-edge.
         foreach ([-1.0, 1.0] as $side) {
-            $c->poly_mm(
-                [
-                    $cx, $cy - $h * 0.72,
-                    $cx + $side * $w, $cy - $h * 0.46,
-                    $cx + $side * $w, $cy + $h * 0.72,
-                    $cx, $cy + $h * 0.44,
-                ],
-                'D'
-            );
+            $c->poly_mm([
+                $cx, $cy - $h * 0.72,
+                $cx + $side * $w, $cy - $h * 0.46,
+                $cx + $side * $w, $cy + $h * 0.72,
+                $cx, $cy + $h * 0.44,
+            ], 'D');
         }
 
         // Text lines on each leaf.
@@ -1097,31 +1053,20 @@ class seal_engine {
         }
 
         // Bowl, shaft and foot.
-        $c->poly_mm(
-            [
-                $cx - $markradius * 0.26, $cy - $h * 0.18,
-                $cx + $markradius * 0.26, $cy - $h * 0.18,
-                $cx + $markradius * 0.15, $cy + $h * 0.06,
-                $cx - $markradius * 0.15, $cy + $h * 0.06,
-            ],
-            'F'
-        );
-        $c->rect_mm(
-            ($cx - $markradius * 0.075) / $c->w(),
-            ($cy + $h * 0.06) / $c->h(),
-            $markradius * 0.15,
-            $h * 0.72,
-            'F'
-        );
-        $c->poly_mm(
-            [
-                $cx - $markradius * 0.22, $cy + $h * 0.92,
-                $cx + $markradius * 0.22, $cy + $h * 0.92,
-                $cx + $markradius * 0.16, $cy + $h * 0.78,
-                $cx - $markradius * 0.16, $cy + $h * 0.78,
-            ],
-            'F'
-        );
+        $c->poly_mm([
+            $cx - $markradius * 0.26, $cy - $h * 0.18,
+            $cx + $markradius * 0.26, $cy - $h * 0.18,
+            $cx + $markradius * 0.15, $cy + $h * 0.06,
+            $cx - $markradius * 0.15, $cy + $h * 0.06,
+        ], 'F');
+        $c->rect_mm(($cx - $markradius * 0.075) / $c->w(), ($cy + $h * 0.06) / $c->h(),
+            $markradius * 0.15, $h * 0.72, 'F');
+        $c->poly_mm([
+            $cx - $markradius * 0.22, $cy + $h * 0.92,
+            $cx + $markradius * 0.22, $cy + $h * 0.92,
+            $cx + $markradius * 0.16, $cy + $h * 0.78,
+            $cx - $markradius * 0.16, $cy + $h * 0.78,
+        ], 'F');
         unset($hair);
     }
 
@@ -1275,7 +1220,7 @@ class seal_engine {
             return 1;
         }
 
-        // Matches arc_text's default tracking, applied per character exactly as it does.
+        // arc_text's default tracking, applied per character exactly as it does.
         $tracking = 0.20 * $sizept * canvas::PT_TO_MM;
         $width = 0.0;
         foreach (type_metrics::split($unit) as $char) {

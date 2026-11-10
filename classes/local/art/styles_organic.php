@@ -102,12 +102,9 @@ class styles_organic {
 
         // The nine that begin furthest out become the emphasis lines.
         $ranked = $starts;
-        usort(
-            $ranked,
-            function ($a, $b) {
-                return $b[2] <=> $a[2];
-            }
-        );
+        usort($ranked, function ($a, $b) {
+            return $b[2] <=> $a[2];
+        });
         $emphasis = [];
         foreach (array_slice($ranked, 0, 9) as $e) {
             $emphasis[$e[0] . ':' . $e[1]] = true;
@@ -116,10 +113,8 @@ class styles_organic {
         foreach ($starts as $index => $start) {
             $hero = isset($emphasis[$start[0] . ':' . $start[1]]);
             $c->alpha($hero ? 0.40 : 0.20 + 0.22 * $c->rnd());
-            $c->stroke(
-                $hero ? $dark : ($index % 3 === 0 ? $muted : $primary),
-                $hero ? 0.62 : 0.26 + 0.18 * ($index % 3) / 2
-            );
+            $c->stroke($hero ? $dark : ($index % 3 === 0 ? $muted : $primary),
+                $hero ? 0.62 : 0.26 + 0.18 * ($index % 3) / 2);
 
             $u = $start[0];
             $v = $start[1];

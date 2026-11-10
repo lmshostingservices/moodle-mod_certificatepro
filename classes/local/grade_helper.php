@@ -137,7 +137,12 @@ class grade_helper {
 
         $grade = \grade_grade::fetch(['itemid' => $item->id, 'userid' => $user->id]);
         if (!$grade || $grade->finalgrade === null) {
-            return '';
+            // An author looking at their own design is almost never a learner
+            // with a mark in it, so a real course and a real item still leave
+            // this element with nothing to say and the canvas drew a blank box
+            // where the printed certificate will carry a grade. The preview
+            // wants the same sample it gets when there is no item at all.
+            return $ctx->is_preview() ? self::sample($format, $decimals, $wording) : '';
         }
 
         $final = (float) $grade->finalgrade;
@@ -157,16 +162,23 @@ class grade_helper {
             case 'passfail':
                 $passmark = $item->gradepass > 0 ? (float) $item->gradepass : null;
                 if ($passmark === null) {
-                    return '';
+                    // An item nobody has set a pass mark on cannot say whether
+                    // this mark passed, but the author choosing pass or fail in
+                    // the designer still needs to see the shape of what they
+                    // chose rather than a blank box.
+                    return $ctx->is_preview() ? self::sample($format, $decimals, $wording) : '';
                 }
                 return $final >= $passmark
-                    ? self::word($wording, 'pass')
-                    : self::word($wording, 'fail');
+                    ? ($wording['pass'] ?? get_string('gradepassdefault', 'mod_certificatepro'))
+                    : ($wording['fail'] ?? get_string('gradefaildefault', 'mod_certificatepro'));
 
             default:
                 $range = $max - $min;
                 if ($range <= 0) {
-                    return '';
+                    // A grade with nowhere to sit between its minimum and its
+                    // maximum has no percentage, which is a fact about the item
+                    // rather than about the design being drawn.
+                    return $ctx->is_preview() ? self::sample($format, $decimals, $wording) : '';
                 }
                 $percent = (($final - $min) / $range) * 100;
                 return format_float($percent, $decimals) . '%';
@@ -186,19 +198,9 @@ class grade_helper {
             'points' => format_float(87, $decimals),
             'pointsmax' => format_float(87, $decimals) . ' / ' . format_float(100, $decimals),
             'letter' => 'A',
-            'passfail' => self::word($wording, 'pass'),
+            'passfail' => $wording['pass'] ?? get_string('gradepassdefault', 'mod_certificatepro'),
             default => format_float(87, $decimals) . '%',
         };
     }
-    /**
-     * Configured pass/fail wording, falling back to the defaults when left blank.
-     *
-     * @param array $wording
-     * @param string $key pass or fail
-     * @return string
-     */
-    protected static function word(array $wording, string $key): string {
-        $value = trim((string)($wording[$key] ?? ''));
-        return $value !== '' ? $value : get_string('grade' . $key . 'default', 'mod_certificatepro');
-    }
 }
+

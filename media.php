@@ -28,12 +28,13 @@ require_once($CFG->libdir . '/adminlib.php');
 use mod_certificatepro\local\media_library;
 
 require_login();
-admin_externalpage_setup('certificatepro_media');
+admin_externalpage_setup('certificatepromedia');
 
 $context = context_system::instance();
 require_capability('mod/certificatepro:managemedia', $context);
 
 $delete = optional_param('delete', 0, PARAM_INT);
+$confirm = optional_param('confirm', 0, PARAM_BOOL);
 
 $url = new moodle_url('/mod/certificatepro/media.php');
 $PAGE->set_url($url);
@@ -42,13 +43,40 @@ $PAGE->set_heading(get_string('mediatitle', 'mod_certificatepro'));
 
 if ($delete > 0) {
     require_sesskey();
+
+    $record = media_library::get($delete);
+    if ($record === null) {
+        redirect($url);
+    }
+
+    // The library already knows how many elements point at this picture, and
+    // that number is the whole reason to ask: removing a signature that eight
+    // certificates draw is a different act from removing an unused upload.
+    if (!$confirm) {
+        $continue = new moodle_url($url, [
+            'delete' => $delete,
+            'confirm' => 1,
+            'sesskey' => sesskey(),
+        ]);
+
+        echo $OUTPUT->header();
+        echo $OUTPUT->heading(get_string('mediatitle', 'mod_certificatepro'));
+        echo $OUTPUT->confirm(
+            get_string('mediaconfirmdelete', 'mod_certificatepro', (object) [
+                'name' => format_string($record->name),
+                'count' => media_library::usage_count($delete),
+            ]),
+            $continue,
+            $url
+        );
+        echo $OUTPUT->footer();
+        exit;
+    }
+
+    require_capability('mod/certificatepro:managemedia', $context);
     media_library::delete($delete);
-    redirect(
-        $url,
-        get_string('mediaremoved', 'mod_certificatepro'),
-        null,
-        \core\output\notification::NOTIFY_SUCCESS
-    );
+    redirect($url, get_string('mediaremoved', 'mod_certificatepro'), null,
+        \core\output\notification::NOTIFY_SUCCESS);
 }
 
 $form = new \mod_certificatepro\form\media_form($url);
@@ -60,12 +88,8 @@ if ($data = $form->get_data()) {
 
     if (!empty($files)) {
         media_library::save(reset($files), $data->medianame, $data->mediakind);
-        redirect(
-            $url,
-            get_string('mediaadded', 'mod_certificatepro'),
-            null,
-            \core\output\notification::NOTIFY_SUCCESS
-        );
+        redirect($url, get_string('mediaadded', 'mod_certificatepro'), null,
+            \core\output\notification::NOTIFY_SUCCESS);
     }
 }
 
@@ -98,15 +122,12 @@ if (empty($records)) {
         $mediaurl = media_library::url((int) $record->id);
 
         if ($mediaurl !== null) {
-            $preview = html_writer::empty_tag(
-                'img',
-                [
-                    'src' => $mediaurl,
-                    'alt' => '',
-                    'style' => 'max-width:120px;max-height:60px;object-fit:contain;'
-                        . 'background:repeating-conic-gradient(#eee 0% 25%,#fff 0% 50%) 50%/10px 10px;',
-                ]
-            );
+            $preview = html_writer::empty_tag('img', [
+                'src' => $mediaurl,
+                'alt' => '',
+                'style' => 'max-width:120px;max-height:60px;object-fit:contain;'
+                    . 'background:repeating-conic-gradient(#eee 0% 25%,#fff 0% 50%) 50%/10px 10px;',
+            ]);
         }
 
         $table->data[] = [
@@ -116,11 +137,8 @@ if (empty($records)) {
             $record->pixelwidth > 0
                 ? $record->pixelwidth . ' x ' . $record->pixelheight
                 : '-',
-            get_string(
-                'mediausagecount',
-                'mod_certificatepro',
-                media_library::usage_count((int) $record->id)
-            ),
+            get_string('mediausagecount', 'mod_certificatepro',
+                media_library::usage_count((int) $record->id)),
             $OUTPUT->single_button(
                 new moodle_url($url, ['delete' => $record->id, 'sesskey' => sesskey()]),
                 get_string('delete'),

@@ -48,12 +48,8 @@ class restore_certificatepro_activity_task extends restore_activity_task {
      * @return void
      */
     protected function define_my_steps() {
-        $this->add_step(
-            new restore_certificatepro_activity_structure_step(
-                'certificatepro_structure',
-                'certificatepro.xml'
-            )
-        );
+        $this->add_step(new restore_certificatepro_activity_structure_step(
+            'certificatepro_structure', 'certificatepro.xml'));
     }
 
     /**
@@ -72,54 +68,10 @@ class restore_certificatepro_activity_task extends restore_activity_task {
      */
     public static function define_decode_rules() {
         return [
-            new restore_decode_rule(
-                'CERTIFICATEPROVIEWBYID',
-                '/mod/certificatepro/view.php?id=$1',
-                'course_module'
-            ),
-            new restore_decode_rule(
-                'CERTIFICATEPROINDEX',
-                '/mod/certificatepro/index.php?id=$1',
-                'course'
-            ),
+            new restore_decode_rule('CERTIFICATEPROVIEWBYID',
+                '/mod/certificatepro/view.php?id=$1', 'course_module'),
+            new restore_decode_rule('CERTIFICATEPROINDEX',
+                '/mod/certificatepro/index.php?id=$1', 'course'),
         ];
-    }
-
-    /**
-     * Point grade elements at the restored grade items.
-     *
-     * Grade items are restored with the gradebook, after this activity, so the mapping can only be applied here.
-     *
-     * @return void
-     */
-    public function after_restore() {
-        global $DB;
-
-        $instanceid = $this->get_activityid();
-        $templateid = $DB->get_field('certificatepro', 'templateid', ['id' => $instanceid]);
-        if (!$templateid) {
-            return;
-        }
-        $sql = "SELECT e.id, e.data
-                  FROM {certificatepro_elements} e
-                  JOIN {certificatepro_pages} p ON p.id = e.pageid
-                 WHERE p.templateid = :templateid AND e.element IN ('grade', 'gradeitemname')";
-        foreach ($DB->get_records_sql($sql, ['templateid' => $templateid]) as $element) {
-            $data = json_decode((string)$element->data, true);
-            if (!is_array($data) || empty($data['gradeitem']) || !str_starts_with((string)$data['gradeitem'], 'item_')) {
-                continue;
-            }
-            $olditemid = (int)substr($data['gradeitem'], 5);
-            $mapping = restore_dbops::get_backup_ids_record($this->get_restoreid(), 'grade_item', $olditemid);
-            if ($mapping && !empty($mapping->newitemid)) {
-                $data['gradeitem'] = 'item_' . $mapping->newitemid;
-            } else if (!$DB->record_exists('grade_items', ['id' => $olditemid, 'courseid' => $this->get_courseid()])) {
-                // Not restored and not in this course (e.g. restored elsewhere without gradebook): use the course total.
-                $data['gradeitem'] = 'course';
-            } else {
-                continue;
-            }
-            $DB->set_field('certificatepro_elements', 'data', json_encode($data), ['id' => $element->id]);
-        }
     }
 }

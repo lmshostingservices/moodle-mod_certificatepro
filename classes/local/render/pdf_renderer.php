@@ -73,7 +73,67 @@ class pdf_renderer {
             $this->render_page($pdf, $ctx, $page);
         }
 
-        return (string) $pdf->Output('', 'S');
+        return self::emit($pdf);
+    }
+
+    /**
+     * Stop TCPDF stamping its own advertisement into the certificate.
+     *
+     * TCPDF writes "Powered by TCPDF (www.tcpdf.org)" onto the last page from
+     * Close(), independently of SetPrintFooter(). It rasterises to almost
+     * nothing, so it is easy to miss, but it sits in the text layer of every
+     * certificate: pdftotext extracts it, a screen reader announces it, and it
+     * lands in anyone's copy and paste.
+     *
+     * The flag governing it is protected with no setter, so assigning to it from
+     * outside merely creates a dynamic property that TCPDF never reads. A
+     * subclass would be tidier, but \pdf is only defined once pdflib.php has
+     * been required, which a class file cannot rely on. Reflection is contained
+     * and cannot fail the render.
+     *
+     * @param \pdf $pdf the document being prepared
+     * @return void
+     */
+    protected static function suppress_tcpdf_link(\pdf $pdf): void {
+        try {
+            $property = new \ReflectionProperty($pdf, 'tcpdflink');
+            $property->setAccessible(true);
+            $property->setValue($pdf, false);
+        } catch (\Throwable $e) {
+            // A future TCPDF may rename or remove it. An advert is a blemish,
+            // not a reason to fail a certificate.
+            debugging('Certificate Pro could not suppress the TCPDF link: ' . $e->getMessage(),
+                DEBUG_DEVELOPER);
+        }
+    }
+
+    /**
+     * Take the finished bytes, with nothing else in them.
+     *
+     * A certificate is served with a PDF content type, so ANY stray output
+     * during rendering corrupts the file rather than appearing beside it. On a
+     * site with developer debugging on, a single debugging() call from a failing
+     * element produced a download that no reader could open. Buffering here
+     * means a diagnostic can never cost a learner their certificate; anything
+     * caught is passed to the error log, where it belongs.
+     *
+     * @param \pdf $pdf the finished document
+     * @return string the PDF bytes
+     */
+    protected static function emit(\pdf $pdf): string {
+        ob_start();
+        try {
+            $bytes = (string) $pdf->Output('', 'S');
+        } finally {
+            $stray = ob_get_clean();
+        }
+
+        if ($stray !== '' && $stray !== false) {
+            error_log('mod_certificatepro: output during PDF generation was discarded: '
+                . substr(strip_tags($stray), 0, 500));
+        }
+
+        return $bytes;
     }
 
     /**
@@ -89,13 +149,8 @@ class pdf_renderer {
         $issue = $ctx->get_issue();
 
         $pdf->SetCreator('Certificate Pro');
-        $pdf->SetAuthor(
-            format_string(
-                $site->fullname,
-                true,
-                ['context' => \context_system::instance()]
-            )
-        );
+        $pdf->SetAuthor(format_string($site->fullname, true,
+            ['context' => \context_system::instance()]));
         $pdf->SetTitle($options['title'] ?? $this->template->get_name());
         $pdf->SetSubject($options['subject'] ?? get_string('pdfsubject', 'mod_certificatepro'));
 
@@ -105,14 +160,12 @@ class pdf_renderer {
 
         // Accessibility. An untagged certificate is unreadable to a screen reader,
         // which is a procurement blocker in most public sector buying.
-        $pdf->setLanguageArray(
-            [
-                'a_meta_charset' => 'UTF-8',
-                'a_meta_dir' => right_to_left() ? 'rtl' : 'ltr',
-                'a_meta_language' => current_language(),
-                'w_page' => get_string('page'),
-            ]
-        );
+        $pdf->setLanguageArray([
+            'a_meta_charset' => 'UTF-8',
+            'a_meta_dir' => right_to_left() ? 'rtl' : 'ltr',
+            'a_meta_language' => current_language(),
+            'w_page' => get_string('page'),
+        ]);
         // Ask the reader to announce the document title rather than the file
         // name. This is the one accessibility affordance TCPDF genuinely offers,
         // and it is the difference between hearing "Certificate of Achievement"
@@ -121,6 +174,7 @@ class pdf_renderer {
 
         $pdf->SetPrintHeader(false);
         $pdf->SetPrintFooter(false);
+        self::suppress_tcpdf_link($pdf);
         $pdf->SetAutoPageBreak(false, 0);
         $pdf->setFontSubsetting(true);
         $pdf->setImageScale(1.0);
@@ -159,10 +213,8 @@ class pdf_renderer {
             try {
                 $pdf->ImageSVG($path, 0, 0, $width, $height, '', '', '', 0, false);
             } catch (\Throwable $e) {
-                debugging(
-                    'Certificate Pro could not draw a page background: ' . $e->getMessage(),
-                    DEBUG_DEVELOPER
-                );
+                debugging('Certificate Pro could not draw a page background: ' . $e->getMessage(),
+                    DEBUG_DEVELOPER);
             }
         }
 
@@ -174,11 +226,8 @@ class pdf_renderer {
                 $element->render_pdf($pdf, $ctx);
             } catch (\Throwable $e) {
                 // One broken element must never cost a learner their certificate.
-                debugging(
-                    'Certificate Pro element ' . $element->get_id() . ' failed to render: '
-                        . $e->getMessage(),
-                    DEBUG_DEVELOPER
-                );
+                debugging('Certificate Pro element ' . $element->get_id() . ' failed to render: '
+                    . $e->getMessage(), DEBUG_DEVELOPER);
             }
         }
     }
@@ -206,7 +255,7 @@ class pdf_renderer {
         $this->prepare_document($pdf, $ctx, []);
         $this->render_page($pdf, $ctx, $pages[$pageid]);
 
-        return (string) $pdf->Output('', 'S');
+        return self::emit($pdf);
     }
 
     /**

@@ -69,6 +69,28 @@ class qrcode extends base {
     }
 
     /**
+     * A code is drawn at min(width, height), so its box may not be stretched.
+     *
+     * @return bool
+     */
+    public static function keepsquare(): bool {
+        return true;
+    }
+
+    /**
+     * The configuration a newly dropped code starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'errorlevel' => 'H',
+            'usebrandcolour' => 0,
+            'quietzone' => 1,
+        ];
+    }
+
+    /**
      * Add the error correction and colour choices.
      *
      * @param \MoodleQuickForm $mform the form to extend
@@ -76,31 +98,21 @@ class qrcode extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'errorlevel',
-            get_string('qrerrorlevel', 'mod_certificatepro'),
-            [
+        $mform->addElement('select', 'errorlevel',
+            get_string('qrerrorlevel', 'mod_certificatepro'), [
                 'L' => get_string('qrerrorlevel_l', 'mod_certificatepro'),
                 'M' => get_string('qrerrorlevel_m', 'mod_certificatepro'),
                 'Q' => get_string('qrerrorlevel_q', 'mod_certificatepro'),
                 'H' => get_string('qrerrorlevel_h', 'mod_certificatepro'),
-            ]
-        );
+            ]);
         $mform->setDefault('errorlevel', 'H');
         $mform->addHelpButton('errorlevel', 'qrerrorlevel', 'mod_certificatepro');
 
-        $mform->addElement(
-            'advcheckbox',
-            'usebrandcolour',
-            get_string('qrusebrandcolour', 'mod_certificatepro')
-        );
+        $mform->addElement('advcheckbox', 'usebrandcolour',
+            get_string('qrusebrandcolour', 'mod_certificatepro'));
 
-        $mform->addElement(
-            'advcheckbox',
-            'quietzone',
-            get_string('qrquietzone', 'mod_certificatepro')
-        );
+        $mform->addElement('advcheckbox', 'quietzone',
+            get_string('qrquietzone', 'mod_certificatepro'));
         $mform->setDefault('quietzone', 1);
         $mform->addHelpButton('quietzone', 'qrquietzone', 'mod_certificatepro');
     }
@@ -185,6 +197,16 @@ class qrcode extends base {
     }
 
     /**
+     * The side of the square the code is drawn in.
+     *
+     * @return float millimetres
+     */
+    protected function drawn_size(): float {
+        $size = min($this->get_width(), $this->get_height());
+        return $size > 0 ? $size : 26.0;
+    }
+
+    /**
      * Produce the designer canvas markup, using TCPDF's dependency free renderer.
      *
      * @param render_context $ctx the render context
@@ -193,20 +215,123 @@ class qrcode extends base {
     public function render_html(render_context $ctx): string {
         global $CFG;
 
+        // pdflib.php loads the document classes but not the barcode ones, so
+        // without this the class below simply does not exist and the canvas
+        // showed an empty box where the print showed a code.
         require_once($CFG->libdir . '/pdflib.php');
+        require_once($CFG->libdir . '/tcpdf/tcpdf_barcodes_2d.php');
 
         try {
             $barcode = new \TCPDF2DBarcode(
                 $ctx->verify_url(),
                 'QRCODE,' . $this->config('errorlevel', 'H')
             );
-            $colour = $this->config('usebrandcolour', 0)
-                ? ($ctx->get_palette()['primarydark'] ?? 'black')
-                : 'black';
-            $html = $barcode->getBarcodeHTML(4, 4, $colour);
+            $svg = $this->barcode_svg($barcode->getBarcodeArray(), $this->foreground($ctx));
         } catch (\Throwable $e) {
-            return \html_writer::div('', 'certificatepro-element-placeholder');
+            // Silence here is what hid the missing class in the first place.
+            debugging('Certificate Pro could not draw a QR code for the canvas: '
+                . $e->getMessage(), DEBUG_DEVELOPER);
+            $svg = null;
         }
 
-        return \html_writer::div($html, 'certificatepro-element-qr');
+        if ($svg === null) {
+            return \html_writer::div(
+                \html_writer::tag('span', static::display_name()),
+                'certificatepro-element-placeholder'
+            );
+        }
+
+        $size = $this->drawn_size();
+
+        // A grid of black squares is worth nothing to a screen reader unless it
+        // is announced as a picture with a name, so the box the code is drawn in
+        // carries role="img" and the name. The name lives here rather than on
+        // the <svg> alone because the wrapper is the element the canvas exposes.
+        return \html_writer::div($svg, 'certificatepro-element-qr', [
+            'style' => implode(';', $this->canvas_box_style($ctx, $size, $size)),
+            'role' => 'img',
+            'aria-label' => get_string('qraltext', 'mod_certificatepro'),
+        ]);
+    }
+
+    /**
+     * The colour the modules are drawn in.
+     *
+     * @param render_context $ctx the render context
+     * @return string a CSS colour
+     */
+    protected function foreground(render_context $ctx): string {
+        if (!$this->config('usebrandcolour', 0)) {
+            return '#000000';
+        }
+        return $ctx->get_palette()['primarydark'] ?? '#000000';
+    }
+
+    /**
+     * Turn TCPDF's module grid into SVG.
+     *
+     * TCPDF's own HTML renderer builds the code out of fixed pixel divs, which
+     * cannot follow the designer's zoom and cannot be printed sharply. The same
+     * grid as vector artwork matches what write2DBarcode() puts on the page,
+     * quiet zone included.
+     *
+     * @param array|null $code the array from TCPDF2DBarcode::getBarcodeArray()
+     * @param string $colour the module colour
+     * @return string|null the SVG markup, or null when there is no code
+     */
+    protected function barcode_svg(?array $code, string $colour): ?string {
+        if (empty($code['num_rows']) || empty($code['num_cols']) || empty($code['bcode'])) {
+            return null;
+        }
+
+        $rows = (int) $code['num_rows'];
+        $cols = (int) $code['num_cols'];
+        // write2DBarcode() reads a quiet zone of 'auto' as four modules a side,
+        // and scales the code so the padding is inside the box. Same here.
+        $quiet = $this->config('quietzone', 1) ? 4 : 0;
+
+        $rects = [];
+        foreach ($code['bcode'] as $r => $row) {
+            $run = 0;
+            foreach ($row as $c => $module) {
+                if ($module) {
+                    $run++;
+                    continue;
+                }
+                if ($run > 0) {
+                    $rects[] = $this->module_rect($quiet + $c - $run, $quiet + (int) $r, $run);
+                    $run = 0;
+                }
+            }
+            if ($run > 0) {
+                $rects[] = $this->module_rect($quiet + $cols - $run, $quiet + (int) $r, $run);
+            }
+        }
+
+        // role="img" plus a <title> is what makes an inline SVG announce itself.
+        // The title is referenced by id rather than left to be picked up
+        // positionally, because a bare <title> is only used for the accessible
+        // name when the reader bothers to look for it.
+        $titleid = 'cpro-qr-title-' . ($this->get_id() ?: 0);
+
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '
+            . ($cols + (2 * $quiet)) . ' ' . ($rows + (2 * $quiet)) . '" '
+            . 'width="100%" height="100%" preserveAspectRatio="xMidYMid meet" '
+            . 'shape-rendering="crispEdges" fill="' . s($colour) . '" '
+            . 'role="img" aria-labelledby="' . s($titleid) . '">'
+            . '<title id="' . s($titleid) . '">'
+            . s(get_string('qraltext', 'mod_certificatepro')) . '</title>'
+            . implode('', $rects) . '</svg>';
+    }
+
+    /**
+     * One horizontal run of dark modules.
+     *
+     * @param int $x the first column of the run
+     * @param int $y the row
+     * @param int $length how many modules the run covers
+     * @return string the rect markup
+     */
+    protected function module_rect(int $x, int $y, int $length): string {
+        return '<rect x="' . $x . '" y="' . $y . '" width="' . $length . '" height="1"/>';
     }}

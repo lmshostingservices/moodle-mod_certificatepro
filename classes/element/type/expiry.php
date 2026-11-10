@@ -69,14 +69,24 @@ class expiry extends text_base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(
-            parent::default_style(),
-            [
-                'font' => 'body',
-                'scalerole' => 'meta',
-                'size' => null,
-            ]
-        );
+        return array_merge(parent::default_style(), [
+            'font' => 'body',
+            'scalerole' => 'meta',
+            'size' => null,
+        ]);
+    }
+
+    /**
+     * The configuration a newly dropped expiry date starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'label' => get_string('expirylabeldefault', 'mod_certificatepro'),
+            'dateformat' => '%d %B %Y',
+            'nevertext' => get_string('neverexpires', 'mod_certificatepro'),
+        ];
     }
 
     /**
@@ -87,29 +97,17 @@ class expiry extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'text',
-            'label',
-            get_string('expirylabel', 'mod_certificatepro'),
-            ['size' => 40]
-        );
+        $mform->addElement('text', 'label',
+            get_string('expirylabel', 'mod_certificatepro'), ['size' => 40]);
         $mform->setType('label', PARAM_TEXT);
         $mform->setDefault('label', get_string('expirylabeldefault', 'mod_certificatepro'));
 
-        $mform->addElement(
-            'select',
-            'dateformat',
-            get_string('dateformat', 'mod_certificatepro'),
-            date::formats()
-        );
+        $mform->addElement('select', 'dateformat',
+            get_string('dateformat', 'mod_certificatepro'), date::formats());
         $mform->setDefault('dateformat', '%d %B %Y');
 
-        $mform->addElement(
-            'text',
-            'nevertext',
-            get_string('expirynevertext', 'mod_certificatepro'),
-            ['size' => 40]
-        );
+        $mform->addElement('text', 'nevertext',
+            get_string('expirynevertext', 'mod_certificatepro'), ['size' => 40]);
         $mform->setType('nevertext', PARAM_TEXT);
         $mform->setDefault('nevertext', get_string('neverexpires', 'mod_certificatepro'));
     }

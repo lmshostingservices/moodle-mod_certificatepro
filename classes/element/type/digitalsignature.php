@@ -78,6 +78,21 @@ class digitalsignature extends base {
     }
 
     /**
+     * The configuration a newly dropped digital signature starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'signername' => '',
+            'reason' => '',
+            'location' => '',
+            'contact' => '',
+            'showvisual' => 1,
+        ];
+    }
+
+    /**
      * Add the certificate details shown to a reader.
      *
      * @param \MoodleQuickForm $mform the form to extend
@@ -85,50 +100,27 @@ class digitalsignature extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'static',
-            'certificatehint',
-            '',
-            get_string('digitalsignaturehint', 'mod_certificatepro')
-        );
+        $mform->addElement('static', 'certificatehint', '',
+            get_string('digitalsignaturehint', 'mod_certificatepro'));
 
-        $mform->addElement(
-            'text',
-            'signername',
-            get_string('signername', 'mod_certificatepro'),
-            ['size' => 40]
-        );
+        $mform->addElement('text', 'signername',
+            get_string('signername', 'mod_certificatepro'), ['size' => 40]);
         $mform->setType('signername', PARAM_TEXT);
 
-        $mform->addElement(
-            'text',
-            'reason',
-            get_string('signreason', 'mod_certificatepro'),
-            ['size' => 50]
-        );
+        $mform->addElement('text', 'reason',
+            get_string('signreason', 'mod_certificatepro'), ['size' => 50]);
         $mform->setType('reason', PARAM_TEXT);
 
-        $mform->addElement(
-            'text',
-            'location',
-            get_string('signlocation', 'mod_certificatepro'),
-            ['size' => 40]
-        );
+        $mform->addElement('text', 'location',
+            get_string('signlocation', 'mod_certificatepro'), ['size' => 40]);
         $mform->setType('location', PARAM_TEXT);
 
-        $mform->addElement(
-            'text',
-            'contact',
-            get_string('signcontact', 'mod_certificatepro'),
-            ['size' => 40]
-        );
+        $mform->addElement('text', 'contact',
+            get_string('signcontact', 'mod_certificatepro'), ['size' => 40]);
         $mform->setType('contact', PARAM_TEXT);
 
-        $mform->addElement(
-            'advcheckbox',
-            'showvisual',
-            get_string('signshowvisual', 'mod_certificatepro')
-        );
+        $mform->addElement('advcheckbox', 'showvisual',
+            get_string('signshowvisual', 'mod_certificatepro'));
         $mform->setDefault('showvisual', 1);
     }
 
@@ -200,10 +192,8 @@ class digitalsignature extends base {
                 $pdf->setSignatureAppearance($left, $top, $width, $height);
             }
         } catch (\Throwable $e) {
-            debugging(
-                'Certificate Pro could not sign the document: ' . $e->getMessage(),
-                DEBUG_DEVELOPER
-            );
+            debugging('Certificate Pro could not sign the document: ' . $e->getMessage(),
+                DEBUG_DEVELOPER);
         }
     }
 

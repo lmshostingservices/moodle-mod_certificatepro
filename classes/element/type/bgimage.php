@@ -102,6 +102,20 @@ class bgimage extends image_base {
     }
 
     /**
+     * The configuration a newly dropped background picture starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'mediaid' => 0,
+            'fitmode' => 'cover',
+            'opacity' => 1.0,
+            'keepaspect' => 1,
+        ];
+    }
+
+    /**
      * Add the file picker and the fit options.
      *
      * @param \MoodleQuickForm $mform the form to extend
@@ -109,46 +123,29 @@ class bgimage extends image_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'filemanager',
-            'imagefile',
-            get_string('elementbgimagefile', 'mod_certificatepro'),
-            null,
-            [
+        $mform->addElement('filemanager', 'imagefile',
+            get_string('elementbgimagefile', 'mod_certificatepro'), null, [
                 'subdirs' => 0,
                 'maxfiles' => 1,
                 'accepted_types' => ['web_image', '.svg'],
-            ]
-        );
+            ]);
 
-        $mform->addElement(
-            'select',
-            'mediaid',
+        $mform->addElement('select', 'mediaid',
             get_string('mediafromlibrary', 'mod_certificatepro'),
             \mod_certificatepro\local\media_library::menu(
-                \mod_certificatepro\local\media_library::KIND_BACKGROUND
-            )
-        );
+                \mod_certificatepro\local\media_library::KIND_BACKGROUND));
         $mform->addHelpButton('mediaid', 'mediafromlibrary', 'mod_certificatepro');
 
-        $mform->addElement(
-            'select',
-            'fitmode',
-            get_string('bgfitmode', 'mod_certificatepro'),
-            [
+        $mform->addElement('select', 'fitmode',
+            get_string('bgfitmode', 'mod_certificatepro'), [
                 'cover' => get_string('bgfitmode_cover', 'mod_certificatepro'),
                 'contain' => get_string('bgfitmode_contain', 'mod_certificatepro'),
                 'stretch' => get_string('bgfitmode_stretch', 'mod_certificatepro'),
-            ]
-        );
+            ]);
         $mform->setDefault('fitmode', 'cover');
 
-        $mform->addElement(
-            'text',
-            'opacity',
-            get_string('elementopacity', 'mod_certificatepro'),
-            ['size' => 6]
-        );
+        $mform->addElement('text', 'opacity',
+            get_string('elementopacity', 'mod_certificatepro'), ['size' => 6]);
         $mform->setType('opacity', PARAM_FLOAT);
         $mform->setDefault('opacity', 1);
     }

@@ -37,6 +37,7 @@ use mod_certificatepro\local\art\svg_painter;
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(seal_engine::class)]
 final class seal_engine_test extends \advanced_testcase {
+
     /**
      * A canvas with a predictable measurer.
      *
@@ -44,21 +45,14 @@ final class seal_engine_test extends \advanced_testcase {
      * @return canvas
      */
     protected function canvas(float $size = 34.0): canvas {
-        $c = new canvas(
-            $size,
-            $size,
-            [
-                'primary' => '#0f6cbf', 'primarydark' => '#0a4a83', 'accent' => '#b08432',
-                'ink' => '#1d2125', 'muted' => '#6b7377', 'paper' => '#ffffff',
-            ],
-            11
-        );
+        $c = new canvas($size, $size, [
+            'primary' => '#0f6cbf', 'primarydark' => '#0a4a83', 'accent' => '#b08432',
+            'ink' => '#1d2125', 'muted' => '#6b7377', 'paper' => '#ffffff',
+        ], 11);
 
-        $c->set_measurer(
-            function (string $text, string $family, string $style, float $sizept): float {
-                return \core_text::strlen($text) * $sizept * canvas::PT_TO_MM * 0.5;
-            }
-        );
+        $c->set_measurer(function (string $text, string $family, string $style, float $sizept): float {
+            return \core_text::strlen($text) * $sizept * canvas::PT_TO_MM * 0.5;
+        });
 
         return $c;
     }
@@ -101,7 +95,6 @@ final class seal_engine_test extends \advanced_testcase {
     /**
      * Every edge, ring and mark combination draws a seal and paints valid SVG.
      *
-     * @dataProvider combination_provider
      * @param string $edge the edge treatment
      * @param string $ring the ring layout
      * @param string $mark the centre mark
@@ -114,30 +107,19 @@ final class seal_engine_test extends \advanced_testcase {
 
         $c = $this->canvas();
 
-        seal_engine::draw(
-            $c,
-            0.5,
-            0.5,
-            17.0,
-            $this->spec(
-                [
-                    'edge' => $edge,
-                    'ring' => $ring,
-                    'mark' => $mark,
-                ]
-            )
-        );
+        seal_engine::draw($c, 0.5, 0.5, 17.0, $this->spec([
+            'edge' => $edge,
+            'ring' => $ring,
+            'mark' => $mark,
+        ]));
 
         $ops = $c->ops();
         $this->assertNotEmpty($ops, "$edge / $ring / $mark recorded nothing");
 
         // Something must actually mark the page, not merely set a colour.
-        $drawing = array_filter(
-            $ops,
-            function ($op) {
-                return !in_array($op[0], ['save', 'restore', 'fill', 'stroke', 'alpha'], true);
-            }
-        );
+        $drawing = array_filter($ops, function ($op) {
+            return !in_array($op[0], ['save', 'restore', 'fill', 'stroke', 'alpha'], true);
+        });
         $this->assertNotEmpty($drawing, "$edge / $ring / $mark set state but drew nothing");
 
         // And the whole recording has to survive being painted.
@@ -151,7 +133,6 @@ final class seal_engine_test extends \advanced_testcase {
     /**
      * Clearing every string still leaves a seal rather than a crash.
      *
-     * @dataProvider combination_provider
      * @param string $edge the edge treatment
      * @param string $ring the ring layout
      * @param string $mark the centre mark
@@ -166,25 +147,19 @@ final class seal_engine_test extends \advanced_testcase {
 
         // An author who clears every string must still get a seal, not a crash
         // and not a blank square.
-        seal_engine::draw(
-            $c,
-            0.5,
-            0.5,
-            17.0,
-            [
-                'edge' => $edge,
-                'ring' => $ring,
-                'mark' => $mark,
-                'top' => '',
-                'bottom' => '',
-                'centre' => '',
-                'year' => '',
-                'motto' => '',
-                'ink' => '#0f6cbf',
-                'metal' => '#b08432',
-                'family' => 'helvetica',
-            ]
-        );
+        seal_engine::draw($c, 0.5, 0.5, 17.0, [
+            'edge' => $edge,
+            'ring' => $ring,
+            'mark' => $mark,
+            'top' => '',
+            'bottom' => '',
+            'centre' => '',
+            'year' => '',
+            'motto' => '',
+            'ink' => '#0f6cbf',
+            'metal' => '#b08432',
+            'family' => 'helvetica',
+        ]);
 
         $this->assertNotEmpty($c->ops(), "$edge / $ring / $mark recorded nothing with no text");
     }
@@ -234,19 +209,11 @@ final class seal_engine_test extends \advanced_testcase {
 
         $c = $this->canvas();
 
-        seal_engine::draw(
-            $c,
-            0.5,
-            0.5,
-            17.0,
-            $this->spec(
-                [
-                    'edge' => 'no-such-edge',
-                    'ring' => 'no-such-ring',
-                    'mark' => 'no-such-mark',
-                ]
-            )
-        );
+        seal_engine::draw($c, 0.5, 0.5, 17.0, $this->spec([
+            'edge' => 'no-such-edge',
+            'ring' => 'no-such-ring',
+            'mark' => 'no-such-mark',
+        ]));
 
         $this->assertNotEmpty($c->ops());
     }
@@ -274,18 +241,10 @@ final class seal_engine_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $c = $this->canvas();
-        seal_engine::draw(
-            $c,
-            0.5,
-            0.5,
-            17.0,
-            $this->spec(
-                [
-                    'ring' => seal_engine::RING_NONE,
-                    'mark' => seal_engine::MARK_NONE,
-                ]
-            )
-        );
+        seal_engine::draw($c, 0.5, 0.5, 17.0, $this->spec([
+            'ring' => seal_engine::RING_NONE,
+            'mark' => seal_engine::MARK_NONE,
+        ]));
 
         foreach ($c->ops() as $op) {
             $this->assertNotSame('glyphs', $op[0]);
@@ -302,19 +261,11 @@ final class seal_engine_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $c = $this->canvas();
-        seal_engine::draw(
-            $c,
-            0.5,
-            0.5,
-            17.0,
-            $this->spec(
-                [
-                    'ring' => seal_engine::RING_BOTH,
-                    'mark' => seal_engine::MARK_NONE,
-                    'divider' => true,
-                ]
-            )
-        );
+        seal_engine::draw($c, 0.5, 0.5, 17.0, $this->spec([
+            'ring' => seal_engine::RING_BOTH,
+            'mark' => seal_engine::MARK_NONE,
+            'divider' => true,
+        ]));
 
         $runs = array_values(array_filter($c->ops(), fn($op) => $op[0] === 'glyphs'));
         $this->assertCount(2, $runs);
@@ -337,19 +288,11 @@ final class seal_engine_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $c = $this->canvas();
-        seal_engine::draw(
-            $c,
-            0.5,
-            0.5,
-            17.0,
-            $this->spec(
-                [
-                    'ring' => seal_engine::RING_FULL,
-                    'mark' => seal_engine::MARK_NONE,
-                    'top' => 'CERTIFIED',
-                ]
-            )
-        );
+        seal_engine::draw($c, 0.5, 0.5, 17.0, $this->spec([
+            'ring' => seal_engine::RING_FULL,
+            'mark' => seal_engine::MARK_NONE,
+            'top' => 'CERTIFIED',
+        ]));
 
         $runs = array_values(array_filter($c->ops(), fn($op) => $op[0] === 'glyphs'));
         $this->assertCount(1, $runs);
@@ -366,11 +309,8 @@ final class seal_engine_test extends \advanced_testcase {
             $quadrants[($dx >= 0 ? 'r' : 'l') . ($dy >= 0 ? 'b' : 't')] = true;
         }
 
-        $this->assertCount(
-            4,
-            $quadrants,
-            'a full ring left part of the band empty: ' . implode(',', array_keys($quadrants))
-        );
+        $this->assertCount(4, $quadrants,
+            'a full ring left part of the band empty: ' . implode(',', array_keys($quadrants)));
     }
 
     /**
@@ -382,18 +322,10 @@ final class seal_engine_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $c = $this->canvas();
-        seal_engine::draw(
-            $c,
-            0.5,
-            0.5,
-            17.0,
-            $this->spec(
-                [
-                    'ring' => seal_engine::RING_TOP,
-                    'mark' => seal_engine::MARK_NONE,
-                ]
-            )
-        );
+        seal_engine::draw($c, 0.5, 0.5, 17.0, $this->spec([
+            'ring' => seal_engine::RING_TOP,
+            'mark' => seal_engine::MARK_NONE,
+        ]));
 
         $runs = array_values(array_filter($c->ops(), fn($op) => $op[0] === 'glyphs'));
         $this->assertCount(1, $runs);
@@ -409,34 +341,18 @@ final class seal_engine_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $short = $this->canvas();
-        seal_engine::draw(
-            $short,
-            0.5,
-            0.5,
-            17.0,
-            $this->spec(
-                [
-                    'ring' => seal_engine::RING_TOP,
-                    'mark' => seal_engine::MARK_NONE,
-                    'top' => 'ACME',
-                ]
-            )
-        );
+        seal_engine::draw($short, 0.5, 0.5, 17.0, $this->spec([
+            'ring' => seal_engine::RING_TOP,
+            'mark' => seal_engine::MARK_NONE,
+            'top' => 'ACME',
+        ]));
 
         $long = $this->canvas();
-        seal_engine::draw(
-            $long,
-            0.5,
-            0.5,
-            17.0,
-            $this->spec(
-                [
-                    'ring' => seal_engine::RING_TOP,
-                    'mark' => seal_engine::MARK_NONE,
-                    'top' => 'THE ROYAL AND ANCIENT INSTITUTE OF ADVANCED LEARNING AND RESEARCH',
-                ]
-            )
-        );
+        seal_engine::draw($long, 0.5, 0.5, 17.0, $this->spec([
+            'ring' => seal_engine::RING_TOP,
+            'mark' => seal_engine::MARK_NONE,
+            'top' => 'THE ROYAL AND ANCIENT INSTITUTE OF ADVANCED LEARNING AND RESEARCH',
+        ]));
 
         $shortrun = array_values(array_filter($short->ops(), fn($op) => $op[0] === 'glyphs'))[0];
         $longrun = array_values(array_filter($long->ops(), fn($op) => $op[0] === 'glyphs'))[0];

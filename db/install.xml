@@ -7,7 +7,7 @@
     <TABLE NAME="certificatepro" COMMENT="Certificate Pro activity instances">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="cycleonly" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="Dedicated cycle issuer; ordinary issuance is forbidden"/>
+        <FIELD NAME="cycleonly" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Dedicated cycle issuer; ordinary issuance is forbidden"/>
         <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The course this instance belongs to"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Activity name"/>
         <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Activity description"/>
@@ -121,7 +121,7 @@
     <TABLE NAME="certificatepro_issues" COMMENT="An immutable record of a certificate issued to a user">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="cycleid" TYPE="int" LENGTH="10" NOTNULL="false" COMMENT="Optional immutable Recertification cycle; NULL for legacy course issues"/>
+        <FIELD NAME="cycleid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Optional immutable Recertification cycle; NULL for legacy course issues"/>
         <FIELD NAME="certificateproid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="code" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="Human readable verification code"/>

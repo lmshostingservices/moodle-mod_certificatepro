@@ -39,6 +39,7 @@ use mod_certificatepro\local\issue_service;
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(badge_service::class)]
 final class badge_service_test extends \advanced_testcase {
+
     /**
      * A course, a learner and an issued certificate built from a starter.
      *
@@ -55,30 +56,20 @@ final class badge_service_test extends \advanced_testcase {
         $PAGE->initialise_theme_and_output();
 
         $course = $this->getDataGenerator()->create_course();
-        $user = $this->getDataGenerator()->create_user(
-            [
-                'firstname' => 'Renée', 'lastname' => 'Ó Súilleabháin',
-            ]
-        );
+        $user = $this->getDataGenerator()->create_user([
+            'firstname' => 'Renée', 'lastname' => 'Ó Súilleabháin',
+        ]);
         $this->getDataGenerator()->enrol_user($user->id, $course->id);
 
-        $module = $this->getDataGenerator()->create_module(
-            'certificatepro',
-            [
-                'course' => $course->id,
-                'name' => 'Certificate of Achievement',
-                'starter' => $starter,
-            ]
-        );
+        $module = $this->getDataGenerator()->create_module('certificatepro', [
+            'course' => $course->id,
+            'name' => 'Certificate of Achievement',
+            'starter' => $starter,
+        ]);
 
         $instance = $DB->get_record('certificatepro', ['id' => $module->id], '*', MUST_EXIST);
-        $cm = get_coursemodule_from_instance(
-            'certificatepro',
-            $instance->id,
-            $course->id,
-            false,
-            MUST_EXIST
-        );
+        $cm = get_coursemodule_from_instance('certificatepro', $instance->id, $course->id,
+            false, MUST_EXIST);
         $context = \context_module::instance($cm->id);
 
         $issue = issue_service::issue($instance, $course, $context, $user);
@@ -114,12 +105,8 @@ final class badge_service_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $fixture = $this->issued();
-        $svg = badge_service::badge(
-            $fixture['issue'],
-            $fixture['instance'],
-            $fixture['course'],
-            $fixture['user']
-        );
+        $svg = badge_service::badge($fixture['issue'], $fixture['instance'],
+            $fixture['course'], $fixture['user']);
 
         $doc = new \DOMDocument();
         $this->assertTrue($doc->loadXML($svg), 'the baked badge is not well formed XML');
@@ -129,13 +116,9 @@ final class badge_service_test extends \advanced_testcase {
 
         // Section 5.3 puts the credential directly after the root tag.
         $this->assertMatchesRegularExpression(
-            '/<svg[^>]*>\s*<' . svg_baker::PREFIX . ':' . svg_baker::ELEMENT . '/',
-            $svg
-        );
+            '/<svg[^>]*>\s*<' . svg_baker::PREFIX . ':' . svg_baker::ELEMENT . '/', $svg);
         $this->assertStringContainsString(
-            'xmlns:' . svg_baker::PREFIX . '="' . svg_baker::NAMESPACE_URI . '"',
-            $svg
-        );
+            'xmlns:' . svg_baker::PREFIX . '="' . svg_baker::NAMESPACE_URI . '"', $svg);
     }
 
     /**
@@ -147,20 +130,12 @@ final class badge_service_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $fixture = $this->issued();
-        $svg = badge_service::badge(
-            $fixture['issue'],
-            $fixture['instance'],
-            $fixture['course'],
-            $fixture['user']
-        );
+        $svg = badge_service::badge($fixture['issue'], $fixture['instance'],
+            $fixture['course'], $fixture['user']);
 
         $extracted = svg_baker::extract($svg);
-        $built = open_badge::build(
-            $fixture['issue'],
-            $fixture['instance'],
-            $fixture['course'],
-            $fixture['user']
-        );
+        $built = open_badge::build($fixture['issue'], $fixture['instance'],
+            $fixture['course'], $fixture['user']);
 
         $this->assertSame($built, $extracted);
         $this->assertSame([], open_badge::validate($extracted));
@@ -176,17 +151,10 @@ final class badge_service_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $fixture = $this->issued();
-        $artwork = badge_service::artwork(
-            $fixture['issue'],
-            $fixture['course'],
-            $fixture['instance']
-        );
-        $badge = badge_service::badge(
-            $fixture['issue'],
-            $fixture['instance'],
-            $fixture['course'],
-            $fixture['user']
-        );
+        $artwork = badge_service::artwork($fixture['issue'], $fixture['course'],
+            $fixture['instance']);
+        $badge = badge_service::badge($fixture['issue'], $fixture['instance'],
+            $fixture['course'], $fixture['user']);
 
         $stripped = svg_baker::strip($badge);
         $this->assertFalse(svg_baker::is_baked($stripped));
@@ -194,10 +162,7 @@ final class badge_service_test extends \advanced_testcase {
         // Baking declares a namespace on the root; nothing else about the
         // drawing may change.
         $undeclared = str_replace(
-            ' xmlns:' . svg_baker::PREFIX . '="' . svg_baker::NAMESPACE_URI . '"',
-            '',
-            $stripped
-        );
+            ' xmlns:' . svg_baker::PREFIX . '="' . svg_baker::NAMESPACE_URI . '"', '', $stripped);
         $this->assertSame($artwork, $undeclared);
     }
 
@@ -215,22 +180,13 @@ final class badge_service_test extends \advanced_testcase {
         $classic = $this->issued('classic');
         $ceremonial = $this->issued('ceremonial');
 
-        $classicart = badge_service::artwork(
-            $classic['issue'],
-            $classic['course'],
-            $classic['instance']
-        );
-        $ceremonialart = badge_service::artwork(
-            $ceremonial['issue'],
-            $ceremonial['course'],
-            $ceremonial['instance']
-        );
+        $classicart = badge_service::artwork($classic['issue'], $classic['course'],
+            $classic['instance']);
+        $ceremonialart = badge_service::artwork($ceremonial['issue'], $ceremonial['course'],
+            $ceremonial['instance']);
 
-        $this->assertNotSame(
-            $classicart,
-            $ceremonialart,
-            'two designs with different seals produced the same badge'
-        );
+        $this->assertNotSame($classicart, $ceremonialart,
+            'two designs with different seals produced the same badge');
 
         // The ring lettering the starter sets has to be there.
         $toptext = get_string('startertext_sealtop', 'mod_certificatepro');
@@ -250,10 +206,8 @@ final class badge_service_test extends \advanced_testcase {
         $snapshot = json_decode((string) $fixture['issue']->snapshot, true);
         $this->assertIsArray($snapshot);
         $this->assertArrayHasKey(badge_service::SNAPSHOT_KEY, $snapshot);
-        $this->assertSame(
-            seal_engine::EDGE_SCALLOP,
-            $snapshot[badge_service::SNAPSHOT_KEY]['sealedge']
-        );
+        $this->assertSame(seal_engine::EDGE_SCALLOP,
+            $snapshot[badge_service::SNAPSHOT_KEY]['sealedge']);
     }
 
     /**
@@ -267,20 +221,15 @@ final class badge_service_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $fixture = $this->issued('classic');
-        $before = badge_service::artwork(
-            $fixture['issue'],
-            $fixture['course'],
-            $fixture['instance']
-        );
+        $before = badge_service::artwork($fixture['issue'], $fixture['course'],
+            $fixture['instance']);
 
         // Change the design's seal after the certificate was issued.
         $seal = $DB->get_record_sql(
             'SELECT e.* FROM {certificatepro_elements} e
                JOIN {certificatepro_pages} p ON p.id = e.pageid
               WHERE p.templateid = ? AND e.element = ?',
-            [$fixture['instance']->templateid, 'seal'],
-            IGNORE_MULTIPLE
-        );
+            [$fixture['instance']->templateid, 'seal'], IGNORE_MULTIPLE);
         $this->assertNotEmpty($seal);
 
         $data = json_decode($seal->data, true);
@@ -304,11 +253,8 @@ final class badge_service_test extends \advanced_testcase {
 
         // The blank starter ships no elements at all.
         $fixture = $this->issued('blank');
-        $svg = badge_service::artwork(
-            $fixture['issue'],
-            $fixture['course'],
-            $fixture['instance']
-        );
+        $svg = badge_service::artwork($fixture['issue'], $fixture['course'],
+            $fixture['instance']);
 
         $doc = new \DOMDocument();
         $this->assertTrue($doc->loadXML($svg));
@@ -327,18 +273,10 @@ final class badge_service_test extends \advanced_testcase {
 
         $fixture = $this->issued();
 
-        $first = badge_service::badge(
-            $fixture['issue'],
-            $fixture['instance'],
-            $fixture['course'],
-            $fixture['user']
-        );
-        $second = badge_service::badge(
-            $fixture['issue'],
-            $fixture['instance'],
-            $fixture['course'],
-            $fixture['user']
-        );
+        $first = badge_service::badge($fixture['issue'], $fixture['instance'],
+            $fixture['course'], $fixture['user']);
+        $second = badge_service::badge($fixture['issue'], $fixture['instance'],
+            $fixture['course'], $fixture['user']);
 
         $this->assertSame($first, $second);
     }
@@ -352,26 +290,16 @@ final class badge_service_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $fixture = $this->issued();
-        $svg = badge_service::badge(
-            $fixture['issue'],
-            $fixture['instance'],
-            $fixture['course'],
-            $fixture['user']
-        );
+        $svg = badge_service::badge($fixture['issue'], $fixture['instance'],
+            $fixture['course'], $fixture['user']);
 
-        $credential = open_badge::build(
-            $fixture['issue'],
-            $fixture['instance'],
-            $fixture['course'],
-            $fixture['user']
-        );
+        $credential = open_badge::build($fixture['issue'], $fixture['instance'],
+            $fixture['course'], $fixture['user']);
 
         $rebaked = svg_baker::bake($svg, $credential);
 
-        $this->assertSame(
-            1,
-            substr_count($rebaked, '<' . svg_baker::PREFIX . ':' . svg_baker::ELEMENT)
-        );
+        $this->assertSame(1,
+            substr_count($rebaked, '<' . svg_baker::PREFIX . ':' . svg_baker::ELEMENT));
         $this->assertSame($svg, $rebaked);
     }
 
@@ -387,9 +315,7 @@ final class badge_service_test extends \advanced_testcase {
 
         $this->assertSame('badge-CP-4K7M-9XQ2-P3TR.svg', $name);
         $this->assertStringEndsWith('.svg', badge_service::filename(new \stdClass()));
-        $this->assertStringNotContainsString(
-            '/',
-            badge_service::filename((object) ['code' => '../../etc/passwd'])
-        );
+        $this->assertStringNotContainsString('/',
+            badge_service::filename((object) ['code' => '../../etc/passwd']));
     }
 }

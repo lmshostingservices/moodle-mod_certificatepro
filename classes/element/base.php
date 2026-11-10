@@ -55,6 +55,19 @@ abstract class base {
     protected array $style;
 
     /**
+     * The drawing size, in millimetres, that the last render_html() baked in.
+     *
+     * Recorded by {@see canvas_box_style()} rather than declared by each type,
+     * because that method is the one place a drawn size is turned into a fixed
+     * CSS length. Reading it back after the markup exists is therefore a record
+     * of what actually happened, not a guess about what a type probably does.
+     *
+     * @var array{0: float, 1: float}|null width then height, or null when the
+     *      markup carries no baked in drawing size
+     */
+    protected ?array $canvasdrawn = null;
+
+    /**
      * Wrap a stored element record.
      *
      * @param \stdClass $record a row from the elements table
@@ -129,6 +142,85 @@ abstract class base {
     }
 
     /**
+     * The element's own configuration as a newly dropped element should hold it.
+     *
+     * This has to mirror the setDefault() calls in definition_form(). An element
+     * created with an empty configuration draws nothing at all until the author
+     * has opened and saved its settings form once, which reads as a bug rather
+     * than as an empty element.
+     *
+     * @return array the configuration to store as JSON on creation
+     */
+    public static function default_data(): array {
+        return [];
+    }
+
+    /**
+     * Whether this element is always drawn square, whatever shape its box is.
+     *
+     * A seal, a QR code and a portrait are all drawn at min(width, height) by
+     * the PDF, so the designer has to constrain their boxes the same way rather
+     * than letting the author stretch something that cannot stretch.
+     *
+     * @return bool
+     */
+    public static function keepsquare(): bool {
+        return false;
+    }
+
+    /**
+     * Whether the author may resize this element's box.
+     *
+     * @return bool
+     */
+    public static function resizable(): bool {
+        return true;
+    }
+
+    /**
+     * The width and height this type will actually accept for its box.
+     *
+     * {@see self::keepsquare()} and {@see self::resizable()} say what a type
+     * permits, but saying it is not the same as enforcing it, and there is more
+     * than one way into the columns: the designer posts a whole page of geometry
+     * at once, and the settings form offers width and height as two boxes an
+     * author can type any number into. Both used to write what they were given,
+     * so the same seal that could not be dragged into an oval could still be
+     * saved as one, and a page frame the canvas refuses to resize could be given
+     * any size at all through the form.
+     *
+     * The rule belongs with the flags it reads rather than with either caller,
+     * so both ask the type itself and get the same answer. What comes back is
+     * only ever a size: refusing a move as well would be a different and much
+     * more annoying rule, and an author may always reposition something they may
+     * not reshape.
+     *
+     * @param float $width the width being asked for, in millimetres
+     * @param float $height the height being asked for, in millimetres
+     * @param float $storedwidth the width the element already has
+     * @param float $storedheight the height the element already has
+     * @return array{0: float, 1: float} the width and height to store
+     */
+    public static function constrain_size(float $width, float $height, float $storedwidth,
+            float $storedheight): array {
+        if (!static::resizable()) {
+            return [$storedwidth, $storedheight];
+        }
+
+        $width = max(0.0, $width);
+        $height = max(0.0, $height);
+
+        if (static::keepsquare()) {
+            // The larger side, so dragging a corner outwards makes the seal
+            // bigger rather than snapping it down to whichever edge moved least.
+            $side = max($width, $height);
+            return [$side, $side];
+        }
+
+        return [$width, $height];
+    }
+
+    /**
      * The default typography and colour for a newly created element.
      *
      * @return array
@@ -180,12 +272,25 @@ abstract class base {
     /**
      * One value from the element's own configuration.
      *
+     * A key the stored configuration has never carried falls back to the type's
+     * own default, the way {@see style()} falls back to default_style(). That
+     * matters for elements stored before those defaults existed: a shape whose
+     * record has no fill colour at all is meant to be the pale wash its form
+     * offers, not invisible.
+     *
      * @param string $key the configuration key
      * @param mixed $default what to return when the key is absent
      * @return mixed
      */
     public function config(string $key, $default = null) {
-        return $this->data[$key] ?? $default;
+        if (array_key_exists($key, $this->data)) {
+            return $this->data[$key];
+        }
+        $defaults = static::default_data();
+        if (array_key_exists($key, $defaults)) {
+            return $defaults[$key];
+        }
+        return $default;
     }
 
     /**
@@ -334,6 +439,175 @@ abstract class base {
         return [round($left, 3), round($top, 3)];
     }
 
+    // Canvas geometry.
+
+    /**
+     * A CSS length in millimetres of page, expressed so that it follows the zoom.
+     *
+     * The designer sizes the stage in pixels at whatever zoom is current, so any
+     * absolute unit written into an element's markup - a point size, a border
+     * weight - stops agreeing with the page as soon as the author zooms. The
+     * stage is a container ({@see styles.css}), so one container query width
+     * unit is one hundredth of the page whatever the zoom is, and a length
+     * stated as a percentage of the page width scales with the paper.
+     *
+     * @param render_context $ctx the render context
+     * @param float $mm the length in millimetres
+     * @return string a CSS length
+     */
+    protected function canvas_mm(render_context $ctx, float $mm): string {
+        $pagewidth = $ctx->get_page_width();
+        if ($pagewidth <= 0) {
+            $pagewidth = 297.0;
+        }
+        return round(($mm / $pagewidth) * 100.0, 4) . 'cqw';
+    }
+
+    /**
+     * A CSS length in typographic points, expressed so that it follows the zoom.
+     *
+     * @param render_context $ctx the render context
+     * @param float $points the length in points
+     * @return string a CSS length
+     */
+    protected function canvas_points(render_context $ctx, float $points): string {
+        return $this->canvas_mm($ctx, $points * 25.4 / 72.0);
+    }
+
+    /**
+     * CSS placing a drawing of a given size inside the element box on the canvas.
+     *
+     * The PDF anchors what it draws with {@see box_origin()}, which means a
+     * drawing smaller than its box sits against whichever corner the reference
+     * point names. The canvas box is drawn by the designer at the stored width
+     * and height, so the drawing inside it has to be anchored the same way or a
+     * seal in a wide box appears in the middle on screen and on the left in the
+     * PDF. Automatic margins absorb the free space on the side the anchor is
+     * not on, in both axes.
+     *
+     * @param render_context $ctx the render context
+     * @param float $width the drawn width in millimetres
+     * @param float $height the drawn height in millimetres
+     * @return string[] CSS declarations
+     */
+    protected function canvas_box_style(render_context $ctx, float $width, float $height): array {
+        $refpoint = $this->get_refpoint();
+        $vertical = substr($refpoint, 0, 1);
+        $horizontal = substr($refpoint, 1, 1);
+
+        // Remember what was baked in, so canvas_fit() can tell the designer how
+        // to rescale it the instant the author drags a handle. See the property.
+        $this->canvasdrawn = [$width, $height];
+
+        $styles = [
+            'width:' . $this->canvas_mm($ctx, $width),
+            'height:' . $this->canvas_mm($ctx, $height),
+            // The content box is a flex container, and a flex item that is not
+            // told to hold its size is stretched or squashed to fit.
+            'flex:0 0 auto',
+            'margin-left:' . ($horizontal === 'c' || $horizontal === 'r' ? 'auto' : '0'),
+            'margin-right:' . ($horizontal === 'c' || $horizontal === 'l' ? 'auto' : '0'),
+            'margin-top:' . ($vertical === 'm' || $vertical === 'b' ? 'auto' : '0'),
+            'margin-bottom:' . ($vertical === 'm' || $vertical === 't' ? 'auto' : '0'),
+        ];
+
+        return $styles;
+    }
+
+    /**
+     * The CSS object-position that matches this element's reference point.
+     *
+     * @return string a CSS object-position value
+     */
+    protected function canvas_object_position(): string {
+        $refpoint = $this->get_refpoint();
+
+        $horizontal = match (substr($refpoint, 1, 1)) {
+            'c' => 'center',
+            'r' => 'right',
+            default => 'left',
+        };
+        $vertical = match (substr($refpoint, 0, 1)) {
+            'm' => 'center',
+            'b' => 'bottom',
+            default => 'top',
+        };
+
+        return $horizontal . ' ' . $vertical;
+    }
+
+    /**
+     * How the drawing inside this element's markup relates to the element's box.
+     *
+     * The markup an element exports is rendered once, on the server, for the box
+     * the element had at that moment, and some of what it contains is a fixed
+     * length worked out from that box: a seal states the side of its square, and
+     * a text element states the point size its words were shrunk to so they
+     * would fit. Resizing the box on the canvas restyles the outer node alone,
+     * so until fresh markup arrives the drawing inside keeps the size it was
+     * exported at and the designer stops showing what will print.
+     *
+     * Fresh markup does arrive - {@see \mod_certificatepro\external\designer_api::save_layout()}
+     * re-exports whatever the save reshaped - but the autosave is debounced, so
+     * it arrives a moment after the drag rather than during it. This is what
+     * lets the browser bridge that moment honestly: rather than the designer
+     * knowing that a seal is square and that text shrinks to fit, the element
+     * says so itself, and the designer only applies the rule it is handed.
+     *
+     * The answer describes the markup that has just been rendered, so it must be
+     * asked for after render_html() and not before.
+     *
+     * @param render_context $ctx the render context
+     * @return array the fit descriptor, always carrying the box it describes
+     */
+    protected function canvas_fit(render_context $ctx): array {
+        $fit = [
+            // Everything the designer needs to tell whether this description is
+            // still the current one. Markup exported for a box the element has
+            // since left has been overtaken by a later drag, and applying it
+            // would put the canvas back where the author has just moved it on
+            // from. Position is not here because no element's markup depends on
+            // it: box_origin() is a print concern, and the canvas draws the box.
+            'boxwidth' => $this->get_width(),
+            'boxheight' => $this->get_height(),
+            'refpoint' => $this->get_refpoint(),
+            'alignment' => $this->get_alignment(),
+            'valignment' => $this->get_valignment(),
+            'mode' => 'none',
+            'minsize' => '',
+            'maxsize' => '',
+        ];
+
+        if ($this->canvasdrawn !== null) {
+            [$drawnwidth, $drawnheight] = $this->canvasdrawn;
+
+            // A square drawing in a box that need not be square is drawn at the
+            // shorter side, which is what keeps a seal's ring lettering inside
+            // its box; anything else was stated as a plain fraction of the box
+            // and follows each side of it separately.
+            $fit['mode'] = abs($drawnwidth - $drawnheight) < 0.001 ? 'square' : 'box';
+
+            return $fit;
+        }
+
+        // Type set to fit its box is the other thing a resize invalidates, and
+        // text_base is where every element that sets type inherits that
+        // behaviour from, so asking the object rather than listing the types
+        // keeps a new text element working the day it is written.
+        if ($this instanceof text_base && $this->style('fit', true)
+                && ($this->get_height() > 0 || (int) $this->style('maxlines', 0) > 0)) {
+            $fit['mode'] = 'type';
+
+            // The two ends of shrink to fit, in the same unit the markup states
+            // its point size in, so the designer can clamp a scaled size against
+            // them without knowing anything about points or paper.
+            $fit['minsize'] = $this->canvas_points($ctx, text_base::MIN_FIT_SIZE);
+            $fit['maxsize'] = $this->canvas_points($ctx, $this->resolve_size($ctx));
+        }
+
+        return $fit;
+    }
+
     // Configuration form.
 
     /**
@@ -465,6 +739,10 @@ abstract class base {
      * @return array
      */
     public function export_for_designer(render_context $ctx): array {
+        // Drawn first, because canvas_fit() reports on the markup that exists
+        // rather than on the markup that is about to.
+        $html = $this->render_html($ctx);
+
         return [
             'id' => $this->get_id(),
             'type' => static::type(),
@@ -484,9 +762,12 @@ abstract class base {
             'zindex' => (int) $this->record->zindex,
             'locked' => !empty($this->record->locked),
             'hidden' => $this->is_hidden(),
+            'keepsquare' => static::keepsquare(),
+            'resizable' => static::resizable(),
             'style' => $this->get_style(),
             'data' => $this->get_data(),
-            'html' => $this->render_html($ctx),
+            'html' => $html,
+            'canvasfit' => $this->canvas_fit($ctx),
         ];
     }
 }

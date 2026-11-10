@@ -71,12 +71,9 @@ class gradeitemname extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'gradeitem',
+        $mform->addElement('select', 'gradeitem',
             get_string('gradeitem', 'mod_certificatepro'),
-            \mod_certificatepro\local\grade_helper::menu($context)
-        );
+            \mod_certificatepro\local\grade_helper::menu($context));
     }
 
     /**

@@ -69,14 +69,23 @@ class teachername extends text_base {
      * @return array
      */
     public static function default_style(): array {
-        return array_merge(
-            parent::default_style(),
-            [
-                'font' => 'body',
-                'scalerole' => 'signaturename',
-                'size' => null,
-            ]
-        );
+        return array_merge(parent::default_style(), [
+            'font' => 'body',
+            'scalerole' => 'signaturename',
+            'size' => null,
+        ]);
+    }
+
+    /**
+     * The configuration a newly dropped teacher name starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'teachermode' => 'first',
+            'teacherid' => 0,
+        ];
     }
 
     /**
@@ -87,24 +96,17 @@ class teachername extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'teachermode',
-            get_string('teachermode', 'mod_certificatepro'),
-            [
+        $mform->addElement('select', 'teachermode',
+            get_string('teachermode', 'mod_certificatepro'), [
                 'first' => get_string('teachermode_first', 'mod_certificatepro'),
                 'all' => get_string('teachermode_all', 'mod_certificatepro'),
                 'specific' => get_string('teachermode_specific', 'mod_certificatepro'),
-            ]
-        );
+            ]);
         $mform->setDefault('teachermode', 'first');
 
-        $mform->addElement(
-            'select',
-            'teacherid',
+        $mform->addElement('select', 'teacherid',
             get_string('teacher', 'mod_certificatepro'),
-            \mod_certificatepro\local\course_helper::teacher_menu($context)
-        );
+            \mod_certificatepro\local\course_helper::teacher_menu($context));
         $mform->hideIf('teacherid', 'teachermode', 'neq', 'specific');
     }
 

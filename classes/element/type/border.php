@@ -68,10 +68,65 @@ class border extends base {
     /**
      * The default box size in millimetres, replaced by the page size on render.
      *
+     * A landscape page is only the starting guess. What the element actually
+     * occupies is settled by {@see export_for_designer()}, which reports the
+     * real page: stored anything else, a portrait design used to show a frame
+     * two thirds of the way down the sheet while the print drew it round the
+     * whole page.
+     *
      * @return array{0: float, 1: float}
      */
     public static function default_size(): array {
         return [297.0, 210.0];
+    }
+
+    /**
+     * The configuration a newly dropped frame starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'borderstyle' => 'classic',
+            'inset' => 8.0,
+            'thickness' => 0.8,
+            'colour' => 'primary',
+        ];
+    }
+
+    /**
+     * A page frame is the size of the page, so there is nothing to resize.
+     *
+     * The distance the frame stands in from the paper's edge is the inset
+     * setting, which is what an author actually wants to change.
+     *
+     * @return bool
+     */
+    public static function resizable(): bool {
+        return false;
+    }
+
+    /**
+     * Report the frame to the designer as what it is: the whole page.
+     *
+     * The print draws the frame from the page dimensions, so a box of any other
+     * size is a promise the print will not keep. Rather than let the two drift,
+     * the box the canvas draws is replaced with the page itself.
+     *
+     * @param render_context $ctx the render context
+     * @return array
+     */
+    public function export_for_designer(render_context $ctx): array {
+        $data = parent::export_for_designer($ctx);
+
+        $data['posx'] = 0.0;
+        $data['posy'] = 0.0;
+        $data['width'] = $ctx->get_page_width();
+        $data['height'] = $ctx->get_page_height();
+        $data['refpoint'] = 'tl';
+        $data['rotation'] = 0.0;
+
+        return $data;
     }
 
     /**
@@ -99,38 +154,22 @@ class border extends base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'borderstyle',
-            get_string('borderstyle', 'mod_certificatepro'),
-            self::styles()
-        );
+        $mform->addElement('select', 'borderstyle',
+            get_string('borderstyle', 'mod_certificatepro'), self::styles());
         $mform->setDefault('borderstyle', 'classic');
 
-        $mform->addElement(
-            'text',
-            'inset',
-            get_string('borderinset', 'mod_certificatepro'),
-            ['size' => 6]
-        );
+        $mform->addElement('text', 'inset',
+            get_string('borderinset', 'mod_certificatepro'), ['size' => 6]);
         $mform->setType('inset', PARAM_FLOAT);
         $mform->setDefault('inset', 8);
 
-        $mform->addElement(
-            'text',
-            'thickness',
-            get_string('linethickness', 'mod_certificatepro'),
-            ['size' => 6]
-        );
+        $mform->addElement('text', 'thickness',
+            get_string('linethickness', 'mod_certificatepro'), ['size' => 6]);
         $mform->setType('thickness', PARAM_FLOAT);
         $mform->setDefault('thickness', 0.8);
 
-        $mform->addElement(
-            'text',
-            'colour',
-            get_string('elementcolour', 'mod_certificatepro'),
-            ['size' => 12]
-        );
+        $mform->addElement('text', 'colour',
+            get_string('elementcolour', 'mod_certificatepro'), ['size' => 12]);
         $mform->setType('colour', PARAM_TEXT);
         $mform->setDefault('colour', 'primary');
         $mform->addHelpButton('colour', 'elementcolour', 'mod_certificatepro');
@@ -207,40 +246,21 @@ class border extends base {
             case 'double':
                 $pdf->Rect($x, $y, $w, $h, 'D', ['all' => ['width' => $thickness, 'color' => $rgb]]);
                 $gap = max(1.5, $thickness * 3);
-                $pdf->Rect(
-                    $x + $gap,
-                    $y + $gap,
-                    $w - (2 * $gap),
-                    $h - (2 * $gap),
-                    'D',
-                    ['all' => ['width' => $thickness * 0.5, 'color' => $rgb]]
-                );
+                $pdf->Rect($x + $gap, $y + $gap, $w - (2 * $gap), $h - (2 * $gap), 'D',
+                    ['all' => ['width' => $thickness * 0.5, 'color' => $rgb]]);
                 break;
 
             case 'classic':
                 $pdf->Rect($x, $y, $w, $h, 'D', ['all' => ['width' => $thickness * 1.6, 'color' => $rgb]]);
                 $gap = max(2.0, $thickness * 3.5);
-                $pdf->Rect(
-                    $x + $gap,
-                    $y + $gap,
-                    $w - (2 * $gap),
-                    $h - (2 * $gap),
-                    'D',
-                    ['all' => ['width' => $thickness * 0.4, 'color' => $rgb]]
-                );
+                $pdf->Rect($x + $gap, $y + $gap, $w - (2 * $gap), $h - (2 * $gap), 'D',
+                    ['all' => ['width' => $thickness * 0.4, 'color' => $rgb]]);
                 // Small squares at each corner of the inner rule.
                 $dot = max(1.2, $thickness * 2.4);
                 foreach ([[$x + $gap, $y + $gap], [$x + $w - $gap, $y + $gap],
                           [$x + $gap, $y + $h - $gap], [$x + $w - $gap, $y + $h - $gap]] as $corner) {
-                    $pdf->Rect(
-                        $corner[0] - ($dot / 2),
-                        $corner[1] - ($dot / 2),
-                        $dot,
-                        $dot,
-                        'F',
-                        [],
-                        $rgb
-                    );
+                    $pdf->Rect($corner[0] - ($dot / 2), $corner[1] - ($dot / 2), $dot, $dot, 'F',
+                        [], $rgb);
                 }
                 break;
 
@@ -328,20 +348,10 @@ class border extends base {
                 $topy = $y + ($band / 2) + $offset;
                 $bottomy = $y + $h - ($band / 2) + $offset;
                 if ($previoustop !== null) {
-                    $pdf->Line(
-                        $previoustop[0],
-                        $previoustop[1],
-                        $px,
-                        $topy,
-                        ['width' => $weight, 'color' => $rgb]
-                    );
-                    $pdf->Line(
-                        $previousbottom[0],
-                        $previousbottom[1],
-                        $px,
-                        $bottomy,
-                        ['width' => $weight, 'color' => $rgb]
-                    );
+                    $pdf->Line($previoustop[0], $previoustop[1], $px, $topy,
+                        ['width' => $weight, 'color' => $rgb]);
+                    $pdf->Line($previousbottom[0], $previousbottom[1], $px, $bottomy,
+                        ['width' => $weight, 'color' => $rgb]);
                 }
                 $previoustop = [$px, $topy];
                 $previousbottom = [$px, $bottomy];
@@ -358,20 +368,10 @@ class border extends base {
                 $leftx = $x + ($band / 2) + $offset;
                 $rightx = $x + $w - ($band / 2) + $offset;
                 if ($previousleft !== null) {
-                    $pdf->Line(
-                        $previousleft[0],
-                        $previousleft[1],
-                        $leftx,
-                        $py,
-                        ['width' => $weight, 'color' => $rgb]
-                    );
-                    $pdf->Line(
-                        $previousright[0],
-                        $previousright[1],
-                        $rightx,
-                        $py,
-                        ['width' => $weight, 'color' => $rgb]
-                    );
+                    $pdf->Line($previousleft[0], $previousleft[1], $leftx, $py,
+                        ['width' => $weight, 'color' => $rgb]);
+                    $pdf->Line($previousright[0], $previousright[1], $rightx, $py,
+                        ['width' => $weight, 'color' => $rgb]);
                 }
                 $previousleft = [$leftx, $py];
                 $previousright = [$rightx, $py];

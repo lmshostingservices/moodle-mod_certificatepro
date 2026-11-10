@@ -46,58 +46,24 @@ class mobile {
 
         $issue = issue_service::get_issue((int) $instance->id, (int) $USER->id);
         $unmet = issue_service::unmet_criteria($instance, $USER, $course, $cm);
-        // Same auto-issue rule as view.php, so an eligible learner is not told the certificate is unavailable.
-        if ($issue === null && empty($unmet) && !empty($instance->autoissue) &&
-                has_capability('mod/certificatepro:receive', $context, null, false)) {
-            $issue = issue_service::issue($instance, $course, $context, $USER);
-        }
-
-        // The app opens links in a separate browser session, so a sesskey-protected view.php link cannot work.
-        // Hand over the stored PDF through pluginfile instead; the app adds its token to these URLs.
-        $downloadurl = '';
-        $files = [];
-        $status = $issue !== null ? issue_service::status($issue) : 'notissued';
-        if ($issue !== null && in_array($status, ['valid', 'expired'], true)) {
-            $file = issue_service::get_file($instance, $course, $context, $USER, $issue);
-            if ($file) {
-                $fileurl = \moodle_url::make_pluginfile_url(
-                    $file->get_contextid(),
-                    $file->get_component(),
-                    $file->get_filearea(),
-                    $file->get_itemid(),
-                    $file->get_filepath(),
-                    $file->get_filename()
-                );
-                $downloadurl = $fileurl->out(false);
-                $files[] = [
-                    'filename' => $file->get_filename(),
-                    'filepath' => $file->get_filepath(),
-                    'fileurl' => $downloadurl,
-                    'filesize' => $file->get_filesize(),
-                    'timemodified' => $file->get_timemodified(),
-                    'mimetype' => $file->get_mimetype(),
-                ];
-            }
-        }
 
         $data = [
             'cmid' => (int) $cm->id,
             'name' => format_string($instance->name),
             'intro' => format_module_intro('certificatepro', $instance, $cm->id),
             'hasissue' => $issue !== null,
-            'status' => $status,
+            'status' => $issue !== null ? issue_service::status($issue) : 'notissued',
             'code' => $issue !== null ? $issue->code : '',
             'serial' => $issue !== null ? (string) ($issue->serial ?? '') : '',
             'issued' => $issue !== null
                 ? userdate($issue->timecreated, get_string('strftimedaydate', 'langconfig'))
                 : '',
             'unmet' => array_values($unmet),
-            'downloadurl' => $downloadurl,
+            'downloadurl' => (new \moodle_url('/mod/certificatepro/view.php',
+                ['id' => $cm->id, 'download' => 1, 'sesskey' => sesskey()]))->out(false),
             'verifyurl' => $issue !== null
-                ? (new \moodle_url(
-                    '/mod/certificatepro/verify.php',
-                    ['code' => $issue->code]
-                ))->out(false)
+                ? (new \moodle_url('/mod/certificatepro/verify.php',
+                    ['code' => $issue->code]))->out(false)
                 : '',
         ];
 
@@ -110,7 +76,7 @@ class mobile {
             ],
             'javascript' => '',
             'otherdata' => '',
-            'files' => $files,
+            'files' => [],
         ];
     }
 }

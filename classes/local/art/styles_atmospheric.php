@@ -69,28 +69,15 @@ class styles_atmospheric {
                 $uc = 1.0 - $uc;
             }
             $c->alpha($index === $accentcolumn ? 0.26 : 0.30);
-            $c->radial_gradient(
-                $uc - 0.15,
-                -0.05,
-                0.30,
-                1.10,
-                $index === $accentcolumn ? $accent : $light,
-                $paper,
-                [0.5, 0.42, 0.0, 0.5, 0.42, 0.62]
-            );
+            $c->radial_gradient($uc - 0.15, -0.05, 0.30, 1.10,
+                $index === $accentcolumn ? $accent : $light, $paper,
+                [0.5, 0.42, 0.0, 0.5, 0.42, 0.62]);
         }
 
         // One broad wash of light behind the curtains, seated on the long edge.
         $c->alpha(0.12);
-        $c->radial_gradient(
-            -0.10,
-            0.30,
-            0.70,
-            0.90,
-            $light,
-            $paper,
-            [0.5, 0.5, 0.0, 0.5, 0.5, 0.55]
-        );
+        $c->radial_gradient(-0.10, 0.30, 0.70, 0.90, $light, $paper,
+            [0.5, 0.5, 0.0, 0.5, 0.5, 0.55]);
 
         // The floor, seating the bottom edge.
         $c->alpha(0.08);

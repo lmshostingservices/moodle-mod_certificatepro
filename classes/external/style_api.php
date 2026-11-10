@@ -80,10 +80,8 @@ class style_api extends library_base {
     protected static function available_families(): array {
         $available = [];
 
-        $candidates = array_merge(
-            style_library::required_families(),
-            style_library::ALWAYS_AVAILABLE
-        );
+        $candidates = array_merge(style_library::required_families(),
+            style_library::ALWAYS_AVAILABLE);
 
         foreach ($candidates as $family) {
             if (font_manager::is_installed(self::family_key($family))) {
@@ -117,11 +115,9 @@ class style_api extends library_base {
      * @return external_function_parameters
      */
     public static function get_style_combinations_parameters(): external_function_parameters {
-        return new external_function_parameters(
-            [
-                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-            ]
-        );
+        return new external_function_parameters([
+            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+        ]);
     }
 
     /**
@@ -135,12 +131,9 @@ class style_api extends library_base {
      * @return array
      */
     public static function get_style_combinations(int $templateid): array {
-        $params = self::validate_parameters(
-            self::get_style_combinations_parameters(),
-            [
-                'templateid' => $templateid,
-            ]
-        );
+        $params = self::validate_parameters(self::get_style_combinations_parameters(), [
+            'templateid' => $templateid,
+        ]);
 
         $template = self::require_readable($params['templateid']);
         $palette = $template->get_palette();
@@ -152,10 +145,8 @@ class style_api extends library_base {
             'title' => self::label('stylespecimen_title', 'Certificate of Achievement'),
             'subtitle' => self::label('stylespecimen_subtitle', 'presented to'),
             'recipient' => self::label('stylespecimen_recipient', 'Ada Lovelace'),
-            'body' => self::label(
-                'stylespecimen_body',
-                'for completing the programme of study'
-            ),
+            'body' => self::label('stylespecimen_body',
+                'for completing the programme of study'),
             'meta' => self::label('stylespecimen_meta', 'Issued 16 August 2026'),
             'signature' => self::label('stylespecimen_signature', 'Programme Director'),
         ];
@@ -257,23 +248,17 @@ class style_api extends library_base {
                     'mood' => new external_value(PARAM_TEXT, 'A short description of its register'),
                     'families' => new external_value(PARAM_TEXT, 'The families it names'),
                     'scripts' => new external_value(PARAM_TEXT, 'The scripts those families cover'),
-                    'substituted' => new external_value(
-                        PARAM_TEXT,
-                        'Families missing from this site, or empty'
-                    ),
-                    'hassubstitution' => new external_value(
-                        PARAM_BOOL,
-                        'Whether anything had to be substituted'
-                    ),
+                    'substituted' => new external_value(PARAM_TEXT,
+                        'Families missing from this site, or empty'),
+                    'hassubstitution' => new external_value(PARAM_BOOL,
+                        'Whether anything had to be substituted'),
                     'roles' => new external_multiple_structure(
                         new external_single_structure([
                             'role' => new external_value(PARAM_ALPHA, 'The text role'),
                             'family' => new external_value(PARAM_TEXT, 'The family it resolved to'),
                             'text' => new external_value(PARAM_TEXT, 'Specimen copy for this role'),
-                            'css' => new external_value(
-                                PARAM_RAW, // pipeline-ignore: PARAM_RAW - generated style text
-                                'The declarations that draw the specimen'
-                            ),
+                            'css' => new external_value(PARAM_RAW, // pipeline-ignore: PARAM_RAW - generated style text
+                                'The declarations that draw the specimen'),
                         ])
                     ),
                 ])
@@ -289,12 +274,10 @@ class style_api extends library_base {
      * @return external_function_parameters
      */
     public static function apply_style_combination_parameters(): external_function_parameters {
-        return new external_function_parameters(
-            [
-                'templateid' => new external_value(PARAM_INT, 'The design being edited'),
-                'combination' => new external_value(PARAM_ALPHANUMEXT, 'The combination identifier'),
-            ]
-        );
+        return new external_function_parameters([
+            'templateid' => new external_value(PARAM_INT, 'The design being edited'),
+            'combination' => new external_value(PARAM_ALPHANUMEXT, 'The combination identifier'),
+        ]);
     }
 
     /**
@@ -307,23 +290,16 @@ class style_api extends library_base {
     public static function apply_style_combination(int $templateid, string $combination): array {
         global $DB;
 
-        $params = self::validate_parameters(
-            self::apply_style_combination_parameters(),
-            [
-                'templateid' => $templateid,
-                'combination' => $combination,
-            ]
-        );
+        $params = self::validate_parameters(self::apply_style_combination_parameters(), [
+            'templateid' => $templateid,
+            'combination' => $combination,
+        ]);
 
         $template = self::require_editable($params['templateid']);
 
         if (!style_library::exists($params['combination'])) {
-            throw new \moodle_exception(
-                'errorunknownstyle',
-                'mod_certificatepro',
-                '',
-                $params['combination']
-            );
+            throw new \moodle_exception('errorunknownstyle', 'mod_certificatepro', '',
+                $params['combination']);
         }
 
         $available = self::available_families();
@@ -361,14 +337,11 @@ class style_api extends library_base {
                 $style['tracking'] = round(((float) $spec['tracking']) * $size, 3);
                 $style['case'] = self::case_for($spec['case']);
 
-                $DB->update_record(
-                    'certificatepro_elements',
-                    (object) [
-                        'id' => $element->get_id(),
-                        'style' => json_encode($style, JSON_PRESERVE_ZERO_FRACTION),
-                        'timemodified' => time(),
-                    ]
-                );
+                $DB->update_record('certificatepro_elements', (object) [
+                    'id' => $element->get_id(),
+                    'style' => json_encode($style, JSON_PRESERVE_ZERO_FRACTION),
+                    'timemodified' => time(),
+                ]);
 
                 $changed++;
             }
@@ -376,12 +349,10 @@ class style_api extends library_base {
 
         $template->touch();
 
-        \mod_certificatepro\event\template_updated::create(
-            [
-                'objectid' => $template->get_id(),
-                'context' => $template->get_context(),
-            ]
-        )->trigger();
+        \mod_certificatepro\event\template_updated::create([
+            'objectid' => $template->get_id(),
+            'context' => $template->get_context(),
+        ])->trigger();
 
         return [
             'changed' => $changed,
@@ -412,14 +383,10 @@ class style_api extends library_base {
      * @return external_single_structure
      */
     public static function apply_style_combination_returns(): external_single_structure {
-        return new external_single_structure(
-            [
-                'changed' => new external_value(PARAM_INT, 'How many elements were restyled'),
-                'substituted' => new external_value(
-                    PARAM_TEXT,
-                    'Families that were not installed and were substituted'
-                ),
-            ]
-        );
+        return new external_single_structure([
+            'changed' => new external_value(PARAM_INT, 'How many elements were restyled'),
+            'substituted' => new external_value(PARAM_TEXT,
+                'Families that were not installed and were substituted'),
+        ]);
     }
 }

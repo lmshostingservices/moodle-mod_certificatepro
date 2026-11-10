@@ -31,6 +31,7 @@ use mod_certificatepro\local\credential\svg_baker;
 #[\PHPUnit\Framework\Attributes\CoversClass(svg_baker::class)]
 #[\PHPUnit\Framework\Attributes\CoversClass(open_badge::class)]
 final class credential_test extends \advanced_testcase {
+
     /**
      * A credential whose values exercise the awkward parts of XML.
      *
@@ -117,16 +118,12 @@ final class credential_test extends \advanced_testcase {
 
         // The namespace is declared on the root and the element follows it.
         $this->assertStringContainsString(
-            'xmlns:openbadges="' . svg_baker::NAMESPACE_URI . '"',
-            $baked
-        );
+            'xmlns:openbadges="' . svg_baker::NAMESPACE_URI . '"', $baked);
         $this->assertMatchesRegularExpression('/<svg[^>]*>\s*<openbadges:credential>/', $baked);
 
         // The drawing itself is untouched.
-        $this->assertStringContainsString(
-            '<circle cx="256" cy="256" r="200" fill="#0f6cbf"/>',
-            $baked
-        );
+        $this->assertStringContainsString('<circle cx="256" cy="256" r="200" fill="#0f6cbf"/>',
+            $baked);
         $this->assertSame(0, strpos($baked, '<?xml version="1.0" encoding="UTF-8"?>'));
     }
 
@@ -173,10 +170,8 @@ final class credential_test extends \advanced_testcase {
     public function test_bake_into_self_closing_root(): void {
         $this->resetAfterTest();
 
-        $baked = svg_baker::bake(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>',
-            $this->sample_credential()
-        );
+        $baked = svg_baker::bake('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>',
+            $this->sample_credential());
 
         $this->assertTrue($this->is_well_formed($baked));
         $this->assertSame($this->sample_credential(), svg_baker::extract($baked));
@@ -349,10 +344,8 @@ final class credential_test extends \advanced_testcase {
         $this->assertSame(['VerifiableCredential', 'OpenBadgeCredential'], $credential['type']);
 
         // The credential names itself by its public verification page.
-        $this->assertStringStartsWith(
-            $CFG->wwwroot . '/mod/certificatepro/verify.php',
-            $credential['id']
-        );
+        $this->assertStringStartsWith($CFG->wwwroot . '/mod/certificatepro/verify.php',
+            $credential['id']);
         $this->assertStringContainsString('code=' . $issue->code, $credential['id']);
 
         // The issuer is this site.
@@ -362,14 +355,10 @@ final class credential_test extends \advanced_testcase {
         $this->assertNotEmpty($credential['issuer']['name']);
 
         // Times are UTC, in the form the data model expects.
-        $this->assertSame(
-            gmdate('Y-m-d\TH:i:s\Z', (int) $issue->timecreated),
-            $credential['validFrom']
-        );
-        $this->assertSame(
-            gmdate('Y-m-d\TH:i:s\Z', (int) $issue->expires),
-            $credential['validUntil']
-        );
+        $this->assertSame(gmdate('Y-m-d\TH:i:s\Z', (int) $issue->timecreated),
+            $credential['validFrom']);
+        $this->assertSame(gmdate('Y-m-d\TH:i:s\Z', (int) $issue->expires),
+            $credential['validUntil']);
 
         // The subject and the achievement.
         $subject = $credential['credentialSubject'];
@@ -422,10 +411,8 @@ final class credential_test extends \advanced_testcase {
 
         $this->assertContains('type must include OpenBadgeCredential', $problems);
         $this->assertContains('achievement is missing criteria', $problems);
-        $this->assertContains(
-            '@context must start with ' . open_badge::CONTEXT_CREDENTIALS,
-            $problems
-        );
+        $this->assertContains('@context must start with ' . open_badge::CONTEXT_CREDENTIALS,
+            $problems);
     }
 
     /**

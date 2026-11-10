@@ -64,6 +64,17 @@ class groupname extends text_base {
     }
 
     /**
+     * The configuration a newly dropped group name starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return [
+            'groupmode' => 'first',
+        ];
+    }
+
+    /**
      * Choose how multiple groups are joined.
      *
      * @param \MoodleQuickForm $mform the form to extend
@@ -71,15 +82,11 @@ class groupname extends text_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'groupmode',
-            get_string('groupdisplay', 'mod_certificatepro'),
-            [
+        $mform->addElement('select', 'groupmode',
+            get_string('groupdisplay', 'mod_certificatepro'), [
                 'first' => get_string('groupdisplay_first', 'mod_certificatepro'),
                 'all' => get_string('groupdisplay_all', 'mod_certificatepro'),
-            ]
-        );
+            ]);
         $mform->setDefault('groupmode', 'first');
     }
 

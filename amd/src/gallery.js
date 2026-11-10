@@ -25,7 +25,7 @@
  * @copyright  2026 LMS Labs <https://lms-labs.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define([], function() {
+define([], function () {
 
     'use strict';
 
@@ -36,7 +36,7 @@ define([], function() {
      * @param {Function} onSelect called with the selected value and its tile
      * @return {Object} a small handle for reading and setting the selection
      */
-    var attach = function(container, onSelect) {
+    var attach = function (container, onSelect) {
         var selected = null;
 
         /**
@@ -44,10 +44,10 @@ define([], function() {
          *
          * @return {HTMLElement[]} the visible tiles
          */
-        var tiles = function() {
+        var tiles = function () {
             return Array.prototype.filter.call(
                 container.querySelectorAll('[data-region="tile"]'),
-                function(tile) {
+                function (tile) {
                     return !tile.hidden;
                 }
             );
@@ -60,12 +60,12 @@ define([], function() {
          * @param {boolean} focus whether to move focus onto it
          * @return {void}
          */
-        var select = function(tile, focus) {
+        var select = function (tile, focus) {
             if (!tile) {
                 return;
             }
 
-            tiles().forEach(function(other) {
+            tiles().forEach(function (other) {
                 other.setAttribute('aria-selected', other === tile ? 'true' : 'false');
                 other.setAttribute('tabindex', other === tile ? '0' : '-1');
                 other.classList.toggle('cpro-selected', other === tile);
@@ -88,13 +88,13 @@ define([], function() {
          * @param {number} delta how far to move
          * @return {void}
          */
-        var move = function(delta) {
+        var move = function (delta) {
             var visible = tiles();
             if (!visible.length) {
                 return;
             }
 
-            var current = visible.findIndex(function(tile) {
+            var current = visible.findIndex(function (tile) {
                 return tile.getAttribute('aria-selected') === 'true';
             });
 
@@ -109,7 +109,7 @@ define([], function() {
          *
          * @return {number} the column count, never less than one
          */
-        var columns = function() {
+        var columns = function () {
             var visible = tiles();
             if (visible.length < 2) {
                 return 1;
@@ -128,14 +128,14 @@ define([], function() {
             return Math.max(1, count);
         };
 
-        container.addEventListener('click', function(event) {
+        container.addEventListener('click', function (event) {
             var tile = event.target.closest('[data-region="tile"]');
             if (tile && container.contains(tile)) {
                 select(tile, true);
             }
         });
 
-        container.addEventListener('keydown', function(event) {
+        container.addEventListener('keydown', function (event) {
             switch (event.key) {
                 case 'ArrowRight':
                     move(1);
@@ -172,12 +172,12 @@ define([], function() {
 
         // The listbox itself is the tab stop until something is chosen, at
         // which point the chosen tile takes over.
-        container.addEventListener('focus', function() {
+        container.addEventListener('focus', function () {
             var visible = tiles();
             if (!visible.length) {
                 return;
             }
-            var current = visible.find(function(tile) {
+            var current = visible.find(function (tile) {
                 return tile.getAttribute('aria-selected') === 'true';
             });
             (current || visible[0]).focus();
@@ -189,7 +189,7 @@ define([], function() {
              *
              * @return {string|null} the value, or null when nothing is chosen
              */
-            value: function() {
+            value: function () {
                 return selected;
             },
 
@@ -198,11 +198,11 @@ define([], function() {
              *
              * @return {void}
              */
-            clear: function() {
+            clear: function () {
                 selected = null;
                 Array.prototype.forEach.call(
                     container.querySelectorAll('[data-region="tile"]'),
-                    function(tile) {
+                    function (tile) {
                         tile.setAttribute('aria-selected', 'false');
                         tile.setAttribute('tabindex', '-1');
                         tile.classList.remove('cpro-selected');

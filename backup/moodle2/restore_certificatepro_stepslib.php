@@ -42,24 +42,16 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
         $userinfo = $this->get_setting_value('userinfo');
 
         $paths[] = new restore_path_element('certificatepro', '/activity/certificatepro');
-        $paths[] = new restore_path_element(
-            'certificatepro_template',
-            '/activity/certificatepro/template'
-        );
-        $paths[] = new restore_path_element(
-            'certificatepro_page',
-            '/activity/certificatepro/template/pages/page'
-        );
-        $paths[] = new restore_path_element(
-            'certificatepro_element',
-            '/activity/certificatepro/template/pages/page/elements/element'
-        );
+        $paths[] = new restore_path_element('certificatepro_template',
+            '/activity/certificatepro/template');
+        $paths[] = new restore_path_element('certificatepro_page',
+            '/activity/certificatepro/template/pages/page');
+        $paths[] = new restore_path_element('certificatepro_element',
+            '/activity/certificatepro/template/pages/page/elements/element');
 
         if ($userinfo) {
-            $paths[] = new restore_path_element(
-                'certificatepro_issue',
-                '/activity/certificatepro/issues/issue'
-            );
+            $paths[] = new restore_path_element('certificatepro_issue',
+                '/activity/certificatepro/issues/issue');
         }
 
         return $this->prepare_activity_structure($paths);
@@ -102,12 +94,8 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
 
         $this->set_mapping('certificatepro_template', $oldid, $newitemid);
 
-        $DB->set_field(
-            'certificatepro',
-            'templateid',
-            $newitemid,
-            ['id' => $this->get_new_parentid('certificatepro')]
-        );
+        $DB->set_field('certificatepro', 'templateid', $newitemid,
+            ['id' => $this->get_new_parentid('certificatepro')]);
     }
 
     /**
@@ -160,15 +148,21 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
         $data = (object) $data;
         $oldid = $data->id;
         $data->certificateproid = $this->get_new_parentid('certificatepro');
-        // A course backup does not carry the site-wide cycle ledger. Retain the
-        // document but never turn an unmapped cycle into a valid course award.
+
+        // A course backup carries the document but not the site-wide cycle ledger
+        // that gave it its meaning, and on the restoring site that cycle id belongs
+        // to a different cycle or to nothing at all. Keeping the document and
+        // marking it withdrawn is the only honest outcome: it stays available as a
+        // historical copy, and nobody can present it as a current award whose
+        // ledger entry can be checked.
         $historicalcycle = !empty($data->cycleid);
         if ($historicalcycle) {
             $data->cycleid = null;
             $data->revoked = 1;
-            $data->revokedreason = 'Restored historical cycle document: original ledger must be verified separately.';
+            $data->revokedreason = get_string('restoredcyclereason', 'mod_certificatepro');
             $data->timerevoked = time();
         }
+
         $data->userid = $this->get_mappingid('user', $data->userid);
         $data->issuedby = $this->get_mappingid('user', $data->issuedby) ?: 0;
         $data->revokedby = $this->get_mappingid('user', $data->revokedby) ?: 0;
@@ -184,9 +178,14 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
         }
 
         $newitemid = $DB->insert_record('certificatepro_issues', $data);
+
         if ($historicalcycle) {
-            // Negative issue-scoped IDs cannot collide with a live ledger ID and
-            // keep restored history out of the legacy course-award lookup.
+            // The row still has to record that it came from a cycle, and it cannot
+            // be left null without becoming an ordinary course award that
+            // get_issue() would hand back. A negative, issue-scoped id says
+            // "from a cycle, but not one on this site": it cannot collide with a
+            // real ledger id, and the unique index still holds because each one is
+            // derived from a different issue.
             $DB->set_field('certificatepro_issues', 'cycleid', -$newitemid, ['id' => $newitemid]);
         }
 
@@ -205,10 +204,7 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
             $this->add_related_files('mod_certificatepro', $area, 'certificatepro_element');
         }
 
-        $this->add_related_files(
-            'mod_certificatepro',
-            \mod_certificatepro\local\issue_service::FILEAREA,
-            'certificatepro_issue'
-        );
+        $this->add_related_files('mod_certificatepro',
+            \mod_certificatepro\local\issue_service::FILEAREA, 'certificatepro_issue');
     }
 }

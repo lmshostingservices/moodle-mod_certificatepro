@@ -36,6 +36,12 @@ abstract class text_base extends base {
     /** @var float The smallest point size shrink to fit will go down to. */
     protected const MIN_FIT_SIZE = 5.0;
 
+    /** @var \pdf|null A throwaway document the canvas measures text with. */
+    protected static $measurer = null;
+
+    /** @var bool Whether building the measuring document has already failed. */
+    protected static bool $measurerfailed = false;
+
     /**
      * The words this element draws.
      *
@@ -169,6 +175,13 @@ abstract class text_base extends base {
         }
 
         [$family, $style] = $this->resolve_font($ctx);
+
+        // Emoji have no glyph in any face TCPDF can reach, and asking for one
+        // makes TCPDF raise an undefined-index error inside its width lookup.
+        // Dropping them prints the name without the decoration, which is far
+        // better than losing the whole element to the renderer's guard.
+        $text = font_manager::strip_undrawable($text);
+
         $colour = $this->resolve_colour($ctx);
         [$r, $g, $b] = brand::to_rgb($colour);
         $size = $this->resolve_size($ctx);
@@ -189,6 +202,12 @@ abstract class text_base extends base {
         }
 
         $html = $this->allows_html() ? $this->clean_html($text) : nl2br(s($text), false);
+
+        // A recipient's name is not negotiable, and no single face TCPDF ships
+        // draws Latin, Arabic and Han at once. Any part of the text the design's
+        // own face cannot draw is tagged here with one that can, so a mixed
+        // script name comes out complete instead of half missing.
+        $html = font_manager::apply_font_runs($pdf, $family, $html);
 
         // Shrink to fit keeps a long value inside its box instead of overflowing.
         if ($this->style('fit', true)) {
@@ -219,19 +238,26 @@ abstract class text_base extends base {
             $pdf->Rotate($rotation, $this->get_posx(), $this->get_posy());
         }
 
-        $pdf->writeHTMLCell(
-            $width,
-            0,
-            $left,
-            $top,
-            $html,
-            0,
-            1,
-            false,
-            true,
-            $this->get_alignment(),
-            true
-        );
+        // The write is guarded because a font without a glyph for some character
+        // makes TCPDF raise an undefined-index warning, which a site running
+        // developer debugging promotes to an exception. The renderer's own guard
+        // would then abandon the element, and a certificate that prints without
+        // the recipient's name on it is worse than one that prints their name
+        // with a character missing. So a failure is retried once with anything
+        // outside Latin-1 removed, which every bundled face can draw.
+        try {
+            $pdf->writeHTMLCell($width, 0, $left, $top, $html, 0, 1, false, true,
+                $this->get_alignment(), true);
+        } catch (\Throwable $e) {
+            $safe = preg_replace('/[^\x{0000}-\x{00FF}]/u', '', $html);
+            if ($safe === null || $safe === $html) {
+                throw $e;
+            }
+            debugging('Certificate Pro dropped characters the font "' . $family
+                . '" cannot draw: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            $pdf->writeHTMLCell($width, 0, $left, $top, $safe, 0, 1, false, true,
+                $this->get_alignment(), true);
+        }
 
         if (abs($rotation) > 0.001) {
             $pdf->StopTransform();
@@ -309,6 +335,86 @@ abstract class text_base extends base {
     }
 
     /**
+     * A document used only for measuring, shared by every element in the request.
+     *
+     * The canvas has no PDF of its own, so shrink to fit had nothing to measure
+     * against and simply did not happen there: a long course name was sliced by
+     * the overflow rule on screen and set complete in the print. Measuring with
+     * the same engine the print uses is the only way the two can agree on the
+     * point size, and one shared document costs a few milliseconds for the whole
+     * page rather than one document per element.
+     *
+     * @return \pdf|null the document, or null when one cannot be built
+     */
+    protected static function measurement_pdf(): ?\pdf {
+        global $CFG;
+
+        if (self::$measurer !== null || self::$measurerfailed) {
+            return self::$measurer;
+        }
+
+        try {
+            require_once($CFG->libdir . '/pdflib.php');
+
+            $pdf = new \pdf();
+            $pdf->SetPrintHeader(false);
+            $pdf->SetPrintFooter(false);
+            $pdf->SetAutoPageBreak(false, 0);
+            $pdf->SetMargins(0, 0, 0, true);
+            $pdf->SetCellPadding(0);
+            $pdf->AddPage('L', [297.0, 210.0]);
+
+            self::$measurer = $pdf;
+        } catch (\Throwable $e) {
+            // Losing the measurement only costs the canvas its shrink to fit,
+            // so it must never cost the author the designer.
+            self::$measurerfailed = true;
+            debugging('Certificate Pro could not build a text measuring document: '
+                . $e->getMessage(), DEBUG_DEVELOPER);
+        }
+
+        return self::$measurer;
+    }
+
+    /**
+     * The point size the PDF will actually set this text in.
+     *
+     * @param render_context $ctx the render context
+     * @param string $family the font family
+     * @param string $style the font style flags
+     * @param float $size the requested point size
+     * @param string $html the markup that has to fit
+     * @param float $width the box width in millimetres
+     * @return float the point size, shrunk to fit when the design asks for it
+     */
+    protected function fitted_size(render_context $ctx, string $family, string $style,
+            float $size, string $html, float $width): float {
+        if (!$this->style('fit', true)) {
+            return $size;
+        }
+
+        $pdf = self::measurement_pdf();
+        if ($pdf === null) {
+            return $size;
+        }
+
+        try {
+            // The same settings the print applies before it fits, because both
+            // tracking and line height change how much fits in the box.
+            $pdf->setFontSpacing($this->points_to_mm((float) $this->style('tracking', 0.0)));
+            $pdf->setCellHeightRatio((float) $this->style('lineheight', 1.25));
+            $fitted = $this->fit_size($pdf, $family, $style, $size, $html, $width);
+            $pdf->setFontSpacing(0);
+            $pdf->setCellHeightRatio(1.25);
+            return $fitted;
+        } catch (\Throwable $e) {
+            debugging('Certificate Pro could not fit text for the canvas: ' . $e->getMessage(),
+                DEBUG_DEVELOPER);
+            return $size;
+        }
+    }
+
+    /**
      * Strip everything from author supplied HTML that a PDF cannot draw safely.
      *
      * @param string $html the markup to clean
@@ -332,38 +438,67 @@ abstract class text_base extends base {
      */
     public function render_html(render_context $ctx): string {
         $text = (string) $this->resolve($ctx);
+
+        // An element with nothing to say draws nothing, on paper and on screen,
+        // which in the designer means an element the author cannot find or
+        // select. Name it instead, the way an image with no file is named.
+        if (trim(strip_tags($text)) === '' && trim($text) === '') {
+            return \html_writer::div(
+                \html_writer::tag('span', static::display_name()),
+                'certificatepro-element-placeholder'
+            );
+        }
+
         $colour = $this->resolve_colour($ctx);
         $size = $this->resolve_size($ctx);
-        [$family] = $this->resolve_font($ctx);
-
-        $styles = [
-            'color:' . $colour,
-            'font-size:' . $size . 'pt',
-            'font-family:' . font_manager::css_font_stack($family),
-            'letter-spacing:' . (float) $this->style('tracking', 0.0) . 'pt',
-            'line-height:' . (float) $this->style('lineheight', 1.25),
-            'text-align:' . $this->css_align(),
-            'opacity:' . (float) $this->style('opacity', 1.0),
-        ];
-        if ($this->style('bold', false)) {
-            $styles[] = 'font-weight:700';
-        }
-        if ($this->style('italic', false)) {
-            $styles[] = 'font-style:italic';
-        }
-        if ($this->style('underline', false)) {
-            $styles[] = 'text-decoration:underline';
-        }
+        [$family, $fontstyle] = $this->resolve_font($ctx);
+        $tracking = (float) $this->style('tracking', 0.0);
 
         $body = $this->allows_html() ? $this->clean_html($text) : nl2br(s($text), false);
 
-        return \html_writer::div(
-            $body,
-            'certificatepro-element-text',
-            [
-                'style' => implode(';', $styles),
-            ]
-        );
+        $width = $this->get_width();
+        if ($width <= 0) {
+            $width = max(10.0, $ctx->get_page_width() - 20.0);
+        }
+        $size = $this->fitted_size($ctx, $family, $fontstyle, $size, $body, $width);
+
+        $styles = [
+            'color:' . $colour,
+            // The absolute value first as the fallback a browser without
+            // container query units keeps, then the value that tracks the zoom.
+            'font-size:' . $size . 'pt',
+            'font-size:' . $this->canvas_points($ctx, $size),
+            'font-family:' . font_manager::css_font_stack($family),
+            'letter-spacing:' . $tracking . 'pt',
+            'letter-spacing:' . $this->canvas_points($ctx, $tracking),
+            'line-height:' . (float) $this->style('lineheight', 1.25),
+            'text-align:' . $this->css_align(),
+            'opacity:' . (float) $this->style('opacity', 1.0),
+            // The print aligns the text inside a fixed height box by the
+            // vertical alignment; the canvas centred everything regardless.
+            'margin-top:' . ($this->get_valignment() === 'T' ? '0' : 'auto'),
+            'margin-bottom:' . ($this->get_valignment() === 'B' ? '0' : 'auto'),
+        ];
+        // The weight and slope come from the resolved font rather than from the
+        // style flags alone, because a pairing can carry them: the heading role
+        // of most pairings is bold, and reading only the author's own bold flag
+        // set every heading on the canvas in the regular weight the print never
+        // used.
+        if (strpos($fontstyle, 'B') !== false) {
+            $styles[] = 'font-weight:700';
+        } else {
+            $styles[] = 'font-weight:400';
+        }
+        if (strpos($fontstyle, 'I') !== false) {
+            $styles[] = 'font-style:italic';
+        }
+        if (strpos($fontstyle, 'U') !== false) {
+            $styles[] = 'text-decoration:underline';
+        }
+
+        return \html_writer::div($body, 'certificatepro-element-text', [
+            'style' => implode(';', $styles),
+        ]);
     }
 
     /**

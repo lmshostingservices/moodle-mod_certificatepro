@@ -215,15 +215,8 @@ class styles_security {
         $c->fill($primary);
         $c->rect(0.0, 0.0, 1.0, 0.235, 'F');
 
-        $c->linear_gradient(
-            $mu(0.0),
-            0.235,
-            0.30,
-            0.765,
-            $primary,
-            $paper,
-            $flip ? [0.0, 0.0, 1.0, 0.0] : [1.0, 0.0, 0.0, 0.0]
-        );
+        $c->linear_gradient($mu(0.0), 0.235, 0.30, 0.765, $primary, $paper,
+            $flip ? [0.0, 0.0, 1.0, 0.0] : [1.0, 0.0, 0.0, 0.0]);
 
         // Soften the plate's inner edge so it dissolves into the sheet.
         $c->linear_gradient(0.0, 0.235, 1.0, 0.045, $primary, $paper, [0.0, 0.0, 0.0, 1.0]);
@@ -240,17 +233,8 @@ class styles_security {
         $c->alpha(0.85);
         $c->stroke($paper, 0.85);
         for ($k = 0; $k < 11; $k++) {
-            self::plain_trochoid(
-                $c,
-                $cu,
-                $cv,
-                $bigr + $r,
-                $r,
-                $d * (1 + 0.028 * $k),
-                $q,
-                $p,
-                $k * 2 * M_PI / ($p * 11)
-            );
+            self::plain_trochoid($c, $cu, $cv, $bigr + $r, $r, $d * (1 + 0.028 * $k), $q, $p,
+                $k * 2 * M_PI / ($p * 11));
         }
 
         // The tight triple rule at the middle of a real lathe rosette.

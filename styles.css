@@ -1,18 +1,165 @@
 /* Certificate Pro designer and learner styles. */
 
-.certificatepro-designer {
+/* Every surface this plugin owns carries its own palette rather than picking
+   one up from the site. A Boost child theme that recolours .btn, h3, ul or li
+   must not be able to reach in here and leave a label white on white, so each
+   token below has a value whether or not the theme supplies one. The rules
+   further down spend these tokens; nothing in the plugin reads a theme
+   variable. */
+
+.certificatepro-designer,
+.certificatepro-learner,
+.certificatepro-verify,
+.cpro-library {
+    --cpro-ink: #1f2937;
+    --cpro-ink-muted: #5b6675;
+    --cpro-ink-faint: #6b7280;
+    --cpro-surface: #fff;
+    --cpro-panel: #f8f9fb;
+    --cpro-page: transparent;
+    --cpro-deck-a: #f1f3f6;
+    --cpro-deck-b: #e8ebef;
+    --cpro-border: #dfe3e8;
+    --cpro-border-strong: #b9c1cc;
+    --cpro-accent: #2563eb;
+    --cpro-accent-ink: #fff;
+    --cpro-accent-soft: rgba(37, 99, 235, 0.09);
+    --cpro-warn: #92400e;
+    --cpro-warn-bg: #fdf5e6;
+    --cpro-ok-ink: #14532d;
+    --cpro-ok-bg: #e7f6ec;
+    --cpro-ok-edge: #a7d7b6;
+    --cpro-caution-ink: #713f12;
+    --cpro-caution-bg: #fdf5e6;
+    --cpro-caution-edge: #e3c990;
+    --cpro-bad-ink: #7f1d1d;
+    --cpro-bad-bg: #fdeceb;
+    --cpro-bad-edge: #e8b0ab;
+    --cpro-info-ink: #1e3a5f;
+    --cpro-info-bg: #e8f1fa;
+    --cpro-info-edge: #a9c8e6;
     --cpro-zone: #7c3aed;
     --cpro-guide: #ec4899;
     --cpro-guide-centre: #f43f5e;
     --cpro-select: #2563eb;
-    --cpro-panel: #f8f9fb;
-    --cpro-border: #dfe3e8;
+    --cpro-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
+    /* The focus ring for the designer's chrome. It follows the colour mode,
+       because the panels it is drawn on do. */
+    --cpro-focus: #1d4ed8;
+
+    /* The focus ring for something sitting on the paper. This one does not
+       follow the colour mode: the stage is paper and paper is white in both,
+       so a ring light enough to read against a dark panel would be invisible
+       there. The halo is what makes the ring readable over dark artwork and
+       over the deck an element has been bled onto — one of the two rings
+       always has the contrast, whatever is underneath. */
+    --cpro-focus-ink: #10339c;
+    --cpro-focus-halo: #fff;
+}
+
+/* Moodle 4.4 and later can show the site in a dark colour mode. The designer
+   chrome follows it so the panels stay legible, but the certificate itself
+   never does: the stage is paper, and paper is white whatever the screen is
+   doing. Both hooks are covered — the media query for sites that simply follow
+   the operating system, and the Bootstrap attribute for sites that offer an
+   explicit switch. The :not() guard stops a dark desktop from darkening a page
+   the site has deliberately set to light. */
+
+@media (prefers-color-scheme: dark) {
+    html:not([data-bs-theme="light"]) .certificatepro-designer,
+    html:not([data-bs-theme="light"]) .certificatepro-learner,
+    html:not([data-bs-theme="light"]) .certificatepro-verify,
+    html:not([data-bs-theme="light"]) .cpro-library {
+        --cpro-ink: #e5e7eb;
+        --cpro-ink-muted: #a9b4c2;
+        --cpro-ink-faint: #9aa5b4;
+        --cpro-surface: #1f2430;
+        --cpro-panel: #171b24;
+        --cpro-page: #10141d;
+        --cpro-deck-a: #232936;
+        --cpro-deck-b: #1b202b;
+        --cpro-border: #39404e;
+        --cpro-border-strong: #5a6474;
+        --cpro-accent: #7aa7ff;
+        --cpro-accent-ink: #0b1220;
+        --cpro-accent-soft: rgba(122, 167, 255, 0.16);
+        --cpro-warn: #f3c98b;
+        --cpro-warn-bg: #33270f;
+        --cpro-ok-ink: #a7e3bd;
+        --cpro-ok-bg: #10261a;
+        --cpro-ok-edge: #2f5c41;
+        --cpro-caution-ink: #f0cf9a;
+        --cpro-caution-bg: #2a1f0c;
+        --cpro-caution-edge: #5c4a24;
+        --cpro-bad-ink: #f3b4ae;
+        --cpro-bad-bg: #2a1311;
+        --cpro-bad-edge: #5f2c28;
+        --cpro-info-ink: #a9cdf0;
+        --cpro-info-bg: #101f2e;
+        --cpro-info-edge: #2c4a6a;
+        --cpro-zone: #a78bfa;
+        --cpro-select: #7aa7ff;
+        --cpro-focus: #9dbcff;
+    }
+}
+
+[data-bs-theme="dark"] .certificatepro-designer,
+[data-bs-theme="dark"] .certificatepro-learner,
+[data-bs-theme="dark"] .certificatepro-verify,
+[data-bs-theme="dark"] .cpro-library {
+    --cpro-ink: #e5e7eb;
+    --cpro-ink-muted: #a9b4c2;
+    --cpro-ink-faint: #9aa5b4;
+    --cpro-surface: #1f2430;
+    --cpro-panel: #171b24;
+    --cpro-page: #10141d;
+    --cpro-deck-a: #232936;
+    --cpro-deck-b: #1b202b;
+    --cpro-border: #39404e;
+    --cpro-border-strong: #5a6474;
+    --cpro-accent: #7aa7ff;
+    --cpro-accent-ink: #0b1220;
+    --cpro-accent-soft: rgba(122, 167, 255, 0.16);
+    --cpro-warn: #f3c98b;
+    --cpro-warn-bg: #33270f;
+    --cpro-ok-ink: #a7e3bd;
+    --cpro-ok-bg: #10261a;
+    --cpro-ok-edge: #2f5c41;
+    --cpro-caution-ink: #f0cf9a;
+    --cpro-caution-bg: #2a1f0c;
+    --cpro-caution-edge: #5c4a24;
+    --cpro-bad-ink: #f3b4ae;
+    --cpro-bad-bg: #2a1311;
+    --cpro-bad-edge: #5f2c28;
+    --cpro-info-ink: #a9cdf0;
+    --cpro-info-bg: #101f2e;
+    --cpro-info-edge: #2c4a6a;
+    --cpro-zone: #a78bfa;
+    --cpro-select: #7aa7ff;
+    --cpro-focus: #9dbcff;
+}
+
+/* The root paints a background of its own. In light mode that is transparent
+   and the page shows through as before; in dark mode it means every colour in
+   here is measured against a surface the plugin owns rather than against
+   whatever the page happens to be. */
+
+.certificatepro-designer {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     min-height: 70vh;
     outline: none;
+    background: var(--cpro-page);
+    color: var(--cpro-ink);
+    font-family: var(--cpro-font);
+    font-size: 0.9375rem;
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: left;
+    letter-spacing: normal;
+    text-transform: none;
 }
 
 .certificatepro-toolbar {
@@ -32,10 +179,6 @@
 .certificatepro-toolbar-group {
     display: flex;
     gap: 0.125rem;
-}
-
-.certificatepro-toolbar-group .btn {
-    min-width: 2.1rem;
 }
 
 .certificatepro-designer-body {
@@ -67,56 +210,14 @@
     gap: 0.75rem;
 }
 
-.certificatepro-panel-heading {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #64748b;
-    margin: 0 0 0.5rem;
-}
-
-.certificatepro-picker-category {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #94a3b8;
-    margin: 0.75rem 0 0.25rem;
-}
-
 .certificatepro-picker-items {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.25rem;
 }
 
-.certificatepro-picker-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.5rem 0.25rem;
-    font-size: 0.68rem;
-    line-height: 1.15;
-    text-align: center;
-    background: #fff;
-    border: 1px solid var(--cpro-border);
-    border-radius: 0.375rem;
-    cursor: pointer;
-    transition: border-color 0.12s ease, transform 0.12s ease;
-}
-
-.certificatepro-picker-item:hover,
-.certificatepro-picker-item:focus-visible {
-    border-color: var(--cpro-select);
-    transform: translateY(-1px);
-}
-
-.certificatepro-picker-item .fa {
-    font-size: 1rem;
-    color: var(--cpro-select);
-}
-
-/* Canvas. */
+/* Canvas. The checkerboard is the deck the sheet of paper lies on, so it
+   darkens with the rest of the chrome even though the sheet itself does not. */
 
 .certificatepro-canvas {
     display: flex;
@@ -125,19 +226,122 @@
     gap: 0.5rem;
     padding: 1.25rem;
     background:
-        repeating-conic-gradient(#f1f3f6 0% 25%, #e8ebef 0% 50%) 50% / 20px 20px;
+        repeating-conic-gradient(var(--cpro-deck-a) 0% 25%, var(--cpro-deck-b) 0% 50%)
+        50% / 20px 20px;
     border-radius: 0.5rem;
     overflow: auto;
 }
 
 .certificatepro-pagetabs {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 0.25rem;
+    margin-bottom: 0.5rem;
 }
 
+/* A page and the control that removes it read as one thing, so they are drawn
+   as one: the two buttons meet with no gap and share an outline. Keeping them
+   as separate buttons rather than nesting one inside the other is what lets
+   each carry its own label for a screen reader, and what stops a click on the
+   cross from also switching pages. */
+
+.certificatepro-pagetab {
+    display: inline-flex;
+    align-items: stretch;
+}
+
+.certificatepro-designer .certificatepro-pagetab .btn:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.certificatepro-designer .certificatepro-pagetab .btn + .btn {
+    margin-left: -1px;
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* The states of the three controls in the strip.
+
+   Each one names .certificatepro-pagetabs as well as the control's own class,
+   which is not decoration: the theme-hardening block further down repaints
+   every .certificatepro-pagetabs .btn from the palette, and that selector
+   carries the same three class levels these do. Written with two, a state rule
+   here ties on specificity and then loses on source order — which is exactly
+   what happened, and it left the current page's tab drawn identically to every
+   other tab, the disabled remove looking pressable and the add control drawn
+   solid. The extra level is what makes the state win wherever it is written. */
+
+/* The page being edited. The tab is a toggle rather than a link, so it says so
+   with aria-pressed and is coloured from that same fact. */
+
+.certificatepro-designer .certificatepro-pagetabs .certificatepro-pagetab-select[aria-pressed="true"] {
+    color: var(--cpro-accent-ink);
+    background: var(--cpro-accent);
+    border-color: var(--cpro-accent);
+    font-weight: 600;
+}
+
+.certificatepro-designer .certificatepro-pagetabs .certificatepro-pagetab-select[aria-pressed="true"]:hover {
+    color: var(--cpro-accent-ink);
+    background: var(--cpro-accent);
+    border-color: var(--cpro-accent);
+}
+
+/* The remove control on the only page left. It stays on show rather than
+   disappearing, because a control that comes and goes is harder to find than
+   one that is plainly unavailable, and its title says why. */
+
+.certificatepro-designer .certificatepro-pagetabs .certificatepro-pagetab-remove:disabled {
+    color: var(--cpro-ink-faint);
+    background: var(--cpro-panel);
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.certificatepro-designer .certificatepro-pagetabs .certificatepro-pagetab-remove:disabled:hover {
+    color: var(--cpro-ink-faint);
+    background: var(--cpro-panel);
+    border-color: var(--cpro-border-strong);
+}
+
+/* Adding a page is the one control in the strip that makes something rather
+   than selecting something, so it is drawn as an opening rather than as a tab:
+   the same size, the same type and the same palette as its neighbours, with a
+   dashed edge for the page that is not there yet. */
+
+.certificatepro-designer .certificatepro-pagetabs .btn.certificatepro-pagetab-add {
+    border-style: dashed;
+}
+
+/* The stage is paper. Its colour, text colour and metrics are stated here and
+   never inherited, because the browser preview and the PDF have to agree about
+   how wide a word is — and because a dark theme must not tint the artwork.
+
+   It is also the plugin's ruler. The designer sizes the stage in pixels for the
+   current zoom, so anything an element states in an absolute unit — a point
+   size, a hairline weight — stops matching the page the moment the author
+   zooms, and the design visibly re-composes itself. Declaring the stage a size
+   container makes 1cqw one hundredth of the page whatever the zoom is, and the
+   elements state their type and their rules as a fraction of the page in that
+   unit. Nothing else on the stage may become a container, or those fractions
+   would start measuring the wrong box; see the reset further down. */
+
 .certificatepro-stage {
+    container-type: inline-size;
     position: relative;
     background: #fff;
+    color: #111;
+    font-family: var(--cpro-font);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.25;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
     box-shadow: 0 8px 30px rgba(15, 23, 42, 0.16);
     flex: 0 0 auto;
     touch-action: none;
@@ -168,6 +372,24 @@
 
 /* Elements. */
 
+/* Text for a screen reader and nothing else: the live region the designer
+   speaks through, and the statement of what the keys do. The plugin states its
+   own rather than borrowing .sr-only or .visually-hidden, both of which have
+   moved between Bootstrap versions and neither of which is this plugin's to
+   depend on. */
+
+.cpro-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .cpro-element {
     position: absolute;
     cursor: move;
@@ -181,6 +403,54 @@
 
 .cpro-element.cpro-selected {
     outline: 1.5px solid var(--cpro-select);
+}
+
+/* Where the keyboard is. Every element on the canvas is a tab stop, so this is
+   the only thing telling an author which one their next arrow key will move,
+   and it has to say so over whatever the element happens to be drawn as: white
+   paper, a dark photograph, a gold seal.
+
+   Two rings do that. The outer one is a dark blue that reads against paper and
+   against pale artwork; the halo inside it is white and reads against anything
+   dark. Whatever is underneath, one of the two has well over the 3:1 that
+   2.4.7 wants, and the pair is 4px thick against a 1.5px selection outline, so
+   focused and selected never look like the same state.
+
+   The halo is drawn as a shadow rather than a second outline because it has to
+   fill the gap the outline's offset opens up; a gap is where the background
+   shows through, which is exactly where an ambiguous ring loses its contrast.
+
+   :focus rather than :focus-visible, because on this canvas the two are the
+   same thing: the stage cancels its own pointerdown so that a drag cannot
+   start by selecting text, which means a pointer never focuses an element and
+   only the keyboard ever gets here. */
+
+.certificatepro-stage .cpro-element:focus {
+    outline: 2px solid var(--cpro-focus-ink);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--cpro-focus-halo);
+    z-index: 700;
+}
+
+/* The canvas is where focus is put down when what held it has been deleted.
+   Landing somewhere invisible is the same as landing nowhere. */
+
+.certificatepro-designer .certificatepro-canvas:focus {
+    outline: 2px solid var(--cpro-focus);
+    outline-offset: -3px;
+}
+
+/* Windows high contrast mode throws box-shadow away, so the rings above would
+   leave nothing behind. The system's own focus colour is the right answer
+   there, and it is the only place in this file that asks the platform for a
+   colour rather than stating one. */
+
+@media (forced-colors: active) {
+    .certificatepro-stage .cpro-element:focus,
+    .certificatepro-designer .certificatepro-canvas:focus {
+        outline: 3px solid Highlight;
+        outline-offset: 2px;
+    }
 }
 
 .cpro-element.cpro-hidden {
@@ -205,26 +475,76 @@
     width: 100%;
 }
 
+/* Artwork fills the box it is given, but only the box it is given: an element
+   that is drawn square whatever shape its box is — a seal, a QR code, a
+   portrait — states its own square in millimetres of page, and that square is
+   what this fills. Left to stretch to the element box, a seal in a 60 × 30 box
+   was drawn 60 wide and cut off at 30, taking the ring lettering with it. */
+
 .cpro-element-content svg {
     width: 100%;
     height: 100%;
 }
+
+/* Text is the one thing on the stage that is allowed out of its box, because
+   that is what the print does: writeHTMLCell() runs on past the stated height
+   rather than slicing a word in half. Clipping it here instead made a long
+   course title look broken on screen and correct on paper. Everything else —
+   artwork, pictures, backgrounds — is still clipped by the rule above. */
+
+.certificatepro-stage .cpro-element-content:has(> .certificatepro-element-text) {
+    overflow: visible;
+}
+
+/* An element the author cannot resize shows no handles to pull. The class is
+   set from the resizable flag the element exports. */
+
+.certificatepro-stage .cpro-element.cpro-noresize .cpro-handle:not(.cpro-handle-rotate) {
+    display: none;
+}
+
+/* The rubber band drawn while the author sweeps a selection across the stage.
+   It is chrome rather than design, so it takes the plugin's own selection
+   colour and never the paper's, and it must not swallow the pointer events the
+   drag itself is made of. It sits above every element but below the handles. */
+
+.certificatepro-stage .cpro-marquee {
+    position: absolute;
+    border: 1px dashed #0f6cbf;
+    background: rgba(15, 108, 191, 0.12);
+    pointer-events: none;
+    z-index: 600;
+}
+
+/* A locked element is scenery. Without this, a locked full page border or a
+   locked background sits over the whole design and makes everything underneath
+   it unclickable, which reads as a frozen designer rather than as a locked
+   element. The cursor rule above still applies to the layers panel. */
+
+.certificatepro-stage .cpro-element.cpro-locked {
+    pointer-events: none;
+}
+
+/* The stand-in an element with nothing to draw shows the author. It prints
+   nothing, so it is chrome rather than design — but it is chrome sitting on the
+   paper, so it is sized as a fraction of the page like everything else there,
+   with a floor that keeps it readable when the design is zoomed out. */
 
 .certificatepro-element-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
-    font-size: 0.65rem;
-    color: #94a3b8;
+    font-size: max(0.6rem, 1.1cqw);
+    color: #5a6472;
     background: rgba(148, 163, 184, 0.12);
     border: 1px dashed rgba(148, 163, 184, 0.6);
     text-align: center;
 }
 
 .certificatepro-element-missing {
-    color: #b45309;
-    background: rgba(251, 191, 36, 0.12);
+    color: #8a4708;
+    background: rgba(251, 191, 36, 0.16);
     border-color: rgba(217, 119, 6, 0.6);
 }
 
@@ -305,7 +625,7 @@
     line-height: 1.35;
     letter-spacing: 0.02em;
     color: #fff;
-    background: var(--cpro-zone);
+    background: #7c3aed;
     border-radius: 3px;
     white-space: nowrap;
 }
@@ -347,20 +667,13 @@
 
 /* Inspector and layers. */
 
-.certificatepro-inspector[data-count="0"] .certificatepro-inspector-row,
-.certificatepro-inspector[data-count="0"] [data-region="editelementlink"] {
+/* The measurements describe a single element, so they are shown only when a
+   single element is held. With none or several selected they would be either
+   empty or a set of numbers belonging to whichever one was selected last. */
+
+.certificatepro-inspector:not([data-count="1"]) .certificatepro-inspector-row,
+.certificatepro-inspector:not([data-count="1"]) [data-region="editelementlink"] {
     display: none;
-}
-
-.certificatepro-inspector-name {
-    font-weight: 600;
-    margin-bottom: 0.15rem;
-}
-
-.certificatepro-inspector-zone {
-    font-size: 0.72rem;
-    color: var(--cpro-zone);
-    margin-bottom: 0.5rem;
 }
 
 .certificatepro-inspector-row {
@@ -372,96 +685,14 @@
     font-size: 0.75rem;
 }
 
-.certificatepro-layer-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    max-height: 22rem;
-    overflow-y: auto;
-}
-
-.certificatepro-layer-item {
-    display: flex;
-    align-items: center;
-    gap: 0.15rem;
-    padding: 0.15rem 0.2rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-}
-
-.certificatepro-layer-item:hover {
-    background: rgba(37, 99, 235, 0.07);
-}
-
-.certificatepro-layer-selected {
-    background: rgba(37, 99, 235, 0.14);
-}
-
-.certificatepro-layer-name {
-    flex: 1 1 auto;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    min-width: 0;
-    padding: 0.15rem 0.2rem;
-    background: none;
-    border: 0;
-    text-align: left;
-    cursor: pointer;
-}
-
-.certificatepro-layer-name span {
+.cpro-layer-name span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.certificatepro-layer-toggle {
-    flex: 0 0 auto;
-    padding: 0.15rem 0.3rem;
-    background: none;
-    border: 0;
-    color: #94a3b8;
-    cursor: pointer;
-}
-
-.certificatepro-layer-toggle:hover {
-    color: #334155;
-}
-
-/* Status bar. */
-
-.certificatepro-status {
-    min-height: 1.4rem;
-    padding: 0.15rem 0.5rem;
-    font-size: 0.75rem;
-    font-variant-numeric: tabular-nums;
-    color: #64748b;
-}
-
-.certificatepro-status.cpro-status-snapped {
-    color: var(--cpro-zone);
-    font-weight: 600;
-}
-
 .certificatepro-designer.cpro-dragging {
     user-select: none;
-}
-
-/* Learner and verification pages. */
-
-.certificatepro-verify {
-    max-width: 42rem;
-}
-
-.certificatepro-verify-form input {
-    font-family: monospace;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-.certificatepro-verifyhint code {
-    font-size: 0.95em;
 }
 
 /* -------------------------------------------------------------------------
@@ -473,41 +704,20 @@
     flex-wrap: wrap;
     gap: 0.35rem;
     padding: 0.4rem 0.5rem;
-    border-bottom: 1px solid #e2e8f0;
-    background: #fbfcfe;
-}
-
-.certificatepro-librarybar .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
+    border-bottom: 1px solid var(--cpro-border);
+    background: var(--cpro-panel);
 }
 
 .cpro-library {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
-}
-
-.cpro-library-lede {
-    margin: 0;
-    color: #475569;
-}
-
-.cpro-library-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding-top: 0.6rem;
-    border-top: 1px solid #e2e8f0;
-}
-
-.cpro-library-note {
-    flex: 1 1 auto;
-    margin: 0;
-    min-height: 1.2em;
-    color: #475569;
-    font-size: 0.9rem;
+    background: var(--cpro-page);
+    color: var(--cpro-ink);
+    font-family: var(--cpro-font);
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    text-align: left;
 }
 
 .cpro-facets {
@@ -540,55 +750,14 @@
     outline: none;
 }
 
-.cpro-gallery-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    padding: 0.4rem;
-    border: 2px solid transparent;
-    border-radius: 0.4rem;
-    background: #fff;
-    box-shadow: 0 0 0 1px #e2e8f0;
-    cursor: pointer;
-}
-
-.cpro-gallery-item:hover {
-    box-shadow: 0 0 0 1px #94a3b8;
-}
-
-.cpro-gallery-item:focus-visible,
-.cpro-gallery-item:focus {
-    outline: 3px solid #0f6cbf;
-    outline-offset: 2px;
-}
-
-.cpro-gallery-item.cpro-selected {
-    border-color: #0f6cbf;
-    box-shadow: 0 0 0 1px #0f6cbf;
-}
-
 .cpro-gallery-caption {
     display: flex;
     flex-direction: column;
     line-height: 1.25;
 }
 
-.cpro-gallery-name {
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.cpro-gallery-mood,
-.cpro-gallery-warning {
-    font-size: 0.78rem;
-    color: #64748b;
-}
-
-.cpro-gallery-warning {
-    color: #92400e;
-}
-
-/* The typography specimen. */
+/* The typography specimen. Its colours come from the design being previewed,
+   set inline by the template, so only the frame is described here. */
 
 .cpro-specimen {
     display: flex;
@@ -598,7 +767,7 @@
     gap: 0.2rem;
     aspect-ratio: 297 / 210;
     padding: 0.5rem;
-    border: 1px solid #d8dee6;
+    border: 1px solid var(--cpro-border-strong);
     border-radius: 0.2rem;
     overflow: hidden;
     text-align: center;
@@ -623,16 +792,18 @@
     border-top: 1px solid currentcolor;
 }
 
-/* Background and ornament thumbnails. */
+/* Background and ornament thumbnails. These stay white in dark mode too: the
+   artwork they show is drawn for paper and vanishes on a dark tile. */
 
 .cpro-bgthumb,
 .cpro-ornthumb {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid #d8dee6;
+    border: 1px solid var(--cpro-border-strong);
     border-radius: 0.2rem;
     background: #fff;
+    color: #5a6472;
     overflow: hidden;
 }
 
@@ -650,7 +821,7 @@
 
 .cpro-bgthumb-pending {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: #5a6472;
 }
 
 .cpro-bgthumb-ready .cpro-bgthumb-pending {
@@ -666,16 +837,7 @@
     gap: 0.5rem;
     padding: 2.5rem 1rem;
     text-align: center;
-    color: #475569;
-}
-
-.cpro-emptystate h4 {
-    margin: 0;
-}
-
-.cpro-emptystate p {
-    margin: 0;
-    max-width: 34rem;
+    color: var(--cpro-ink-muted);
 }
 
 /* The guided wizards. */
@@ -685,13 +847,13 @@
     flex-direction: column;
     gap: 0.3rem;
     font-size: 0.85rem;
-    color: #475569;
+    color: var(--cpro-ink-muted);
 }
 
 .cpro-wizard-bar {
     height: 4px;
     border-radius: 2px;
-    background: #e2e8f0;
+    background: var(--cpro-border);
     overflow: hidden;
 }
 
@@ -699,20 +861,8 @@
     display: block;
     height: 100%;
     width: 0;
-    background: #0f6cbf;
+    background: var(--cpro-accent);
     transition: width 0.2s ease;
-}
-
-.cpro-wizard-step {
-    border: 0;
-    margin: 0;
-    padding: 0;
-}
-
-.cpro-wizard-question {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 0.6rem;
 }
 
 .cpro-wizard-options {
@@ -721,34 +871,16 @@
     gap: 0.4rem;
 }
 
-.cpro-wizard-option {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    margin: 0;
-    padding: 0.55rem 0.7rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.35rem;
-    cursor: pointer;
-}
-
-.cpro-wizard-option:hover {
-    border-color: #94a3b8;
-}
-
-.cpro-wizard-option:focus-within {
-    outline: 3px solid #0f6cbf;
-    outline-offset: 2px;
-}
-
 .cpro-wizard-result {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
+/* The preview shows generated artwork, which is drawn for paper. */
+
 .cpro-wizard-preview {
-    border: 1px solid #d8dee6;
+    border: 1px solid var(--cpro-border-strong);
     border-radius: 0.25rem;
     background: #fff;
     overflow: hidden;
@@ -768,25 +900,1257 @@
     border: 0;
 }
 
-.cpro-wizard-summary {
-    margin: 0;
-    color: #475569;
-}
-
-.cpro-wizard-warnings {
-    margin: 0;
-    padding-left: 1.2rem;
-    color: #92400e;
-    font-size: 0.9rem;
-}
-
 .cpro-wizard-warnings:empty {
     display: none;
 }
 
-/* A hidden wizard step or gallery tile must stay hidden whatever the theme
-   does with fieldsets and grid children. */
+/* A theme that gives .btn or a grid child a display value would otherwise beat
+   the hidden attribute, which is only display: none at user-agent weight. This
+   is the one place the override cannot be won on specificity alone, because it
+   has to outrank whatever display the element's own class sets. */
 
-.cpro-library [hidden] {
-    display: none !important;
+.cpro-library [hidden],
+.certificatepro-designer [hidden] {
+    display: none !important; /* Outranks the class-level display a theme sets. */
+}
+
+/* -------------------------------------------------------------------------
+   Theme proofing.
+
+   Everything below re-states a value that would otherwise be inherited from
+   the site theme. A plugin cannot assume anything about that theme: Boost
+   child themes routinely restyle .btn, h3, ul, li, span, label and
+   .form-control, and any one of those turns a panel here into something the
+   author cannot read — a white label on a white button, a heading twice the
+   size it should be, a layers list rendered as bulleted boxes.
+
+   The rules are scoped to a plugin container and carry three class levels
+   wherever the markup allows it, so an ordinary single-class theme rule loses
+   on specificity rather than on source order. Source order between a theme and
+   a plugin is not something a plugin can rely on.
+   ------------------------------------------------------------------------- */
+
+/* Buttons. Every button and button-styled link in the designer is repainted
+   from the plugin palette, because .btn, .btn-sm, .btn-outline-secondary and
+   .btn-outline-primary are theme property by definition. */
+
+.certificatepro-designer .certificatepro-toolbar .btn,
+.certificatepro-designer .certificatepro-librarybar .btn,
+.certificatepro-designer .certificatepro-pagetabs .btn,
+.certificatepro-designer .certificatepro-inspector .btn,
+.cpro-library .cpro-facets .btn,
+.cpro-library .cpro-library-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0.25rem 0.55rem;
+    color: var(--cpro-ink);
+    background: var(--cpro-surface);
+    border: 1px solid var(--cpro-border-strong);
+    border-radius: 0.3rem;
+    box-shadow: none;
+    font-family: var(--cpro-font);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: center;
+    text-decoration: none;
+    text-shadow: none;
+    min-height: 1.9rem;
+    opacity: 1;
+    cursor: pointer;
+}
+
+/* Icons and labels inside those buttons inherit the button's own colour, so a
+   theme rule on i, .fa or span cannot leave them invisible. Font weight is
+   pointedly left alone: Font Awesome chooses its face by weight, and forcing
+   the button's weight onto the icon drops it to the regular face, where most
+   of the glyphs this plugin uses do not exist and render as empty boxes. */
+
+.certificatepro-designer .certificatepro-toolbar .btn > *,
+.certificatepro-designer .certificatepro-librarybar .btn > *,
+.certificatepro-designer .certificatepro-pagetabs .btn > *,
+.certificatepro-designer .certificatepro-inspector .btn > *,
+.cpro-library .cpro-facets .btn > *,
+.cpro-library .cpro-library-actions .btn > * {
+    color: inherit;
+    background: none;
+    line-height: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-decoration: none;
+    margin: 0;
+    padding: 0;
+    opacity: 1;
+}
+
+/* The icon half gets a stated size instead, since a theme can perfectly well
+   put a font-size on .fa, but never a stated weight. */
+
+.certificatepro-designer .certificatepro-toolbar .btn .fa,
+.certificatepro-designer .certificatepro-librarybar .btn .fa,
+.certificatepro-designer .certificatepro-pagetabs .btn .fa,
+.certificatepro-designer .certificatepro-inspector .btn .fa,
+.cpro-library .cpro-facets .btn .fa,
+.cpro-library .cpro-library-actions .btn .fa {
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+/* Only the text half of a button follows the button's own type. */
+
+.certificatepro-designer .certificatepro-toolbar .btn > span,
+.certificatepro-designer .certificatepro-librarybar .btn > span,
+.certificatepro-designer .certificatepro-pagetabs .btn > span,
+.certificatepro-designer .certificatepro-inspector .btn > span,
+.cpro-library .cpro-facets .btn > span,
+.cpro-library .cpro-library-actions .btn > span {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.certificatepro-designer .certificatepro-toolbar .btn:hover,
+.certificatepro-designer .certificatepro-librarybar .btn:hover,
+.certificatepro-designer .certificatepro-pagetabs .btn:hover,
+.certificatepro-designer .certificatepro-inspector .btn:hover,
+.cpro-library .cpro-facets .btn:hover,
+.cpro-library .cpro-library-actions .btn:hover {
+    color: var(--cpro-ink);
+    background: var(--cpro-accent-soft);
+    border-color: var(--cpro-accent);
+}
+
+.certificatepro-designer .certificatepro-toolbar .btn:focus-visible,
+.certificatepro-designer .certificatepro-librarybar .btn:focus-visible,
+.certificatepro-designer .certificatepro-pagetabs .btn:focus-visible,
+.certificatepro-designer .certificatepro-inspector .btn:focus-visible,
+.cpro-library .cpro-facets .btn:focus-visible,
+.cpro-library .cpro-library-actions .btn:focus-visible,
+.certificatepro-designer .certificatepro-toolbar-select:focus-visible,
+.certificatepro-designer .certificatepro-previewlink:focus-visible {
+    outline: 2px solid var(--cpro-focus);
+    outline-offset: 1px;
+}
+
+/* The pressed state of a facet filter, which the pickers drive with the active
+   class and aria-pressed rather than with a second Bootstrap variant. */
+
+.cpro-library .cpro-facets .btn.active,
+.cpro-library .cpro-facets .btn[aria-pressed="true"] {
+    color: var(--cpro-accent-ink);
+    background: var(--cpro-accent);
+    border-color: var(--cpro-accent);
+}
+
+.cpro-library .cpro-facets .btn:disabled {
+    color: var(--cpro-ink-faint);
+    background: var(--cpro-panel);
+    border-color: var(--cpro-border);
+    cursor: default;
+}
+
+/* The two buttons that commit something — preview, and the apply button at the
+   foot of every library dialog — are the only accented ones. */
+
+.certificatepro-designer .certificatepro-toolbar .btn-primary,
+.certificatepro-designer .certificatepro-inspector .btn-outline-primary,
+.cpro-library .cpro-library-actions .btn-primary {
+    color: var(--cpro-accent-ink);
+    background: var(--cpro-accent);
+    border-color: var(--cpro-accent);
+}
+
+.certificatepro-designer .certificatepro-toolbar .btn-primary:hover,
+.certificatepro-designer .certificatepro-inspector .btn-outline-primary:hover,
+.cpro-library .cpro-library-actions .btn-primary:hover {
+    color: var(--cpro-accent-ink);
+    background: var(--cpro-accent);
+    border-color: var(--cpro-ink);
+}
+
+/* A disabled apply button has to read as unavailable and still be readable,
+   so it drops to the muted ink on the panel rather than to white on grey. */
+
+.cpro-library .cpro-library-actions .btn-primary:disabled {
+    color: var(--cpro-ink-faint);
+    background: var(--cpro-panel);
+    border-color: var(--cpro-border-strong);
+    cursor: default;
+}
+
+/* The icon-only alignment buttons want to stay square rather than shrink to
+   the width of a single glyph. */
+
+.certificatepro-designer .certificatepro-toolbar-group .btn {
+    min-width: 2.1rem;
+}
+
+/* Bootstrap's ms-auto is what pushes the zoom group to the right-hand end of
+   the toolbar. It is a theme utility, so the intent is stated here as well. */
+
+.certificatepro-designer .certificatepro-toolbar .certificatepro-toolbar-group.ms-auto {
+    margin-left: auto;
+}
+
+/* Panel headings. These are h3 elements, and a child theme that sets a heading
+   scale, a serif face or a display line-height is what made "Add an element"
+   wrap onto two lines. Nothing about them is inherited any more. */
+
+.certificatepro-designer .certificatepro-picker .certificatepro-panel-heading,
+.certificatepro-designer .certificatepro-sidebar .certificatepro-panel-heading,
+.certificatepro-designer h3.certificatepro-panel-heading {
+    display: block;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    color: var(--cpro-ink-muted);
+    background: none;
+    border: 0;
+    font-family: var(--cpro-font);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-transform: uppercase;
+    text-align: left;
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    opacity: 1;
+}
+
+/* The category labels inside the picker are h4 elements and need the same
+   treatment. The old colour failed contrast against the panel at 2.4:1; this
+   one measures 4.6:1. */
+
+.certificatepro-designer .certificatepro-picker .certificatepro-picker-category {
+    display: block;
+    margin: 0.75rem 0 0.25rem;
+    padding: 0;
+    color: var(--cpro-ink-faint);
+    background: none;
+    border: 0;
+    font-family: var(--cpro-font);
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-transform: uppercase;
+    text-align: left;
+    letter-spacing: 0.06em;
+    opacity: 1;
+}
+
+/* The element picker buttons. This is the reported white-on-white: the theme
+   painted .btn white, the plugin never said what colour the label was, and the
+   span went white on a white tile. The tile states its own background and the
+   label states its own colour, so the two cannot collapse together. */
+
+.certificatepro-designer .certificatepro-picker .certificatepro-picker-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.5rem 0.25rem;
+    color: var(--cpro-ink);
+    background: var(--cpro-surface);
+    border: 1px solid var(--cpro-border);
+    border-radius: 0.375rem;
+    box-shadow: none;
+    font-family: var(--cpro-font);
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: center;
+    text-decoration: none;
+    min-height: 3.1rem;
+    opacity: 1;
+    cursor: pointer;
+    transition: border-color 0.12s ease, transform 0.12s ease;
+}
+
+.certificatepro-designer .certificatepro-picker .certificatepro-picker-item span {
+    display: block;
+    color: var(--cpro-ink);
+    background: none;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-decoration: none;
+    margin: 0;
+    padding: 0;
+    opacity: 1;
+}
+
+.certificatepro-designer .certificatepro-picker .certificatepro-picker-item .fa {
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--cpro-accent);
+    background: none;
+    margin: 0;
+    opacity: 1;
+}
+
+.certificatepro-designer .certificatepro-picker .certificatepro-picker-item:hover,
+.certificatepro-designer .certificatepro-picker .certificatepro-picker-item:focus-visible {
+    border-color: var(--cpro-accent);
+    background: var(--cpro-surface);
+    color: var(--cpro-ink);
+    transform: translateY(-1px);
+}
+
+.certificatepro-designer .certificatepro-picker .certificatepro-picker-item:focus-visible {
+    outline: 2px solid var(--cpro-focus);
+    outline-offset: 1px;
+}
+
+/* The layers panel. The list is a real ul of li, so a theme that restores list
+   markers, indents lists or boxes list items turns it into a column of
+   bordered bullets. Both tags are reset, and the two buttons on each row are
+   stripped back to plain text so the theme's button chrome cannot appear. */
+
+.certificatepro-designer .certificatepro-layers ul.cpro-layer-list {
+    display: block;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 22rem;
+    overflow-y: auto;
+    background: none;
+    border: 0;
+}
+
+.certificatepro-designer .certificatepro-layers ul.cpro-layer-list > li {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    list-style: none;
+    margin: 0;
+    padding: 0.15rem 0.2rem;
+    color: var(--cpro-ink);
+    background: none;
+    border: 0;
+    border-radius: 0.25rem;
+    box-shadow: none;
+    font-family: var(--cpro-font);
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    opacity: 1;
+}
+
+/* ::marker survives display: flex in some engines, so the marker itself is
+   emptied as well rather than trusting list-style alone. */
+
+.certificatepro-designer .certificatepro-layers ul.cpro-layer-list > li::marker {
+    content: "";
+}
+
+/* The hover and selection tints are declared at the same three-class weight as
+   the reset above, or the reset's own background would win them back. */
+
+.certificatepro-designer .certificatepro-layers ul.cpro-layer-list > li:hover {
+    background: var(--cpro-accent-soft);
+}
+
+.certificatepro-designer .certificatepro-layers ul.cpro-layer-list > li.cpro-layer-selected {
+    background: var(--cpro-accent-soft);
+    box-shadow: inset 2px 0 0 var(--cpro-accent);
+}
+
+.certificatepro-designer .certificatepro-layers .cpro-layer-name,
+.certificatepro-designer .certificatepro-layers .cpro-layer-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0.15rem 0.2rem;
+    color: var(--cpro-ink);
+    background: none;
+    border: 0;
+    border-radius: 0.25rem;
+    box-shadow: none;
+    font-family: var(--cpro-font);
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    text-decoration: none;
+    min-height: 0;
+    opacity: 1;
+    cursor: pointer;
+}
+
+.certificatepro-designer .certificatepro-layers .cpro-layer-name {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.certificatepro-designer .certificatepro-layers .cpro-layer-toggle {
+    flex: 0 0 auto;
+    color: var(--cpro-ink-faint);
+}
+
+.certificatepro-designer .certificatepro-layers .cpro-layer-toggle:hover {
+    color: var(--cpro-ink);
+}
+
+/* The row's own colour reaches the icon and the label, so neither a theme rule
+   on span nor one on .fa can blank them out. */
+
+.certificatepro-designer .certificatepro-layers .cpro-layer-name span,
+.certificatepro-designer .certificatepro-layers .cpro-layer-name .fa,
+.certificatepro-designer .certificatepro-layers .cpro-layer-toggle .fa {
+    color: inherit;
+    background: none;
+    font-size: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-decoration: none;
+    margin: 0;
+    padding: 0;
+    opacity: 1;
+}
+
+.certificatepro-designer .certificatepro-layers .cpro-layer-name .fa {
+    font-size: 0.8rem;
+}
+
+.certificatepro-designer .certificatepro-layers .cpro-layer-name:focus-visible,
+.certificatepro-designer .certificatepro-layers .cpro-layer-toggle:focus-visible {
+    outline: 2px solid var(--cpro-focus);
+    outline-offset: -1px;
+}
+
+/* The inspector. The labels are bare label elements and the number fields
+   carry .form-control, so both are squarely in a theme's territory. */
+
+.certificatepro-designer .certificatepro-inspector .certificatepro-inspector-name {
+    color: var(--cpro-ink);
+    background: none;
+    font-family: var(--cpro-font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    margin: 0 0 0.15rem;
+    padding: 0;
+    opacity: 1;
+}
+
+.certificatepro-designer .certificatepro-inspector .certificatepro-inspector-zone {
+    color: var(--cpro-zone);
+    background: none;
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    opacity: 1;
+}
+
+.certificatepro-designer .certificatepro-inspector .certificatepro-inspector-row label {
+    display: block;
+    color: var(--cpro-ink-muted);
+    background: none;
+    font-family: var(--cpro-font);
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    margin: 0;
+    padding: 0;
+    opacity: 1;
+}
+
+.certificatepro-designer .certificatepro-inspector .certificatepro-inspector-row input {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0.15rem 0.35rem;
+    color: var(--cpro-ink);
+    background: var(--cpro-surface);
+    border: 1px solid var(--cpro-border-strong);
+    border-radius: 0.25rem;
+    box-shadow: none;
+    font-family: var(--cpro-font);
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    min-height: 1.6rem;
+    opacity: 1;
+}
+
+/* The status line under the canvas sits on the page background rather than on
+   a panel, so it states one of its own. */
+
+.certificatepro-designer .certificatepro-status {
+    display: block;
+    min-height: 1.4rem;
+    margin: 0;
+    padding: 0.15rem 0.5rem;
+    color: var(--cpro-ink-muted);
+    background: var(--cpro-panel);
+    border: 1px solid var(--cpro-border);
+    border-radius: 0.25rem;
+    font-family: var(--cpro-font);
+    font-size: 0.75rem;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    opacity: 1;
+}
+
+.certificatepro-designer .certificatepro-status.cpro-status-snapped {
+    color: var(--cpro-zone);
+    font-weight: 600;
+}
+
+/* The library dialogs. Their markup is rendered into a core modal, which sits
+   outside the designer, so these are scoped to the library root instead. */
+
+.cpro-library .cpro-library-lede,
+.cpro-library .cpro-library-note,
+.cpro-library .cpro-wizard-summary {
+    margin: 0;
+    padding: 0;
+    color: var(--cpro-ink-muted);
+    background: none;
+    font-family: var(--cpro-font);
+    font-size: 0.9rem;
+    font-weight: 400;
+    line-height: 1.45;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    opacity: 1;
+}
+
+.cpro-library .cpro-library-note {
+    flex: 1 1 auto;
+    min-height: 1.2em;
+}
+
+.cpro-library .cpro-library-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--cpro-border);
+}
+
+.cpro-library .cpro-gallery-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0.4rem;
+    color: var(--cpro-ink);
+    background: var(--cpro-surface);
+    border: 2px solid transparent;
+    border-radius: 0.4rem;
+    box-shadow: 0 0 0 1px var(--cpro-border);
+    font-family: var(--cpro-font);
+    line-height: 1.3;
+    text-align: left;
+    opacity: 1;
+    cursor: pointer;
+}
+
+.cpro-library .cpro-gallery-item:hover {
+    box-shadow: 0 0 0 1px var(--cpro-border-strong);
+}
+
+.cpro-library .cpro-gallery-item:focus-visible,
+.cpro-library .cpro-gallery-item:focus {
+    outline: 3px solid var(--cpro-accent);
+    outline-offset: 2px;
+}
+
+.cpro-library .cpro-gallery-item.cpro-selected {
+    border-color: var(--cpro-accent);
+    box-shadow: 0 0 0 1px var(--cpro-accent);
+}
+
+.cpro-library .cpro-gallery-caption .cpro-gallery-name {
+    color: var(--cpro-ink);
+    background: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: normal;
+    text-transform: none;
+    opacity: 1;
+}
+
+.cpro-library .cpro-gallery-caption .cpro-gallery-mood {
+    color: var(--cpro-ink-muted);
+    background: none;
+    font-size: 0.78rem;
+    font-weight: 400;
+    line-height: 1.25;
+    letter-spacing: normal;
+    text-transform: none;
+    opacity: 1;
+}
+
+.cpro-library .cpro-gallery-caption .cpro-gallery-warning {
+    color: var(--cpro-warn);
+    background: none;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: normal;
+    text-transform: none;
+    opacity: 1;
+}
+
+.cpro-library .cpro-emptystate h4 {
+    margin: 0;
+    padding: 0;
+    color: var(--cpro-ink);
+    background: none;
+    border: 0;
+    font-family: var(--cpro-font);
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: center;
+}
+
+.cpro-library .cpro-emptystate p {
+    margin: 0;
+    max-width: 34rem;
+    color: var(--cpro-ink-muted);
+    background: none;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
+/* The wizard steps are fieldsets with legends, which themes love to give a
+   border, a background and a display heading size. */
+
+.cpro-library .cpro-wizard-step {
+    display: block;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+}
+
+.cpro-library .cpro-wizard-step .cpro-wizard-question {
+    display: block;
+    float: none;
+    width: auto;
+    margin: 0 0 0.6rem;
+    padding: 0;
+    color: var(--cpro-ink);
+    background: none;
+    border: 0;
+    font-family: var(--cpro-font);
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+}
+
+.cpro-library .cpro-wizard-options .cpro-wizard-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.55rem 0.7rem;
+    color: var(--cpro-ink);
+    background: var(--cpro-surface);
+    border: 1px solid var(--cpro-border);
+    border-radius: 0.35rem;
+    font-family: var(--cpro-font);
+    font-size: 0.9rem;
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    opacity: 1;
+    cursor: pointer;
+}
+
+.cpro-library .cpro-wizard-options .cpro-wizard-option span {
+    color: inherit;
+    background: none;
+    font-size: inherit;
+    font-weight: inherit;
+    text-transform: inherit;
+    opacity: 1;
+}
+
+.cpro-library .cpro-wizard-options .cpro-wizard-option:hover {
+    border-color: var(--cpro-border-strong);
+}
+
+.cpro-library .cpro-wizard-options .cpro-wizard-option:focus-within {
+    outline: 3px solid var(--cpro-accent);
+    outline-offset: 2px;
+}
+
+.cpro-library .cpro-wizard-result h4 {
+    margin: 0;
+    padding: 0;
+    color: var(--cpro-ink);
+    background: none;
+    border: 0;
+    font-family: var(--cpro-font);
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+}
+
+.cpro-library .cpro-wizard-result ul.cpro-wizard-warnings {
+    margin: 0;
+    padding-left: 1.2rem;
+    list-style: disc outside;
+    color: var(--cpro-warn);
+    background: none;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    text-align: left;
+}
+
+.cpro-library .cpro-wizard-result ul.cpro-wizard-warnings > li {
+    display: list-item;
+    margin: 0;
+    padding: 0;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+/* The text and select controls in the libraries carry .form-control and
+   .form-select, so their colours are restated rather than inherited. */
+
+.cpro-library .cpro-facets .form-control,
+.cpro-library .cpro-facets .form-select,
+.cpro-library .cpro-wizard-step .form-control {
+    color: var(--cpro-ink);
+    background-color: var(--cpro-surface);
+    border: 1px solid var(--cpro-border-strong);
+    border-radius: 0.25rem;
+    box-shadow: none;
+    font-family: var(--cpro-font);
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: normal;
+    text-transform: none;
+    min-height: 1.9rem;
+    padding: 0.2rem 0.4rem;
+    opacity: 1;
+}
+
+/* Bare span and i elements are the easiest thing in the world for a theme to
+   recolour, and every one of them here sits on a light surface. Each takes the
+   colour of the block it belongs to instead of whatever the theme says. */
+
+.cpro-library .cpro-wizard-progress span,
+.cpro-library .cpro-emptystate i,
+.cpro-library .cpro-gallery-item .cpro-specimen span,
+.cpro-library .cpro-bgthumb .cpro-bgthumb-pending {
+    color: inherit;
+    background: none;
+    opacity: 1;
+}
+
+/* The specimen is a miniature of the certificate, so its metrics are its own
+   and a theme's block line-height must not stretch it. */
+
+.cpro-library .cpro-gallery-item .cpro-specimen {
+    color: #111;
+    line-height: 1.15;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.cpro-library .cpro-gallery-item .cpro-specimen-line {
+    margin: 0;
+    padding: 0;
+    line-height: 1.15;
+}
+
+.cpro-library .cpro-wizard-result .form-check-label,
+.cpro-library .cpro-wizard-result .text-muted {
+    color: var(--cpro-ink-muted);
+    background: none;
+    font-family: var(--cpro-font);
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    opacity: 1;
+}
+
+/* The structural containers carry no text of their own, but a theme's block
+   line-height still stretches the boxes their children sit in — a toolbar grew
+   from 48 to 123 pixels tall on nothing but an inherited 1.9. The whole frame
+   is pinned to one rhythm so the layout is the plugin's own. */
+
+.certificatepro-designer .certificatepro-designer-body,
+.certificatepro-designer .certificatepro-toolbar,
+.certificatepro-designer .certificatepro-toolbar-group,
+.certificatepro-designer .certificatepro-librarybar,
+.certificatepro-designer .certificatepro-picker,
+.certificatepro-designer .certificatepro-picker-items,
+.certificatepro-designer .certificatepro-canvas,
+.certificatepro-designer .certificatepro-pagetabs,
+.certificatepro-designer .certificatepro-sidebar,
+.certificatepro-designer .certificatepro-inspector,
+.certificatepro-designer .certificatepro-layers-panel,
+.certificatepro-designer .certificatepro-layers,
+.cpro-library .cpro-gallery,
+.cpro-library .cpro-facets,
+.cpro-library .cpro-library-actions,
+.cpro-library .cpro-wizard-progress,
+.cpro-library .cpro-wizard-options,
+.cpro-library .cpro-wizard-result {
+    font-family: var(--cpro-font);
+    line-height: 1.4;
+}
+
+/* The paper. Everything sitting on the stage takes its colour from the element
+   that owns it, because a theme rule as ordinary as p { color: #fff } would
+   otherwise print white text on a white certificate — and unlike the chrome,
+   this is what the author is designing, so it has to be exact. */
+
+.certificatepro-stage .cpro-element-content,
+.certificatepro-stage .cpro-element-content * {
+    color: inherit;
+    background-color: transparent;
+    box-shadow: none;
+    text-shadow: none;
+    opacity: 1;
+}
+
+/* The wrappers the plugin itself emits are boxes rather than prose. Their
+   geometry belongs to the element, so a theme's margins, borders and line
+   heights are cleared off them. Text inside a rich-text element keeps whatever
+   spacing its own markup asks for; only the container is pinned. */
+
+.certificatepro-stage .certificatepro-elements,
+.certificatepro-stage .certificatepro-overlay,
+.certificatepro-stage .cpro-layer,
+.certificatepro-stage .cpro-element,
+.certificatepro-stage .cpro-element-content,
+.certificatepro-stage .certificatepro-element-text,
+.certificatepro-stage .certificatepro-element-signature,
+.certificatepro-stage .certificatepro-element-signature > div,
+.certificatepro-stage .certificatepro-element-artwork,
+.certificatepro-stage .certificatepro-element-border,
+.certificatepro-stage .certificatepro-element-shape,
+.certificatepro-stage .certificatepro-element-rule,
+.certificatepro-stage .certificatepro-element-qr,
+.certificatepro-stage .certificatepro-element-seal,
+.certificatepro-stage .certificatepro-element-image {
+    margin: 0;
+    padding: 0;
+    border-width: 0;
+    border-radius: 0;
+    font-family: inherit;
+    line-height: 1.25;
+    letter-spacing: inherit;
+    text-transform: none;
+    min-height: 0;
+    /* The stage is the ruler every element measures itself against. A theme
+       rule that made any of these wrappers a container of its own would put a
+       nearer ruler between the two, and every point size on the page would
+       start being read as a fraction of one element instead of the paper. */
+    container-type: normal;
+}
+
+/* The placeholder and the missing-element warning carry their own colours, and
+   the inherit rule above outranks where they were declared, so they are
+   restated at the weight that wins. */
+
+.certificatepro-stage .cpro-element-content .certificatepro-element-placeholder {
+    color: #5a6472;
+    background-color: rgba(148, 163, 184, 0.12);
+    border: 1px dashed rgba(148, 163, 184, 0.6);
+    font-size: max(0.6rem, 1.1cqw);
+    line-height: 1.3;
+    text-align: center;
+}
+
+.certificatepro-stage .cpro-element-content .certificatepro-element-missing {
+    color: #8a4708;
+    background-color: rgba(251, 191, 36, 0.16);
+    border-color: rgba(217, 119, 6, 0.6);
+}
+
+/* When the whole grid is on show, the ghost zones sit back so they read as a
+   guide rather than as content. The zones drawn during a drag are deliberately
+   left alone — those need to be assertive. */
+
+.certificatepro-designer .cpro-zone-ghost {
+    border-style: dotted;
+    background: rgba(124, 58, 237, 0.035);
+}
+
+/* -------------------------------------------------------------------------
+   Learner and verification pages.
+
+   These are ordinary Moodle pages and are meant to look like the site, so the
+   hardening here is lighter: only the places where the plugin's own text would
+   otherwise take its colour from somewhere it does not control.
+   ------------------------------------------------------------------------- */
+
+.certificatepro-learner {
+    background: var(--cpro-page);
+    color: var(--cpro-ink);
+}
+
+.certificatepro-learner .certificatepro-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* The status panel is a Bootstrap alert. Themes recolour those freely, and a
+   contextual colour with no matching text colour is exactly how a message
+   ends up unreadable, so each variant states both halves of the pair. */
+
+.certificatepro-learner .alert.alert-success,
+.certificatepro-verify .alert.alert-success {
+    color: var(--cpro-ok-ink);
+    background-color: var(--cpro-ok-bg);
+    border: 1px solid var(--cpro-ok-edge);
+}
+
+.certificatepro-learner .alert.alert-warning,
+.certificatepro-verify .alert.alert-warning {
+    color: var(--cpro-caution-ink);
+    background-color: var(--cpro-caution-bg);
+    border: 1px solid var(--cpro-caution-edge);
+}
+
+.certificatepro-learner .alert.alert-danger,
+.certificatepro-verify .alert.alert-danger {
+    color: var(--cpro-bad-ink);
+    background-color: var(--cpro-bad-bg);
+    border: 1px solid var(--cpro-bad-edge);
+}
+
+.certificatepro-learner .alert.alert-info,
+.certificatepro-verify .alert.alert-info {
+    color: var(--cpro-info-ink);
+    background-color: var(--cpro-info-bg);
+    border: 1px solid var(--cpro-info-edge);
+}
+
+.certificatepro-learner .alert strong,
+.certificatepro-verify .alert strong,
+.certificatepro-verify .alert h3,
+.certificatepro-verify .alert p,
+.certificatepro-verify .alert td,
+.certificatepro-verify .alert th {
+    color: inherit;
+    background: none;
+}
+
+/* The result heading is an h3 and would otherwise take a display size. */
+
+.certificatepro-verify .alert h3 {
+    margin: 0 0 0.35rem;
+    padding: 0;
+    border: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+}
+
+/* Downloading the certificate is the whole point of this page, so those two
+   buttons state their own colours rather than trusting a theme not to paint a
+   white label on a white button. */
+
+.certificatepro-learner .certificatepro-actions .btn,
+.certificatepro-verify .certificatepro-verify-form button {
+    color: var(--cpro-accent-ink);
+    background: var(--cpro-accent);
+    border: 1px solid var(--cpro-accent);
+    box-shadow: none;
+    text-shadow: none;
+    text-decoration: none;
+    opacity: 1;
+}
+
+.certificatepro-learner .certificatepro-actions .btn:hover,
+.certificatepro-verify .certificatepro-verify-form button:hover {
+    color: var(--cpro-accent-ink);
+    background: var(--cpro-accent);
+    border-color: var(--cpro-ink);
+}
+
+/* These two carry Bootstrap's text-muted, which Moodle generates with
+   !important, so !important is the only weight that can reach them. The
+   alternative would be to change the markup, which this file cannot do. */
+
+.certificatepro-learner .certificatepro-badgehint,
+.certificatepro-learner .certificatepro-verifyhint {
+    color: var(--cpro-ink-muted) !important; /* Beats the !important in .text-muted. */
+    font-size: 0.875rem;
+    line-height: 1.45;
+}
+
+.certificatepro-verify {
+    max-width: 42rem;
+    background: var(--cpro-page);
+    color: var(--cpro-ink);
+}
+
+/* The code field is read back to a person over the phone as often as it is
+   typed, so the monospaced, tracked, upper-case treatment is not decorative
+   and must not be inherited away. */
+
+.certificatepro-verify .certificatepro-verify-form input {
+    color: var(--cpro-ink);
+    background-color: var(--cpro-surface);
+    border: 1px solid var(--cpro-border-strong);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 1;
+}
+
+.certificatepro-verify .certificatepro-verify-form label {
+    color: var(--cpro-ink);
+    background: none;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+}
+
+.certificatepro-learner .certificatepro-verifyhint code {
+    color: inherit;
+    background: none;
+    font-size: 0.95em;
+}
+
+/* Designer toolbar.
+   Rebuilt as labelled groups. A single row of sixteen identical icon buttons
+   is not usable: nothing distinguishes "send to back" from "align bottom"
+   without hovering each one, and a destructive button looks exactly like a
+   harmless one. Every property is declared because a Boost child theme will
+   otherwise supply its own. */
+
+.certificatepro-designer .certificatepro-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+    padding: 0.5rem 0.65rem;
+    margin: 0 0 0.5rem;
+    background: var(--cpro-panel, #f8f9fb);
+    border: 1px solid var(--cpro-line, #e2e8f0);
+    border-radius: 0.4rem;
+}
+
+.certificatepro-designer .certificatepro-toolbar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: none;
+}
+
+.certificatepro-designer .certificatepro-toolbar-grouplabel {
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--cpro-muted, #94a3b8);
+    padding: 0 0.1rem;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.certificatepro-designer .certificatepro-toolbar-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0;
+    margin: 0;
+}
+
+.certificatepro-designer .certificatepro-toolbar-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0 0.4rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    text-decoration: none;
+    color: var(--cpro-ink, #334155);
+    background: var(--cpro-page, #ffffff);
+    border: 1px solid var(--cpro-line, #cbd5e1);
+    border-radius: 0.3rem;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.certificatepro-designer .certificatepro-toolbar-button:hover {
+    background: var(--cpro-hover, #eef2f7);
+    color: var(--cpro-ink, #334155);
+}
+
+.certificatepro-designer .certificatepro-toolbar-button:focus-visible {
+    outline: 2px solid var(--cpro-focus, #1d4ed8);
+    outline-offset: 1px;
+}
+
+/* A pressed toggle has to look pressed. Without this the Portrait button and
+   the current zoom level are indistinguishable from their siblings, which is
+   how an author ends up unable to tell which orientation they are in. */
+.certificatepro-designer .certificatepro-toolbar-button[aria-pressed="true"],
+.certificatepro-designer .certificatepro-toolbar-button[aria-pressed="true"] > i {
+    color: #ffffff;
+}
+
+.certificatepro-designer .certificatepro-toolbar-button[aria-pressed="true"] {
+    background: var(--cpro-accent, #2563eb);
+    border-color: var(--cpro-accent, #2563eb);
+}
+
+/* Font Awesome glyphs carry their own colour in several themes, so the icon
+   has to be told explicitly or a pressed button reads as a solid blue block
+   with nothing drawn on it. */
+.certificatepro-designer .certificatepro-toolbar-button > i {
+    color: inherit;
+    font-size: 0.82rem;
+    line-height: 1;
+}
+
+/* Destructive actions are marked, because delete and revert sit in the same
+   row as undo and duplicate. */
+.certificatepro-designer .certificatepro-toolbar-danger {
+    color: #b42318;
+}
+
+.certificatepro-designer .certificatepro-toolbar-danger:hover {
+    color: #ffffff;
+    background: #b42318;
+    border-color: #b42318;
+}
+
+.certificatepro-designer .certificatepro-toolbar-zoom {
+    min-width: 2.6rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.certificatepro-designer .certificatepro-toolbar-select {
+    min-height: 2rem;
+    padding: 0 1.4rem 0 0.4rem;
+    font: inherit;
+    font-size: 0.78rem;
+    line-height: 1;
+    color: var(--cpro-ink, #334155);
+    background: var(--cpro-page, #ffffff);
+    border: 1px solid var(--cpro-line, #cbd5e1);
+    border-radius: 0.3rem;
+    box-shadow: none;
+}
+
+.certificatepro-designer .certificatepro-saveindicator {
+    align-self: center;
+    font-size: 0.72rem;
+    line-height: 1;
+    color: var(--cpro-muted, #94a3b8);
+    padding: 0 0.5rem;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.certificatepro-designer .certificatepro-saveindicator[data-state="saving"] {
+    color: var(--cpro-accent, #2563eb);
+}
+
+.certificatepro-designer .certificatepro-saveindicator[data-state="savefailed"] {
+    color: #b42318;
+    font-weight: 600;
+}
+
+.certificatepro-designer .certificatepro-previewlink {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: 0 0.8rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    text-transform: none;
+    color: #ffffff;
+    background: var(--cpro-accent, #2563eb);
+    border: 1px solid var(--cpro-accent, #2563eb);
+    border-radius: 0.3rem;
+}
+
+.certificatepro-designer .certificatepro-previewlink:hover {
+    color: #ffffff;
+    background: #1d4ed8;
+    text-decoration: none;
 }

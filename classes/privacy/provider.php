@@ -44,61 +44,24 @@ class provider implements
      * @return collection the same collection
      */
     public static function get_metadata(collection $collection): collection {
-        $collection->add_database_table(
-            'certificatepro_issues',
-            [
-                'cycleid' => 'privacy:metadata:issues:cycleid',
-                'userid' => 'privacy:metadata:issues:userid',
-                'certificateproid' => 'privacy:metadata:issues:certificateproid',
-                'code' => 'privacy:metadata:issues:code',
-                'serial' => 'privacy:metadata:issues:serial',
-                'snapshot' => 'privacy:metadata:issues:snapshot',
-                'timecreated' => 'privacy:metadata:issues:timecreated',
-                'expires' => 'privacy:metadata:issues:expires',
-                'issuedby' => 'privacy:metadata:issues:issuedby',
-                'revokedby' => 'privacy:metadata:issues:revokedby',
-                'revokedreason' => 'privacy:metadata:issues:revokedreason',
-                'pdfhash' => 'privacy:metadata:issues:pdfhash',
-                'emailed' => 'privacy:metadata:issues:emailed',
-            ],
-            'privacy:metadata:issues'
-        );
-
-        // Site-wide authoring records only keep a reference to the uploader/creator.
-        $collection->add_database_table(
-            'certificatepro_backgrounds',
-            [
-                'createdby' => 'privacy:metadata:authoring:createdby',
-            ],
-            'privacy:metadata:backgrounds'
-        );
-        $collection->add_database_table(
-            'certificatepro_media',
-            [
-                'createdby' => 'privacy:metadata:authoring:createdby',
-            ],
-            'privacy:metadata:media'
-        );
-        $collection->add_database_table(
-            'certificatepro_fonts',
-            [
-                'uploadedby' => 'privacy:metadata:authoring:createdby',
-            ],
-            'privacy:metadata:fonts'
-        );
+        $collection->add_database_table('certificatepro_issues', [
+            'cycleid' => 'privacy:metadata:issues:cycleid',
+            'userid' => 'privacy:metadata:issues:userid',
+            'certificateproid' => 'privacy:metadata:issues:certificateproid',
+            'code' => 'privacy:metadata:issues:code',
+            'serial' => 'privacy:metadata:issues:serial',
+            'snapshot' => 'privacy:metadata:issues:snapshot',
+            'timecreated' => 'privacy:metadata:issues:timecreated',
+            'expires' => 'privacy:metadata:issues:expires',
+        ], 'privacy:metadata:issues');
 
         $collection->add_subsystem_link('core_files', [], 'privacy:metadata:core_files');
-        $collection->add_subsystem_link('core_message', [], 'privacy:metadata:core_message');
 
         // Artwork generation is optional, is configured by an administrator, and
         // sends only the author's written description of the wanted background.
-        $collection->add_external_location_link(
-            'artworkservice',
-            [
-                'prompt' => 'privacy:metadata:artworkservice:prompt',
-            ],
-            'privacy:metadata:artworkservice'
-        );
+        $collection->add_external_location_link('artworkservice', [
+            'prompt' => 'privacy:metadata:artworkservice:prompt',
+        ], 'privacy:metadata:artworkservice');
 
         return $collection;
     }
@@ -120,14 +83,11 @@ class provider implements
                   JOIN {certificatepro_issues} i ON i.certificateproid = c.id
                  WHERE i.userid = :userid";
 
-        $contextlist->add_from_sql(
-            $sql,
-            [
-                'contextlevel' => CONTEXT_MODULE,
-                'modname' => 'certificatepro',
-                'userid' => $userid,
-            ]
-        );
+        $contextlist->add_from_sql($sql, [
+            'contextlevel' => CONTEXT_MODULE,
+            'modname' => 'certificatepro',
+            'userid' => $userid,
+        ]);
 
         return $contextlist;
     }
@@ -152,14 +112,10 @@ class provider implements
                   JOIN {certificatepro_issues} i ON i.certificateproid = c.id
                  WHERE cm.id = :cmid";
 
-        $userlist->add_from_sql(
-            'userid',
-            $sql,
-            [
-                'modname' => 'certificatepro',
-                'cmid' => $context->instanceid,
-            ]
-        );
+        $userlist->add_from_sql('userid', $sql, [
+            'modname' => 'certificatepro',
+            'cmid' => $context->instanceid,
+        ]);
     }
 
     /**
@@ -182,24 +138,16 @@ class provider implements
                 continue;
             }
 
-            $cm = get_coursemodule_from_id(
-                'certificatepro',
-                $context->instanceid,
-                0,
-                false,
-                IGNORE_MISSING
-            );
+            $cm = get_coursemodule_from_id('certificatepro', $context->instanceid, 0, false,
+                IGNORE_MISSING);
             if (!$cm) {
                 continue;
             }
 
-            $issues = $DB->get_records(
-                'certificatepro_issues',
-                [
-                    'certificateproid' => $cm->instance,
-                    'userid' => $user->id,
-                ]
-            );
+            $issues = $DB->get_records('certificatepro_issues', [
+                'certificateproid' => $cm->instance,
+                'userid' => $user->id,
+            ]);
 
             if (empty($issues)) {
                 continue;
@@ -249,22 +197,14 @@ class provider implements
             return;
         }
 
-        $cm = get_coursemodule_from_id(
-            'certificatepro',
-            $context->instanceid,
-            0,
-            false,
-            IGNORE_MISSING
-        );
+        $cm = get_coursemodule_from_id('certificatepro', $context->instanceid, 0, false,
+            IGNORE_MISSING);
         if (!$cm) {
             return;
         }
 
-        get_file_storage()->delete_area_files(
-            $context->id,
-            'mod_certificatepro',
-            \mod_certificatepro\local\issue_service::FILEAREA
-        );
+        get_file_storage()->delete_area_files($context->id, 'mod_certificatepro',
+            \mod_certificatepro\local\issue_service::FILEAREA);
 
         $DB->delete_records('certificatepro_issues', ['certificateproid' => $cm->instance]);
     }
@@ -286,56 +226,26 @@ class provider implements
                 continue;
             }
 
-            $cm = get_coursemodule_from_id(
-                'certificatepro',
-                $context->instanceid,
-                0,
-                false,
-                IGNORE_MISSING
-            );
+            $cm = get_coursemodule_from_id('certificatepro', $context->instanceid, 0, false,
+                IGNORE_MISSING);
             if (!$cm) {
                 continue;
             }
 
-            $issues = $DB->get_records(
-                'certificatepro_issues',
-                [
-                    'certificateproid' => $cm->instance,
-                    'userid' => $user->id,
-                ],
-                '',
-                'id'
-            );
+            $issues = $DB->get_records('certificatepro_issues', [
+                'certificateproid' => $cm->instance,
+                'userid' => $user->id,
+            ], '', 'id');
 
             foreach (array_keys($issues) as $issueid) {
-                $fs->delete_area_files(
-                    $context->id,
-                    'mod_certificatepro',
-                    \mod_certificatepro\local\issue_service::FILEAREA,
-                    $issueid
-                );
+                $fs->delete_area_files($context->id, 'mod_certificatepro',
+                    \mod_certificatepro\local\issue_service::FILEAREA, $issueid);
             }
 
-            $DB->delete_records(
-                'certificatepro_issues',
-                [
-                    'certificateproid' => $cm->instance,
-                    'userid' => $user->id,
-                ]
-            );
-            // Keep other learners' certificates but drop the reference to this person as issuer/revoker.
-            $DB->set_field(
-                'certificatepro_issues',
-                'issuedby',
-                0,
-                ['certificateproid' => $cm->instance, 'issuedby' => $user->id]
-            );
-            $DB->set_field(
-                'certificatepro_issues',
-                'revokedby',
-                0,
-                ['certificateproid' => $cm->instance, 'revokedby' => $user->id]
-            );
+            $DB->delete_records('certificatepro_issues', [
+                'certificateproid' => $cm->instance,
+                'userid' => $user->id,
+            ]);
         }
     }
 
@@ -354,13 +264,8 @@ class provider implements
             return;
         }
 
-        $cm = get_coursemodule_from_id(
-            'certificatepro',
-            $context->instanceid,
-            0,
-            false,
-            IGNORE_MISSING
-        );
+        $cm = get_coursemodule_from_id('certificatepro', $context->instanceid, 0, false,
+            IGNORE_MISSING);
         if (!$cm) {
             return;
         }
@@ -373,28 +278,16 @@ class provider implements
         [$insql, $params] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
         $params['certificateproid'] = $cm->instance;
 
-        $issues = $DB->get_records_select(
-            'certificatepro_issues',
-            "certificateproid = :certificateproid AND userid {$insql}",
-            $params,
-            '',
-            'id'
-        );
+        $issues = $DB->get_records_select('certificatepro_issues',
+            "certificateproid = :certificateproid AND userid {$insql}", $params, '', 'id');
 
         $fs = get_file_storage();
         foreach (array_keys($issues) as $issueid) {
-            $fs->delete_area_files(
-                $context->id,
-                'mod_certificatepro',
-                \mod_certificatepro\local\issue_service::FILEAREA,
-                $issueid
-            );
+            $fs->delete_area_files($context->id, 'mod_certificatepro',
+                \mod_certificatepro\local\issue_service::FILEAREA, $issueid);
         }
 
-        $DB->delete_records_select(
-            'certificatepro_issues',
-            "certificateproid = :certificateproid AND userid {$insql}",
-            $params
-        );
+        $DB->delete_records_select('certificatepro_issues',
+            "certificateproid = :certificateproid AND userid {$insql}", $params);
     }
 }

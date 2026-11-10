@@ -97,10 +97,8 @@ class open_badge {
      */
     public static function build_json(\stdClass $issue, \stdClass $instance, \stdClass $course,
             \stdClass $user): string {
-        return json_encode(
-            self::build($issue, $instance, $course, $user),
-            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-        );
+        return json_encode(self::build($issue, $instance, $course, $user),
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -184,11 +182,8 @@ class open_badge {
         return [
             'id' => $CFG->wwwroot,
             'type' => ['Profile'],
-            'name' => format_string(
-                get_site()->fullname,
-                true,
-                ['context' => \context_system::instance()]
-            ),
+            'name' => format_string(get_site()->fullname, true,
+                ['context' => \context_system::instance()]),
             'url' => $CFG->wwwroot,
         ];
     }
@@ -236,18 +231,11 @@ class open_badge {
      * @return array the Achievement
      */
     protected static function achievement(\stdClass $instance, \stdClass $course): array {
-        $coursename = format_string(
-            $course->fullname ?? '',
-            true,
-            ['context' => \context_system::instance()]
-        );
+        $coursename = format_string($course->fullname ?? '', true,
+            ['context' => \context_system::instance()]);
 
-        $description = trim(
-            content_to_text(
-                (string) ($instance->intro ?? ''),
-                (int) ($instance->introformat ?? FORMAT_HTML)
-            )
-        );
+        $description = trim(content_to_text((string) ($instance->intro ?? ''),
+            (int) ($instance->introformat ?? FORMAT_HTML)));
 
         if ($description === '') {
             $description = get_string('credentialdescription', 'mod_certificatepro', $coursename);
@@ -292,13 +280,8 @@ class open_badge {
      * @return string an absolute URL
      */
     protected static function achievement_id(\stdClass $instance, \stdClass $course): string {
-        $cm = get_coursemodule_from_instance(
-            'certificatepro',
-            (int) $instance->id,
-            (int) ($course->id ?? 0),
-            false,
-            IGNORE_MISSING
-        );
+        $cm = get_coursemodule_from_instance('certificatepro', (int) $instance->id,
+            (int) ($course->id ?? 0), false, IGNORE_MISSING);
 
         if ($cm) {
             return (new \moodle_url('/mod/certificatepro/view.php', ['id' => $cm->id]))->out(false);
@@ -314,11 +297,8 @@ class open_badge {
      * @return string the name
      */
     protected static function instance_name(\stdClass $instance): string {
-        return format_string(
-            $instance->name ?? '',
-            true,
-            ['context' => \context_system::instance()]
-        );
+        return format_string($instance->name ?? '', true,
+            ['context' => \context_system::instance()]);
     }
 
     /**

@@ -53,13 +53,10 @@ class expiry_reminders extends \core\task\scheduled_task {
                    AND i.expires > :now
                    AND i.expires <= :window";
 
-        $records = $DB->get_records_sql(
-            $sql,
-            [
-                'now' => $now,
-                'window' => $now + (365 * DAYSECS),
-            ]
-        );
+        $records = $DB->get_records_sql($sql, [
+            'now' => $now,
+            'window' => $now + (365 * DAYSECS),
+        ]);
 
         $sent = 0;
 
@@ -84,11 +81,8 @@ class expiry_reminders extends \core\task\scheduled_task {
             $message->name = 'expiring';
             $message->userfrom = \core_user::get_noreply_user();
             $message->userto = $user;
-            $message->subject = get_string(
-                'expireson',
-                'mod_certificatepro',
-                userdate($record->expires, get_string('strftimedaydate', 'langconfig'))
-            );
+            $message->subject = get_string('expireson', 'mod_certificatepro',
+                userdate($record->expires, get_string('strftimedaydate', 'langconfig')));
             $message->fullmessage = $message->subject;
             $message->fullmessageformat = FORMAT_PLAIN;
             $message->fullmessagehtml = '';

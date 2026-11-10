@@ -87,6 +87,15 @@ class themelogo extends image_base {
     }
 
     /**
+     * The configuration a newly dropped site logo starts with.
+     *
+     * @return array
+     */
+    public static function default_data(): array {
+        return array_merge(parent::default_data(), ['logosource' => 'themefull']);
+    }
+
+    /**
      * Choose which logo this element draws.
      *
      * @param \MoodleQuickForm $mform the form to extend
@@ -94,12 +103,8 @@ class themelogo extends image_base {
      * @return void
      */
     public function definition_form(\MoodleQuickForm $mform, \context $context): void {
-        $mform->addElement(
-            'select',
-            'logosource',
-            get_string('logosource', 'mod_certificatepro'),
-            self::sources()
-        );
+        $mform->addElement('select', 'logosource',
+            get_string('logosource', 'mod_certificatepro'), self::sources());
         $mform->setDefault('logosource', 'themefull');
         $mform->addHelpButton('logosource', 'logosource', 'mod_certificatepro');
 
@@ -116,12 +121,9 @@ class themelogo extends image_base {
     public function save_form_data(\stdClass $data): array {
         $source = $data->logosource ?? 'themefull';
 
-        return array_merge(
-            $this->common_image_data($data),
-            [
-                'logosource' => array_key_exists($source, self::sources()) ? $source : 'themefull',
-            ]
-        );
+        return array_merge($this->common_image_data($data), [
+            'logosource' => array_key_exists($source, self::sources()) ? $source : 'themefull',
+        ]);
     }
 
     /**

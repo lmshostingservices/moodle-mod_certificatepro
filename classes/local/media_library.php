@@ -237,17 +237,14 @@ class media_library {
 
         $fs = get_file_storage();
         $fs->delete_area_files($context->id, 'mod_certificatepro', self::FILEAREA, $record->id);
-        $stored = $fs->create_file_from_storedfile(
-            [
-                'contextid' => $context->id,
-                'component' => 'mod_certificatepro',
-                'filearea' => self::FILEAREA,
-                'itemid' => $record->id,
-                'filepath' => '/',
-                'filename' => $file->get_filename(),
-            ],
-            $file
-        );
+        $stored = $fs->create_file_from_storedfile([
+            'contextid' => $context->id,
+            'component' => 'mod_certificatepro',
+            'filearea' => self::FILEAREA,
+            'itemid' => $record->id,
+            'filepath' => '/',
+            'filename' => $file->get_filename(),
+        ], $file);
 
         // Record the intrinsic size once, so every certificate that uses this
         // picture can size itself correctly without re-reading the file.
@@ -270,12 +267,8 @@ class media_library {
         global $DB;
 
         $fs = get_file_storage();
-        $fs->delete_area_files(
-            \context_system::instance()->id,
-            'mod_certificatepro',
-            self::FILEAREA,
-            $mediaid
-        );
+        $fs->delete_area_files(\context_system::instance()->id, 'mod_certificatepro',
+            self::FILEAREA, $mediaid);
 
         $DB->delete_records('certificatepro_media', ['id' => $mediaid]);
     }

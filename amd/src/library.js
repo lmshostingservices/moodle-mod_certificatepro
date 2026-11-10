@@ -26,9 +26,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 define(['core/notification', 'mod_certificatepro/stylepicker',
-    'mod_certificatepro/backgroundpicker', 'mod_certificatepro/ornamentpicker',
     'mod_certificatepro/briefwizard'],
-function(Notification, StylePicker, BackgroundPicker, OrnamentPicker, BriefWizard) {
+function (Notification, StylePicker, BriefWizard) {
 
     'use strict';
 
@@ -49,7 +48,7 @@ function(Notification, StylePicker, BackgroundPicker, OrnamentPicker, BriefWizar
      * @param {Element} root the designer root
      * @return {Object} the payload, or an empty object when it is missing
      */
-    var bootstrap = function(root) {
+    var bootstrap = function (root) {
         try {
             return JSON.parse(root.getAttribute('data-cpro-bootstrap') || '{}');
         } catch (e) {
@@ -58,7 +57,7 @@ function(Notification, StylePicker, BackgroundPicker, OrnamentPicker, BriefWizar
         }
     };
 
-    var init = function(selector) {
+    var init = function (selector) {
         var root = document.querySelector(selector);
         if (!root) {
             return;
@@ -66,7 +65,7 @@ function(Notification, StylePicker, BackgroundPicker, OrnamentPicker, BriefWizar
 
         var config = bootstrap(root);
 
-        root.addEventListener('click', function(event) {
+        root.addEventListener('click', function (event) {
             var trigger = event.target.closest('[data-library-action]');
             if (!trigger) {
                 return;
@@ -80,7 +79,7 @@ function(Notification, StylePicker, BackgroundPicker, OrnamentPicker, BriefWizar
             // dialog goes away, if focus has fallen back to the document, put it
             // where the author left it. Cheap, and it does not depend on which
             // Moodle branch the site is running.
-            var restore = function() {
+            var restore = function () {
                 if (document.activeElement === document.body
                         || document.activeElement === document.documentElement) {
                     trigger.focus();
@@ -106,7 +105,7 @@ function(Notification, StylePicker, BackgroundPicker, OrnamentPicker, BriefWizar
      * (the bootstrap payload is read from the root element)
      * @return {number} a page id
      */
-    var currentPage = function(root, config) {
+    var currentPage = function (root, config) {
         if (root.cproDesigner && root.cproDesigner.page) {
             var page = root.cproDesigner.page();
             if (page && page.id) {
@@ -126,7 +125,7 @@ function(Notification, StylePicker, BackgroundPicker, OrnamentPicker, BriefWizar
      * @param {string} type the element type to look for
      * @return {number} the element id, or 0
      */
-    var selectedOfType = function(root, type) {
+    var selectedOfType = function (root, type) {
         var designer = root.cproDesigner;
         if (!designer || !designer.page || !designer.selection
                 || designer.selection.length !== 1) {
@@ -151,8 +150,8 @@ function(Notification, StylePicker, BackgroundPicker, OrnamentPicker, BriefWizar
      * @param {HTMLElement} root the designer root
      * @return {void}
      */
-    var reload = function(root) {
-        var done = function() {
+    var reload = function (root) {
+        var done = function () {
             window.location.reload();
         };
 
@@ -176,12 +175,12 @@ function(Notification, StylePicker, BackgroundPicker, OrnamentPicker, BriefWizar
      * @param {HTMLElement} trigger the button that was pressed
      * @return {void}
      */
-    var open = function(action, root, config, trigger) {
+    var open = function (action, root, config, trigger) {
         var options = {
             templateid: config.templateid,
             pageid: currentPage(root, config),
             returnElement: trigger,
-            done: function() {
+            done: function () {
                 reload(root);
             }
         };
@@ -189,12 +188,6 @@ function(Notification, StylePicker, BackgroundPicker, OrnamentPicker, BriefWizar
         switch (action) {
             case 'styles':
                 StylePicker.open(options);
-                break;
-            case 'backgrounds':
-                BackgroundPicker.open(options);
-                break;
-            case 'ornaments':
-                OrnamentPicker.open(options);
                 break;
             case 'artworkbrief':
                 BriefWizard.artwork(options);

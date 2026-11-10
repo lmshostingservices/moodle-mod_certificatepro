@@ -150,18 +150,13 @@ class background_repository {
 
         $result = generator::generate($prompt, $style, $palette, $orientation, $context, $options);
 
-        $id = self::save(
-            $context,
-            $name,
-            $result['svg'],
-            [
-                'prompt' => $prompt,
-                'style' => $style,
-                'palette' => $palette['primary'] ?? '',
-                'orientation' => $orientation,
-                'generator' => $result['source'],
-            ]
-        );
+        $id = self::save($context, $name, $result['svg'], [
+            'prompt' => $prompt,
+            'style' => $style,
+            'palette' => $palette['primary'] ?? '',
+            'orientation' => $orientation,
+            'generator' => $result['source'],
+        ]);
 
         return [
             'id' => $id,
