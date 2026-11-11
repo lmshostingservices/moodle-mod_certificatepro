@@ -32,6 +32,7 @@ define('CLI_SCRIPT', true);
 require(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/clilib.php');
 require_once($CFG->dirroot . '/course/lib.php');
+require_once($CFG->dirroot . '/group/lib.php');
 require_once($CFG->libdir . '/gradelib.php');
 require_once($CFG->dirroot . '/user/lib.php');
 require_once($CFG->libdir . '/enrollib.php');
@@ -622,6 +623,276 @@ try {
 check(!$DB->record_exists('certificatepro_issues',
     ['certificateproid' => $cert->id, 'userid' => $second->id]),
     'privacy deletion removes the learner issue');
+
+// --------------------------------------- what a certificate is allowed to print.
+
+section('What a certificate may print about a person');
+
+// The picker only offers safe fields, but the stored field name does not always
+// come from the picker: the undo service takes an element's settings back as
+// JSON, and a restored design carries whatever it was saved with. Without a
+// check where the value is read, asking for "password" prints the hash.
+$fieldctx = \mod_certificatepro\element\render_context::for_issue(
+    $context, $cert, $course, $learner,
+    (object) ['id' => 1, 'code' => 'X', 'snapshot' => null, 'timecreated' => time()]);
+
+$neverprint = ['password', 'secret', 'auth', 'lastip', 'sesskey', 'policyagreed',
+    'confirmed', 'deleted', 'suspended', 'mnethostid'];
+$leaked = [];
+foreach ($neverprint as $field) {
+    if (!property_exists($learner, $field)) {
+        continue;
+    }
+    $value = \mod_certificatepro\local\field_helper::user_field_value($field, $fieldctx);
+    if ($value !== '') {
+        $leaked[] = $field;
+    }
+}
+check(empty($leaked), 'internal user columns are never printed on a certificate',
+    implode(', ', $leaked));
+
+$hash = (string) $DB->get_field('user', 'password', ['id' => $learner->id]);
+check($hash === '' || \mod_certificatepro\local\field_helper::user_field_value(
+    'password', $fieldctx) === '', 'the password hash in particular is never printed');
+
+// The fields a design is meant to print still work.
+$printable = [];
+foreach (['firstname', 'lastname', 'city'] as $field) {
+    if (\mod_certificatepro\local\field_helper::user_field_value($field, $fieldctx) === ''
+            && !empty($learner->{$field})) {
+        $printable[] = $field;
+    }
+}
+check(empty($printable), 'the fields a certificate is meant to print still print',
+    implode(', ', $printable));
+
+// ------------------------------------------- what the plugin says it stores.
+
+section('The privacy declaration matches what is stored');
+
+// A column holding a person's identity or words about them has to be declared,
+// or a subject access request will not mention it. This compares the
+// declaration with the tables themselves rather than with a fixed list, so a
+// column added later cannot slip through unnoticed.
+$metadata = \mod_certificatepro\privacy\provider::get_metadata(
+    new \core_privacy\local\metadata\collection('mod_certificatepro'));
+
+$declared = [];
+foreach ($metadata->get_collection() as $item) {
+    if ($item instanceof \core_privacy\local\metadata\types\database_table) {
+        $declared[$item->get_name()] = array_keys($item->get_privacy_fields() ?: []);
+    }
+}
+
+$personal = '/^(userid|issuedby|revokedby|createdby|uploadedby|revokedreason)$/';
+$owntables = ['certificatepro_issues', 'certificatepro_backgrounds',
+    'certificatepro_media', 'certificatepro_fonts'];
+
+$undeclared = [];
+foreach ($owntables as $tablename) {
+    if (!$DB->get_manager()->table_exists($tablename)) {
+        continue;
+    }
+    foreach (array_keys($DB->get_columns($tablename)) as $column) {
+        if (!preg_match($personal, $column)) {
+            continue;
+        }
+        if (!isset($declared[$tablename])) {
+            $undeclared[] = $tablename . ' (whole table)';
+            break;
+        }
+        if (!in_array($column, $declared[$tablename], true)) {
+            $undeclared[] = $tablename . '.' . $column;
+        }
+    }
+}
+
+check(empty($undeclared), 'every column naming a person is declared to the privacy API',
+    implode(', ', $undeclared));
+
+// Every label the declaration points at must actually exist.
+$missinglabels = [];
+foreach ($metadata->get_collection() as $item) {
+    $labels = [];
+    if (method_exists($item, 'get_privacy_fields')) {
+        $labels = array_values($item->get_privacy_fields() ?: []);
+    }
+    $labels[] = $item->get_summary();
+    foreach ($labels as $label) {
+        if ($label !== '' && !get_string_manager()->string_exists($label, 'mod_certificatepro')) {
+            $missinglabels[] = $label;
+        }
+    }
+}
+check(empty($missinglabels), 'every privacy description has wording behind it',
+    implode(', ', $missinglabels));
+
+// Notifications are sent, so that subsystem has to be named.
+$links = [];
+foreach ($metadata->get_collection() as $item) {
+    if ($item instanceof \core_privacy\local\metadata\types\subsystem_link) {
+        $links[] = $item->get_name();
+    }
+}
+check(in_array('core_message', $links, true),
+    'the message subsystem is declared, because the plugin sends notifications',
+    implode(',', $links));
+
+// --------------------------------------------- telling the learner about it.
+
+section('Notifying the learner that a certificate was issued');
+
+// The activity has always offered "Email the certificate to the learner", the
+// message provider is declared so it shows in everybody's notification
+// preferences, and the issue record carries an "emailed" flag. For a while
+// nothing sent anything, so the setting saved and did nothing.
+foreach (['issuedemailsubject', 'issuedemailbody_learner', 'issuedemailbody_staff'] as $key) {
+    check(get_string_manager()->string_exists($key, 'mod_certificatepro'),
+        'the notification wording exists: ' . $key);
+}
+
+// This box has no mail transport, so the email processor fails and takes the
+// whole send down with it. That is the environment, not the plugin: turn the
+// email processor off for the duration so the in-app notification stands on
+// its own, and put it back afterwards.
+if (empty($CFG->noreplyaddress)) {
+    $CFG->noreplyaddress = 'noreply@example.com';
+}
+$emailprocessor = $DB->get_record('message_processors', ['name' => 'email']);
+$emailwasenabled = $emailprocessor ? (int) $emailprocessor->enabled : 0;
+if ($emailprocessor && $emailwasenabled && !is_executable('/usr/sbin/sendmail')) {
+    $DB->set_field('message_processors', 'enabled', 0, ['id' => $emailprocessor->id]);
+    get_message_processors(false, true);
+}
+
+$notifyinstance = clone $cert;
+$notifyinstance->emailstudents = 1;
+$notifyinstance->emailteachers = 0;
+$notifyinstance->emailothers = '';
+
+$notifyuser = (object) [
+    'username' => 'cpnotify' . time(),
+    'password' => 'Testpass!1',
+    'firstname' => 'Noti',
+    'lastname' => 'Fyable',
+    'email' => 'cpnotify' . time() . '@example.com',
+    'confirmed' => 1,
+    'mnethostid' => $CFG->mnet_localhost_id,
+];
+$notifyuser->id = user_create_user($notifyuser, false, false);
+$notifyuser = $DB->get_record('user', ['id' => $notifyuser->id]);
+$manual->enrol_user($instance, $notifyuser->id, $studentrole->id);
+
+$countmine = function (int $userid) use ($DB): int {
+    return $DB->count_records('notifications',
+        ['useridto' => $userid, 'component' => 'mod_certificatepro']);
+};
+$before = $countmine($notifyuser->id);
+$notifyissue = \mod_certificatepro\local\issue_service::issue(
+    $notifyinstance, $course, $context, $notifyuser, 0);
+$after = $countmine($notifyuser->id);
+
+check($after > $before, 'the learner is notified when their certificate is issued',
+    'notifications before ' . $before . ', after ' . $after);
+
+$stored = $DB->get_record('certificatepro_issues', ['id' => $notifyissue->id]);
+check((int) $stored->emailed === 1, 'the issue records that it was sent',
+    'emailed = ' . $stored->emailed);
+
+$notification = $DB->get_record_sql(
+    'SELECT * FROM {notifications} WHERE useridto = ? AND component = ? ORDER BY id DESC',
+    [$notifyuser->id, 'mod_certificatepro']);
+check($notification && strpos((string) $notification->fullmessage, $notifyissue->code) !== false,
+    'the notification carries the verification code',
+    $notification ? substr((string) $notification->fullmessage, 0, 60) : 'no notification');
+
+// With the setting off, nothing is sent.
+$quietinstance = clone $cert;
+$quietinstance->emailstudents = 0;
+$quietinstance->emailteachers = 0;
+$quietinstance->emailothers = '';
+$quietuser = (object) [
+    'username' => 'cpquiet' . time(),
+    'password' => 'Testpass!1',
+    'firstname' => 'Quiet',
+    'lastname' => 'Onsies',
+    'email' => 'cpquiet' . time() . '@example.com',
+    'confirmed' => 1,
+    'mnethostid' => $CFG->mnet_localhost_id,
+];
+$quietuser->id = user_create_user($quietuser, false, false);
+$quietuser = $DB->get_record('user', ['id' => $quietuser->id]);
+$manual->enrol_user($instance, $quietuser->id, $studentrole->id);
+\mod_certificatepro\local\issue_service::issue($quietinstance, $course, $context, $quietuser, 0);
+check($countmine($quietuser->id) === 0,
+    'nothing is sent when the setting is off', $countmine($quietuser->id) . ' sent');
+
+if ($emailprocessor && $emailwasenabled) {
+    $DB->set_field('message_processors', 'enabled', 1, ['id' => $emailprocessor->id]);
+}
+
+// ------------------------------------------------- who gets one automatically.
+
+section('Who a certificate is issued to automatically');
+
+// Being able to open the activity is not the same as being its recipient. The
+// trainer can open it, and a learner who withdrew is still enrolled.
+$receivecap = $DB->get_record('capabilities', ['name' => 'mod/certificatepro:receive']);
+check((bool) $receivecap, 'there is a capability for receiving a certificate');
+
+$studentrolerec = $DB->get_record('role', ['shortname' => 'student']);
+$teacherrolerec = $DB->get_record('role', ['shortname' => 'editingteacher']);
+check($DB->record_exists('role_capabilities', ['roleid' => $studentrolerec->id,
+    'capability' => 'mod/certificatepro:receive', 'permission' => CAP_ALLOW]),
+    'a learner may receive a certificate');
+check(!$DB->record_exists('role_capabilities', ['roleid' => $teacherrolerec->id,
+    'capability' => 'mod/certificatepro:receive', 'permission' => CAP_ALLOW]),
+    'an editing teacher may not receive a certificate');
+
+rebuild_course_cache($course->id, true);
+$candidates = \mod_certificatepro\task\issue_certificates::candidates($course, $cm, $context);
+
+check(array_key_exists($learner->id, $candidates),
+    'the learner is a candidate', implode(',', array_keys($candidates)));
+check(!array_key_exists($teacher->id, $candidates),
+    'the teacher is not a candidate, though she can open the activity');
+
+// A withdrawn learner keeps the certificate they already hold, but must not be
+// handed a new one.
+$manualplugin = enrol_get_plugin('manual');
+$enrolinstance = $DB->get_record('enrol',
+    ['courseid' => $course->id, 'enrol' => 'manual'], '*', MUST_EXIST);
+$manualplugin->update_user_enrol($enrolinstance, $learner->id, ENROL_USER_SUSPENDED);
+$suspendedlist = \mod_certificatepro\task\issue_certificates::candidates($course, $cm, $context);
+check(!array_key_exists($learner->id, $suspendedlist),
+    'a learner whose enrolment is suspended is not a candidate');
+$manualplugin->update_user_enrol($enrolinstance, $learner->id, ENROL_USER_ACTIVE);
+
+// A restriction aimed at particular people takes them out too. It has to be a
+// per-user condition — a group, grouping, profile field or grade — because a
+// blanket one such as a date applies to everybody equally and is not something
+// a per-user filter can express.
+$othergroup = groups_create_group((object) [
+    'courseid' => $course->id,
+    'name' => 'Intake the learner is not in',
+]);
+$restriction = json_encode([
+    'op' => '&',
+    'c' => [['type' => 'group', 'id' => (int) $othergroup]],
+    'showc' => [false],
+]);
+$DB->set_field('course_modules', 'availability', $restriction, ['id' => $cm->id]);
+rebuild_course_cache($course->id, true);
+$restricted = \mod_certificatepro\task\issue_certificates::candidates($course, $cm, $context);
+check(!array_key_exists($learner->id, $restricted),
+    'a learner the access restrictions exclude is not a candidate',
+    count($restricted) . ' still listed');
+$DB->set_field('course_modules', 'availability', null, ['id' => $cm->id]);
+rebuild_course_cache($course->id, true);
+
+$restored = \mod_certificatepro\task\issue_certificates::candidates($course, $cm, $context);
+check(array_key_exists($learner->id, $restored),
+    'and is a candidate again once the restriction is lifted');
 
 // ------------------------------------------------ the activity settings form.
 

@@ -74,4 +74,59 @@ class restore_certificatepro_activity_task extends restore_activity_task {
                 '/mod/certificatepro/index.php?id=$1', 'course'),
         ];
     }
+
+    /**
+     * Point the design's grade elements at this course's own grade items.
+     *
+     * A design can print a named grade item rather than the course total, and it
+     * stores that choice as the item's id. Those ids belong to the course the
+     * design came from. Left alone after a restore, a copied course prints a
+     * grade from the original course — the certificate still looks right, and
+     * the number on it belongs to somebody else's gradebook.
+     *
+     * Where the item came across in the same restore, its new id is used. Where
+     * it did not, and no such item exists in this course, the element falls back
+     * to the course total rather than pointing at nothing.
+     *
+     * @return void
+     */
+    public function after_restore() {
+        global $DB;
+
+        $templateid = $DB->get_field('certificatepro', 'templateid',
+            ['id' => $this->get_activityid()]);
+        if (!$templateid) {
+            return;
+        }
+
+        $sql = "SELECT e.id, e.data
+                  FROM {certificatepro_elements} e
+                  JOIN {certificatepro_pages} p ON p.id = e.pageid
+                 WHERE p.templateid = :templateid
+                   AND e.element IN ('grade', 'gradeitemname')";
+
+        foreach ($DB->get_records_sql($sql, ['templateid' => $templateid]) as $element) {
+            $data = json_decode((string) $element->data, true);
+            if (!is_array($data) || empty($data['gradeitem'])
+                    || !str_starts_with((string) $data['gradeitem'], 'item_')) {
+                continue;
+            }
+
+            $olditemid = (int) substr($data['gradeitem'], 5);
+            $mapping = restore_dbops::get_backup_ids_record($this->get_restoreid(),
+                'grade_item', $olditemid);
+
+            if ($mapping && !empty($mapping->newitemid)) {
+                $data['gradeitem'] = 'item_' . $mapping->newitemid;
+            } else if (!$DB->record_exists('grade_items',
+                    ['id' => $olditemid, 'courseid' => $this->get_courseid()])) {
+                $data['gradeitem'] = 'course';
+            } else {
+                continue;
+            }
+
+            $DB->set_field('certificatepro_elements', 'data', json_encode($data),
+                ['id' => $element->id]);
+        }
+    }
 }

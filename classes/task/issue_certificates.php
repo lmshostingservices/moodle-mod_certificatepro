@@ -43,6 +43,39 @@ class issue_certificates extends \core\task\scheduled_task {
     }
 
     /**
+     * Who may be handed a certificate automatically.
+     *
+     * Three things decide this, and leaving any of them out gives a certificate
+     * to someone who should not have one.
+     *
+     * The capability is "receive", not "view". A trainer, assessor or manager
+     * can open the activity, and issuing to them produces a publicly verifiable
+     * certificate saying the trainer completed the course she teaches.
+     *
+     * Only active enrolments count, or a learner whose enrolment was suspended
+     * when they withdrew is still handed one.
+     *
+     * And anyone the activity's own access restrictions exclude is not a
+     * candidate either, however they are enrolled: a certificate for an
+     * activity you cannot open is not a certificate anyone should be able to
+     * verify as genuine.
+     *
+     * @param \stdClass $course the course
+     * @param \stdClass $cm the course module
+     * @param \context $context the module context
+     * @return array the candidate users, keyed by id
+     */
+    public static function candidates(\stdClass $course, \stdClass $cm,
+            \context $context): array {
+        $candidates = get_enrolled_users($context, 'mod/certificatepro:receive',
+            0, 'u.*', null, 0, 0, true);
+
+        $cminfo = get_fast_modinfo($course)->get_cm($cm->id);
+
+        return (new \core_availability\info_module($cminfo))->filter_user_list($candidates);
+    }
+
+    /**
      * Run the task.
      *
      * @return void
@@ -71,7 +104,7 @@ class issue_certificates extends \core\task\scheduled_task {
             }
 
             $context = \context_module::instance($cm->id);
-            $candidates = get_enrolled_users($context, 'mod/certificatepro:view', 0, 'u.*');
+            $candidates = self::candidates($course, $cm, $context);
 
             foreach ($candidates as $user) {
                 if ($issued >= self::BATCH) {

@@ -53,9 +53,32 @@ class provider implements
             'snapshot' => 'privacy:metadata:issues:snapshot',
             'timecreated' => 'privacy:metadata:issues:timecreated',
             'expires' => 'privacy:metadata:issues:expires',
+            'issuedby' => 'privacy:metadata:issues:issuedby',
+            'revokedby' => 'privacy:metadata:issues:revokedby',
+            'revokedreason' => 'privacy:metadata:issues:revokedreason',
+            'pdfhash' => 'privacy:metadata:issues:pdfhash',
+            'emailed' => 'privacy:metadata:issues:emailed',
         ], 'privacy:metadata:issues');
 
+        // An issued certificate is not the only place this plugin records who
+        // did something. Artwork, library pictures and uploaded fonts all keep
+        // the author, and every one of those has to be declared here whether or
+        // not it is a learner's own data.
+        $collection->add_database_table('certificatepro_backgrounds', [
+            'createdby' => 'privacy:metadata:authoring:createdby',
+        ], 'privacy:metadata:backgrounds');
+
+        $collection->add_database_table('certificatepro_media', [
+            'createdby' => 'privacy:metadata:authoring:createdby',
+        ], 'privacy:metadata:media');
+
+        $collection->add_database_table('certificatepro_fonts', [
+            'uploadedby' => 'privacy:metadata:authoring:createdby',
+        ], 'privacy:metadata:fonts');
+
         $collection->add_subsystem_link('core_files', [], 'privacy:metadata:core_files');
+        $collection->add_subsystem_link('core_message', [],
+            'privacy:metadata:core_message');
 
         // Artwork generation is optional, is configured by an administrator, and
         // sends only the author's written description of the wanted background.

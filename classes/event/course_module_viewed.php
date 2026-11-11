@@ -34,4 +34,22 @@ class course_module_viewed extends \core\event\course_module_viewed {
         $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
         $this->data['objecttable'] = 'certificatepro';
     }
+
+    /**
+     * What the object id refers to, so course logs restore accurately.
+     *
+     * @return array|string
+     */
+    public static function get_objectid_mapping() {
+        return ['db' => 'certificatepro', 'restore' => 'certificatepro'];
+    }
+
+    /**
+     * Nothing in "other" needs remapping.
+     *
+     * @return bool
+     */
+    public static function get_other_mapping() {
+        return false;
+    }
 }

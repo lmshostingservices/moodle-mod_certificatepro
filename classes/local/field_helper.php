@@ -146,7 +146,13 @@ class field_helper {
             return (string) ($countries[$user->country] ?? $user->country);
         }
 
-        if (!property_exists($user, $field)) {
+        // Only a field on the list may be printed. The picker offers that list,
+        // but the stored name is not always one the picker produced: a design
+        // restored from another site carries whatever it was saved with, and a
+        // request can name a field directly. Without this check, asking for
+        // "password" puts the learner's password hash on the certificate, and
+        // "email", "auth" and "lastip" print just as readily.
+        if (!in_array($field, self::USER_FIELDS, true) || !property_exists($user, $field)) {
             return '';
         }
 

@@ -1,5 +1,90 @@
 # Changelog
 
+## [2.0.5] - 2026-11-11
+
+A security fix, and two more things the 1.4.0 merge dropped. Upgrading is strongly
+recommended for any site running 1.4.0 or later.
+
+### Security
+
+- Fixed: **a certificate could be made to print a learner's password hash.** The field
+  a "User field" element prints is chosen from a list, and only the names on that list
+  were ever meant to be readable. The check that enforced it was lost, leaving only a
+  test that the column exists — so a design asking for `password` printed the stored
+  hash onto the certificate, and `email`, `auth` and `lastip` printed just as readily.
+  Confirmed end to end: the complete hash appeared in the text of a rendered PDF.
+
+  The settings form and the field picker both reject a name that is not on the list, so
+  this could not be done through the designer. It could be done by a user who can edit
+  a design — a teacher or a manager, not a learner — through the undo service, which
+  takes an element's settings back as JSON, and by restoring a design crafted elsewhere.
+  Certificates are documents that get downloaded, sent on and publicly verified, so the
+  disclosure does not stay on the site.
+
+  The list is enforced again where the value is read. Sites that have issued
+  certificates from a design with a hand-edited user field should check them.
+
+### Also fixed
+
+- Fixed: **a copied or restored course printed grades from the original course.** A
+  design can print a named grade item rather than the course total, and it stores that
+  choice as the item's own id. Those ids belong to the course the design came from, and
+  nothing remapped them, so a duplicated course issued certificates carrying a number
+  out of another course's gradebook. Measured directly: the copy still pointed at grade
+  item 101, which belonged to the course it was copied from. The reference now follows
+  the restore, and falls back to the course total when the item did not come across.
+- Fixed: none of the plugin's seven events described how to remap their ids, so Moodle
+  warned about each one and could not restore course logs accurately.
+
+
+## [2.0.4] - 2026-11-11
+
+A third thing the 1.4.0 merge dropped, found by the same comparison against 1.1.6.
+
+- Fixed: **"Email the certificate to the learner" did nothing.** The setting was on the
+  activity form, it saved, it was carried through backup and restore, the message
+  provider was declared so "Certificate issued" appeared in every user's notification
+  preferences, and the issue record kept an "emailed" flag — but nothing anywhere read
+  the setting, so no learner was ever told. The same applied to notifying staff and to
+  the list of extra addresses. All three now send again, carrying the verification code
+  and a link to the certificate, and the issue is marked as sent. A mail failure still
+  cannot undo or block an issued certificate.
+- Fixed: **the privacy declaration no longer matched what the plugin stores.** An issued
+  certificate records who issued it, who revoked it and the reason they gave, and the
+  artwork, media library and font tables each record who created or uploaded the item.
+  None of that was declared, so a site answering a subject access request would not have
+  been told about any of it, and the notifications the plugin sends were not declared
+  either. All of it is declared again. The verification harness now compares the
+  declaration against the tables themselves, so a column added later cannot slip through.
+
+
+## [2.0.3] - 2026-11-11
+
+Two regressions that came in with the 1.4.0 merge, found by comparing this line
+against the published 1.1.6 branch it was merged with. Neither was present in 1.1.6.
+
+- Fixed: **certificates were issued automatically to people who should never receive
+  one.** Automatic issuing chose everyone who could *open* the activity, which on a
+  default site includes the trainer, the assessor and the manager — so a trainer was
+  handed a publicly verifiable certificate saying she had completed the course she
+  teaches. It also included learners whose enrolment had been suspended when they
+  withdrew, and learners the activity's own access restrictions shut out. Measured on
+  a twelve-learner course, thirteen certificates were issued where eleven were due,
+  and with a group restriction in place, eleven where four were due. Issuing now
+  follows a new capability, "Receive a certificate", which only learners hold by
+  default; it counts active enrolments only; and it honours the activity's access
+  restrictions. The issued-certificates report follows the same rule, and still lists
+  anyone who already holds a certificate so that a wrongly issued one stays visible
+  and can be revoked.
+- Fixed: generating artwork through Moodle's own AI provider failed on Moodle 5.x
+  with "Too few arguments to function core_ai\manager::__construct()". Moodle 5.0
+  injects the database into that class, so it has to be built through the dependency
+  container rather than directly.
+
+Administrators upgrading should look at the issued-certificates report for any
+certificate held by a member of staff and revoke it.
+
+
 ## [2.0.2] - 2026-11-11
 
 One blocker, found by building the demo course for the tutorial video on Moodle 5.2.

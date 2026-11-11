@@ -188,14 +188,27 @@ if ($action === 'revoke' && $issueid > 0) {
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('reporttitle', 'mod_certificatepro'));
 
-$participants = get_enrolled_users($context, 'mod/certificatepro:view', 0, 'u.*',
-    'u.lastname ASC, u.firstname ASC');
+// Who could receive one, which is not everyone who can open the activity.
+$participants = get_enrolled_users($context, 'mod/certificatepro:receive', 0, 'u.*',
+    'u.lastname ASC, u.firstname ASC', 0, 0, true);
 
 $issues = $DB->get_records('certificatepro_issues', ['certificateproid' => $instance->id],
     '', '*', 0, 0);
 $byuser = [];
 foreach ($issues as $issue) {
     $byuser[(int) $issue->userid] = $issue;
+}
+
+// Anyone already holding a certificate belongs on this page whether or not they
+// are a candidate now: a suspended learner, someone whose role has changed, and
+// certificates issued before this rule existed. Leaving them off would hide a
+// live certificate from the only screen that can revoke it.
+$missing = array_diff(array_keys($byuser), array_keys($participants));
+if ($missing) {
+    [$insql, $inparams] = $DB->get_in_or_equal($missing, SQL_PARAMS_NAMED, 'u');
+    $extra = $DB->get_records_select('user', "id $insql", $inparams,
+        'lastname ASC, firstname ASC');
+    $participants = $participants + $extra;
 }
 
 $canissue = has_capability('mod/certificatepro:issue', $context);

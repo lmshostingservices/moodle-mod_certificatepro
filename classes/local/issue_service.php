@@ -318,7 +318,111 @@ class issue_service {
             'other' => ['code' => $issue->code],
         ])->trigger();
 
+        try {
+            self::notify_issued($instance, $course, $context, $user, $issue);
+        } catch (\Throwable $e) {
+            // A mail failure must never undo or block an issued certificate.
+            debugging('Certificate Pro could not send issue notifications: ' . $e->getMessage(),
+                DEBUG_DEVELOPER);
+        }
+
         return $DB->get_record('certificatepro_issues', ['id' => $issue->id], '*', MUST_EXIST);
+    }
+
+    /**
+     * Send the "certificate issued" notifications the activity asks for.
+     *
+     * The activity has offered "Email the certificate to the learner" since the
+     * beginning, the message provider is declared so it appears in everybody's
+     * notification preferences, and the issue record carries an "emailed" flag.
+     * Nothing sent anything: the delivery was dropped in the merge, so the
+     * setting saved, backed up and restored, and did nothing at all.
+     *
+     * What is sent is a notification carrying the verification code and a link,
+     * not the PDF as an attachment.
+     *
+     * @param \stdClass $instance the activity instance
+     * @param \stdClass $course the course
+     * @param \context $context the module context
+     * @param \stdClass $user the recipient
+     * @param \stdClass $issue the new issue
+     * @return void
+     */
+    protected static function notify_issued(\stdClass $instance, \stdClass $course,
+            \context $context, \stdClass $user, \stdClass $issue): void {
+        global $DB;
+
+        if (empty($instance->emailstudents) && empty($instance->emailteachers)
+                && empty($instance->emailothers)) {
+            return;
+        }
+
+        $cmid = $context instanceof \context_module ? $context->instanceid : 0;
+        $url = new \moodle_url('/mod/certificatepro/view.php', ['id' => $cmid]);
+        $a = (object) [
+            'learner' => fullname($user),
+            'certificate' => format_string($instance->name, true, ['context' => $context]),
+            'course' => format_string($course->fullname, true, ['context' => $context]),
+            'code' => $issue->code,
+            'url' => $url->out(false),
+        ];
+        $subject = get_string('issuedemailsubject', 'mod_certificatepro', $a);
+        $sent = false;
+
+        $send = function (\stdClass $to, string $bodykey) use ($subject, $a, $course, $url, &$sent) {
+            $message = new \core\message\message();
+            $message->component = 'mod_certificatepro';
+            $message->name = 'issued';
+            $message->userfrom = \core_user::get_noreply_user();
+            $message->userto = $to;
+            $message->subject = $subject;
+            $message->fullmessage = get_string($bodykey, 'mod_certificatepro', $a);
+            $message->fullmessageformat = FORMAT_PLAIN;
+            $message->fullmessagehtml = text_to_html($message->fullmessage, false, false, true);
+            $message->smallmessage = $subject;
+            $message->notification = 1;
+            $message->contexturl = $url->out(false);
+            $message->contexturlname = $a->certificate;
+            $message->courseid = $course->id;
+            $sent = message_send($message) || $sent;
+        };
+
+        if (!empty($instance->emailstudents) && empty($user->deleted) && empty($user->suspended)) {
+            $send($user, 'issuedemailbody_learner');
+        }
+
+        if (!empty($instance->emailteachers)) {
+            $staff = get_enrolled_users($context,
+                'mod/certificatepro:receiveissuenotification', 0, 'u.*', null, 0, 0, true);
+            foreach ($staff as $teacher) {
+                if ((int) $teacher->id !== (int) $user->id) {
+                    $send($teacher, 'issuedemailbody_staff');
+                }
+            }
+        }
+
+        if (!empty($instance->emailothers)) {
+            foreach (explode(',', (string) $instance->emailothers) as $address) {
+                $address = trim($address);
+                if ($address === '' || !validate_email($address)) {
+                    continue;
+                }
+                $recipient = \core_user::get_noreply_user();
+                $recipient->email = $address;
+                $recipient->mailformat = 1;
+                $sent = email_to_user(
+                    $recipient,
+                    \core_user::get_noreply_user(),
+                    $subject,
+                    get_string('issuedemailbody_staff', 'mod_certificatepro', $a)
+                ) || $sent;
+            }
+        }
+
+        if ($sent) {
+            $DB->set_field('certificatepro_issues', 'emailed', 1, ['id' => $issue->id]);
+            $issue->emailed = 1;
+        }
     }
 
     /**

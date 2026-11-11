@@ -139,6 +139,7 @@ $string['certificatepro:managefonts'] = 'Manage certificate fonts';
 $string['certificatepro:managemedia'] = 'Manage the shared media library';
 $string['certificatepro:managetemplates'] = 'Manage site-wide certificate designs';
 $string['certificatepro:receiveissuenotification'] = 'Receive a notification when a certificate is issued';
+$string['certificatepro:receive'] = 'Receive a certificate';
 $string['certificatepro:revoke'] = 'Revoke issued certificates';
 $string['certificatepro:verify'] = 'Verify a certificate code';
 $string['certificatepro:verifyallcertificates'] = 'Verify any certificate on the site';
@@ -509,6 +510,19 @@ $string['groupdisplay_first'] = 'Show the first one';
 $string['historicaldocumentmissing'] = 'The original issued document is missing or damaged. Restore its original bytes from backup; it will not be regenerated from a changed template.';
 $string['issuecertificate'] = 'Issue certificate';
 $string['issuedcertificates'] = 'Issued certificates';
+$string['issuedemailsubject'] = 'Certificate issued: {$a->certificate}';
+$string['issuedemailbody_learner'] = 'Hello {$a->learner},
+
+Your certificate "{$a->certificate}" for {$a->course} has been issued.
+
+Verification code: {$a->code}
+
+You can view and download it here: {$a->url}';
+$string['issuedemailbody_staff'] = 'The certificate "{$a->certificate}" for {$a->course} has been issued to {$a->learner}.
+
+Verification code: {$a->code}
+
+{$a->url}';
 $string['issuedon'] = 'Issued on {$a}';
 $string['keepaspect'] = 'Keep the original proportions';
 $string['libraryartworkbrief'] = 'Guided artwork';
@@ -587,6 +601,16 @@ $string['pluginname'] = 'Certificate Pro';
 $string['privacy:metadata:artworkservice'] = 'When an administrator has configured an external artwork service, a written description of the wanted background is sent to it. No information about any learner is sent.';
 $string['privacy:metadata:artworkservice:prompt'] = 'The description of the wanted artwork, written by whoever is designing the certificate.';
 $string['privacy:metadata:core_files'] = 'Rendered certificates and the images used in a design are stored using the Moodle file system.';
+$string['privacy:metadata:issues:issuedby'] = 'The user who issued the certificate manually, if any.';
+$string['privacy:metadata:issues:revokedby'] = 'The user who revoked the certificate, if any.';
+$string['privacy:metadata:issues:revokedreason'] = 'The reason given for revoking the certificate.';
+$string['privacy:metadata:issues:pdfhash'] = 'A fingerprint of the stored certificate document.';
+$string['privacy:metadata:issues:emailed'] = 'Whether the issue notification was sent.';
+$string['privacy:metadata:authoring:createdby'] = 'The user who created or uploaded the item.';
+$string['privacy:metadata:backgrounds'] = 'Background artwork created for certificate designs.';
+$string['privacy:metadata:media'] = 'Images uploaded to the certificate media library.';
+$string['privacy:metadata:fonts'] = 'Fonts uploaded for certificate designs.';
+$string['privacy:metadata:core_message'] = 'Certificate Pro sends notifications when a certificate is issued or about to expire.';
 $string['privacy:metadata:issues'] = 'Records of certificates issued to a user.';
 $string['privacy:metadata:issues:certificateproid'] = 'The certificate activity the certificate came from.';
 $string['privacy:metadata:issues:code'] = 'The public verification code printed on the certificate.';

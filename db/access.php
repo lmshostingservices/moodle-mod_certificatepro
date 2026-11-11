@@ -48,6 +48,19 @@ $capabilities = [
         ],
     ],
 
+    // Who a certificate is for. This is deliberately not the same as being able
+    // to see the activity: trainers, assessors and managers can all open it, and
+    // none of them is a candidate for its certificate. Separating the two is
+    // what stops an automatic issue handing the trainer a certificate for the
+    // course she teaches.
+    'mod/certificatepro:receive' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => [
+            'student' => CAP_ALLOW,
+        ],
+    ],
+
     'mod/certificatepro:manage' => [
         'riskbitmask' => RISK_SPAM | RISK_XSS,
         'captype' => 'write',
