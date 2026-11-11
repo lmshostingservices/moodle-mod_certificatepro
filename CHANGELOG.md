@@ -1,5 +1,63 @@
 # Changelog
 
+## [2.0.0] - 2026-11-11
+
+A major version because of what a site upgrading from the 1.1.x line actually receives,
+not because of anything new in this release itself: the code is 1.4.5, renumbered.
+
+Two development lines had diverged in August. The published 1.1.x line carried the
+certification-cycle work and Moodle 5.2 and 5.3 compatibility; an unpublished line carried
+a large body of defect work and a cleanup that removed the stock background and ornament
+libraries. 1.4.0 merged them, and 1.4.1 through 1.4.5 fixed what live testing then found.
+This release is that whole body of work under one number.
+
+What a site coming from 1.1.6 gains:
+
+- Multi-page certificates: pages can be added and removed. Multi-page rendering worked
+  before, but nothing could create a second page.
+- Every certificate an activity has issued can be downloaded as a single zip, each file
+  the document exactly as it was issued rather than a fresh render of the current design.
+- Deleting an element in the designer is reversible, including the picture on an image
+  element.
+- The designer is operable by keyboard throughout, with visible focus indicators.
+- A recipient whose name is in Chinese, Japanese, Korean, Arabic or Hebrew gets a correct
+  certificate; the name is drawn in a face that covers it and Arabic is properly shaped.
+- The stock background and ornament libraries are gone, replaced by the guided artwork and
+  guided seal wizards, which draw in the design's own colours.
+- Fonts the bundled designs need can be installed from the fonts page, with every weight.
+- Public verification works without a login, so a scanned QR code reaches the result.
+- Issuing by hand, revoking and deleting shared media all confirm first, and a revocation
+  records a reason that is shown to anyone checking the code.
+
+Fixed along the way, all of them reproduced on a live site before being fixed:
+
+- Text was unreadable on dark backgrounds.
+- Backgrounds printed differently from the preview, because gradients were being flattened.
+- Saving a text element's settings set its size to zero and the text vanished from every
+  certificate issued afterwards.
+- The guided artwork wizard could fail outright when applying a background.
+- Scanning a certificate's QR code led to a login page on Moodle 5.0 and later.
+- Installing many font families at once left some of them half finished.
+
+Verified on Moodle 5.2.4+ with PostgreSQL 16: the plugin's own harness passes 257 checks;
+a learner's downloads, the shared media library, phone layouts, multi-page mixed-orientation
+output and the permission checks were each exercised directly. Moodle 5.3 is declared as
+supported on the strength of the 1.1.x line's testing, not retested here.
+
+## [1.4.5] - 2026-11-10
+
+- Installing all the fonts the designs need left some families half finished. Preparing
+  every face of thirty-odd families is a burst of roughly a hundred and forty writes into
+  Moodle's file pool, and on a busy or space-tight server a few come back with "cannot
+  create local file pool directories" — the same face then installs perfectly on its own
+  a minute later. The administrator was handed a set of partly installed families and
+  left to notice and repair them by hand. Each face is now offered to the file pool up to
+  three times with a short, growing pause. A face that installs first time is not delayed.
+- The torch centre mark read as a fleur-de-lis rather than a flame. The width of each
+  tongue ramped up too quickly below the tip, rounding it into a petal; the ramp is
+  steeper now and the outer two tongues lean away from the centre, so the group flickers
+  instead of sitting symmetrical like a flower.
+
 ## [1.4.4] - 2026-11-10
 
 - Blocker: the designer canvas and the printed certificate disagreed about every background that

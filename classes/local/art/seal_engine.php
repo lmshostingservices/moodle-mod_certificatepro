@@ -1024,11 +1024,16 @@ class seal_engine {
         $h = $markradius * 0.60;
 
         $c->fill($ink);
-        // Flame: three tongues, the centre one tallest, each drawn as a
-        // teardrop rather than a diamond — four straight sides read as a
-        // crown, which is the wrong heraldic charge entirely.
-        foreach ([[0.0, 1.00, 0.155], [-0.26, 0.62, 0.115], [0.26, 0.62, 0.115]] as $tongue) {
-            [$offset, $height, $width] = $tongue;
+        // Flame: three tongues, the centre one tallest. The width ramp is
+        // what decides whether this reads as fire or as foliage. A gentle
+        // ramp reaches nearly full width one step below the tip, rounding
+        // it into a petal, and the charge then looks like a fleur-de-lis
+        // on a plinth; a steep ramp keeps the tip sharp. The outer two
+        // lean away from the centre so the group flickers rather than
+        // sitting symmetrical like a flower.
+        foreach ([[0.0, 1.00, 0.125, 0.0], [-0.235, 0.60, 0.092, -0.05],
+                    [0.235, 0.60, 0.092, 0.05]] as $tongue) {
+            [$offset, $height, $width, $lean] = $tongue;
             $ox = $cx + $markradius * $offset;
             $tip = $cy - $h * (0.30 + $height * 1.05);
             $root = $cy - $h * 0.18;
@@ -1038,15 +1043,15 @@ class seal_engine {
             for ($k = 0; $k <= 12; $k++) {
                 $t = $k / 12.0;
                 $y = $tip + ($root - $tip) * $t;
-                $bulge = $markradius * $width * sin(pow($t, 0.62) * M_PI * 0.92);
-                $points[] = $ox + $bulge + $markradius * 0.05 * (1.0 - $t) * $t;
+                $bulge = $markradius * $width * sin(pow($t, 1.45) * M_PI * 0.96);
+                $points[] = $ox + $bulge + $markradius * $lean * (1.0 - $t);
                 $points[] = $y;
             }
             for ($k = 12; $k >= 0; $k--) {
                 $t = $k / 12.0;
                 $y = $tip + ($root - $tip) * $t;
-                $bulge = $markradius * $width * sin(pow($t, 0.62) * M_PI * 0.92);
-                $points[] = $ox - $bulge + $markradius * 0.05 * (1.0 - $t) * $t;
+                $bulge = $markradius * $width * sin(pow($t, 1.45) * M_PI * 0.96);
+                $points[] = $ox - $bulge + $markradius * $lean * (1.0 - $t);
                 $points[] = $y;
             }
             $c->poly_mm($points, 'F');

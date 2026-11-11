@@ -85,6 +85,12 @@ class google_fonts {
     /** @var string The service answered, and does not have what was asked for. */
     public const FAILURE_NOTFOUND = 'notfound';
 
+    /** @var int How many times to offer a face to the file pool before giving up. */
+    protected const STORE_ATTEMPTS = 3;
+
+    /** @var int Microseconds to wait after a failed store, multiplied by the attempt. */
+    protected const STORE_RETRY_PAUSE = 400000;
+
     /** @var string Why the last HTTP request failed; one of the FAILURE_ constants. */
     protected static $failure = self::FAILURE_NONE;
 
@@ -366,11 +372,28 @@ class google_fonts {
                 continue;
             }
 
-            try {
-                $report['installed'][$style] = font_manager::install_from_path(
-                    $path, $family, $style);
-            } catch (\Throwable $e) {
-                $report['failed'][$style] = $e->getMessage();
+            // Moodle's file pool is the fragile step here, not the download.
+            // Installing every face of thirty-odd families is a burst of a
+            // hundred and forty writes, and on a busy or space-tight server a
+            // few of them come back with "cannot create local file pool
+            // directories" — the same face then installs perfectly on its own a
+            // minute later. Left unretried, the administrator is handed a set of
+            // half-installed families and expected to notice and repair them by
+            // hand. Two short pauses cost nothing and clear it.
+            $attempts = 0;
+            while (true) {
+                $attempts++;
+                try {
+                    $report['installed'][$style] = font_manager::install_from_path(
+                        $path, $family, $style);
+                    break;
+                } catch (\Throwable $e) {
+                    if ($attempts >= self::STORE_ATTEMPTS) {
+                        $report['failed'][$style] = $e->getMessage();
+                        break;
+                    }
+                    usleep(self::STORE_RETRY_PAUSE * $attempts);
+                }
             }
         }
 
