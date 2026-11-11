@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.2] - 2026-11-11
+
+One blocker, found by building the demo course for the tutorial video on Moodle 5.2.
+
+- Fixed: **the activity could not be added or edited on Moodle 5.x at all.** Opening
+  "Add an activity — Certificate Pro", or the settings of a certificate that already
+  existed, produced "Coding error detected... 60 is not one of the units allowed for
+  this MoodleQuickForm_duration element" and no form. The validity-period field offers
+  its units as days and weeks but never said which to use by default, and Moodle's
+  duration field defaults to minutes; since Moodle 5.0 it refuses to build when that
+  default is not among the units offered. Moodle 4.5 did not check, which is why the
+  fault never appeared on a 4.5 site and why every earlier test passed. The field now
+  names days as its default.
+
+  Sites on Moodle 4.5 were never affected. Sites on Moodle 5.0 or later could not
+  create a certificate activity at all.
+
+
 ## [2.0.1] - 2026-11-11
 
 Two defects found by testing 2.0.0 on a live site.

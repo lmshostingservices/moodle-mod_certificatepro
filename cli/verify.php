@@ -623,6 +623,45 @@ check(!$DB->record_exists('certificatepro_issues',
     ['certificateproid' => $cert->id, 'userid' => $second->id]),
     'privacy deletion removes the learner issue');
 
+// ------------------------------------------------ the activity settings form.
+
+section('The activity settings form');
+
+// Building this form is the whole of adding the activity to a course, so if it
+// throws there is no way to create a certificate at all. It went unnoticed
+// because the fault only appears on Moodle 5.x: a duration element with its
+// units restricted must also name its default unit, and Moodle 5.0 started
+// refusing to build one that does not. Every live test had been on 4.5.
+require_once($CFG->dirroot . '/course/moodleform_mod.php');
+require_once($CFG->dirroot . '/mod/certificatepro/mod_form.php');
+
+// The form reads the global $COURSE rather than the course handed to it, which
+// in a web request is this course and on the command line is the front page.
+global $COURSE;
+$previouscourse = $COURSE;
+$COURSE = $course;
+rebuild_course_cache($course->id, true);
+
+$formerror = '';
+$formfields = 0;
+try {
+    $formcurrent = clone $cert;
+    $formcurrent->coursemodule = $cm->id;
+    $formcurrent->instance = $cert->id;
+    $formcurrent->course = $course->id;
+
+    $settingsform = new mod_certificatepro_mod_form($formcurrent, 1, $cm, $course);
+    $formhtml = $settingsform->render();
+    $formfields = substr_count($formhtml, '<input') + substr_count($formhtml, '<select');
+} catch (\Throwable $e) {
+    $formerror = get_class($e) . ': ' . $e->getMessage();
+}
+
+$COURSE = $previouscourse;
+
+check($formerror === '', 'the activity settings form builds without throwing', $formerror);
+check($formfields > 20, 'the settings form renders its fields', $formfields . ' found');
+
 // ------------------------------------------- serials across a course restore.
 
 section('Serial numbers across a course restore');

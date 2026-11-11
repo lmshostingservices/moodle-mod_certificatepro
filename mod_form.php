@@ -67,7 +67,8 @@ class mod_certificatepro_mod_form extends moodleform_mod {
             get_string('availabilityheader', 'mod_certificatepro'));
 
         $mform->addElement('duration', 'requiredtime',
-            get_string('requiredtime', 'mod_certificatepro'), ['units' => [MINSECS, HOURSECS]]);
+            get_string('requiredtime', 'mod_certificatepro'),
+            ['units' => [MINSECS, HOURSECS], 'defaultunit' => MINSECS]);
         $mform->setType('requiredtime', PARAM_INT);
         $mform->addHelpButton('requiredtime', 'requiredtime', 'mod_certificatepro');
 
@@ -89,9 +90,14 @@ class mod_certificatepro_mod_form extends moodleform_mod {
         $mform->addElement('header', 'validityheader',
             get_string('validityheader', 'mod_certificatepro'));
 
+        // The default unit has to be named whenever the units are restricted.
+        // Moodle's duration element defaults to minutes, and since Moodle 5.0 it
+        // refuses to build when that default is not among the units on offer —
+        // which took this whole form, and with it adding the activity at all,
+        // down on every Moodle 5.x site while 4.5 carried on working.
         $mform->addElement('duration', 'validityperiod',
             get_string('validityperiod', 'mod_certificatepro'),
-            ['units' => [DAYSECS, WEEKSECS], 'optional' => true]);
+            ['units' => [DAYSECS, WEEKSECS], 'defaultunit' => DAYSECS, 'optional' => true]);
         $mform->setType('validityperiod', PARAM_INT);
         $mform->addHelpButton('validityperiod', 'validityperiod', 'mod_certificatepro');
 
