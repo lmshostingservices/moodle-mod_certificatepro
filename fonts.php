@@ -234,9 +234,10 @@ if ($partialcount > 0) {
  * A cell describing which faces of a family are installed.
  *
  * @param array $faces the map from {@see google_fonts::installed_faces()}
+ * @param array $unavailable style flags the publisher does not offer
  * @return string HTML
  */
-$facecell = function (array $faces): string {
+$facecell = function (array $faces, array $unavailable = []): string {
     $present = [];
     foreach ($faces as $style => $installed) {
         if ($installed) {
@@ -247,7 +248,16 @@ $facecell = function (array $faces): string {
         return html_writer::span(get_string('gfontsfacesnone', 'mod_certificatepro'),
             'badge bg-warning text-dark');
     }
-    return s(implode(', ', $present));
+    $list = s(implode(', ', $present));
+
+    // Two faces beside a neighbour's four reads as a half-finished install
+    // unless the row says the other two were never published.
+    if ($unavailable && (count($present) + count($unavailable)) >= count($faces)) {
+        $list .= ' ' . html_writer::span(
+            get_string('gfontsfacesallpublished', 'mod_certificatepro'), 'text-muted');
+    }
+
+    return $list;
 };
 
 /**
@@ -321,7 +331,7 @@ foreach ($status as $row) {
     $required->data[] = [
         s($row['family']),
         $statuscell((bool) $row['installed'], (bool) $row['complete']),
-        $facecell($row['faces']),
+        $facecell($row['faces'], $row['unavailable'] ?? []),
         $installbutton($row['family'], $row['installed']),
     ];
 }

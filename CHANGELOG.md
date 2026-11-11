@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.0.1] - 2026-11-11
+
+Two defects found by testing 2.0.0 on a live site.
+
+- Fixed: a course restored or copied with its issued certificates would start numbering
+  its serials again from one, so the next certificate issued carried a serial number
+  already printed on one of the certificates the same restore had just brought across.
+  Nothing in the database prevented it and nothing reported it: only the verification
+  code is unique, so the duplicate was issued in silence. A restored activity now
+  continues from the highest serial it actually holds. Restoring a course without its
+  user data still starts at one, which is correct, and restoring into a course that
+  already has certificates continues past those too.
+- Fixed: the fonts page reported six of the bundled families as incomplete and offered
+  to install them, on a site where every face that exists was already installed. Four of
+  them — Cairo, Cinzel, Space Grotesk and Tajawal — publish no italic at all, and
+  Archivo Black and Great Vibes publish neither bold nor italic, so the page was asking
+  for work that no amount of installing could ever finish: the button reappeared after
+  every run and the count never fell. A family is now complete when it has every face
+  its publisher offers. What an install discovers is remembered, so a family that gains
+  a face upstream corrects itself, and a family that is genuinely short of a face Google
+  does publish is still reported.
+
 ## [2.0.0] - 2026-11-11
 
 A major version because of what a site upgrading from the 1.1.x line actually receives,

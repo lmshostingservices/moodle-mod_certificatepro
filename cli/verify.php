@@ -623,6 +623,112 @@ check(!$DB->record_exists('certificatepro_issues',
     ['certificateproid' => $cert->id, 'userid' => $second->id]),
     'privacy deletion removes the learner issue');
 
+// ------------------------------------------- serials across a course restore.
+
+section('Serial numbers across a course restore');
+
+// A restored activity arrives with its certificates but without the counter
+// that produced their numbers, because the counter is not in the backup. If it
+// is not put back, the next certificate issued repeats a serial that is already
+// printed on one of them.
+$serialinstance = $DB->get_record('certificatepro', ['id' => $cert->id], '*', MUST_EXIST);
+$serialinstance->serialprefix = 'VRF-';
+$serialinstance->serialpadding = 6;
+$DB->update_record('certificatepro', $serialinstance);
+
+$DB->delete_records('certificatepro_serials', ['scope' => 'instance_' . $cert->id]);
+$DB->delete_records('certificatepro_issues', ['certificateproid' => $cert->id]);
+
+// Three certificates as a restore would leave them: rows present, counter gone.
+foreach ([1, 2, 3] as $n) {
+    $DB->insert_record('certificatepro_issues', (object) [
+        'certificateproid' => $cert->id,
+        'userid' => $learner->id,
+        'code' => \mod_certificatepro\local\issue_service::generate_code(),
+        'serial' => 'VRF-' . str_pad((string) $n, 6, '0', STR_PAD_LEFT),
+        'serialnumber' => $n,
+        'templaterevision' => 0,
+        'emailed' => 0,
+        'expires' => 0,
+        'expirynotified' => 0,
+        'revoked' => 0,
+        'revokedby' => 0,
+        'timerevoked' => 0,
+        'issuedby' => 0,
+        'timecreated' => time(),
+    ]);
+}
+
+check(!$DB->record_exists('certificatepro_serials', ['scope' => 'instance_' . $cert->id]),
+    'a restored activity starts with no serial counter');
+
+$aligned = \mod_certificatepro\local\issue_service::realign_serial_counter((int) $cert->id);
+check($aligned === 3, 'the counter is realigned to the highest restored serial',
+    'got ' . $aligned);
+
+[$nextserial, $nextnumber] = \mod_certificatepro\local\issue_service::next_serial(
+    'VRF-', 6, 'instance_' . $cert->id);
+check($nextnumber === 4, 'the next serial continues past the restored ones',
+    'got ' . $nextnumber);
+check(!$DB->record_exists('certificatepro_issues',
+    ['certificateproid' => $cert->id, 'serial' => $nextserial]),
+    'the next serial is not one already issued', $nextserial);
+
+// Realigning twice must not move a counter that is already ahead.
+$DB->set_field('certificatepro_serials', 'counter', 99, ['scope' => 'instance_' . $cert->id]);
+\mod_certificatepro\local\issue_service::realign_serial_counter((int) $cert->id);
+check((int) $DB->get_field('certificatepro_serials', 'counter',
+    ['scope' => 'instance_' . $cert->id]) === 99,
+    'realigning never moves a counter backwards');
+
+// An activity restored without user data has nothing to derive from.
+$DB->delete_records('certificatepro_issues', ['certificateproid' => $cert->id]);
+$DB->delete_records('certificatepro_serials', ['scope' => 'instance_' . $cert->id]);
+check(\mod_certificatepro\local\issue_service::realign_serial_counter((int) $cert->id) === 0,
+    'an activity restored without certificates keeps no counter');
+check(!$DB->record_exists('certificatepro_serials', ['scope' => 'instance_' . $cert->id]),
+    'no counter row is invented for an activity with no certificates');
+
+// ------------------------------------------- faces a publisher does not offer.
+
+section('Fonts: faces the publisher does not offer');
+
+// A family is not deficient for lacking a face that does not exist, and saying
+// it is leaves the fonts page asking for work that can never be completed.
+$previousunavailable = get_config('mod_certificatepro', 'gfontsunavailablefaces');
+set_config('gfontsunavailablefaces', '', 'mod_certificatepro');
+
+$cairo = \mod_certificatepro\local\font\google_fonts::unavailable_faces('Cairo');
+check(in_array('I', $cairo, true) && in_array('BI', $cairo, true),
+    'Cairo is known to publish no italic', implode(',', $cairo));
+check(!in_array('', $cairo, true) && !in_array('B', $cairo, true),
+    'Cairo is not thought to be missing its regular or bold');
+check(\mod_certificatepro\local\font\google_fonts::unavailable_faces('Lato') === [],
+    'a family that publishes all four faces reports none unavailable');
+check(\mod_certificatepro\local\font\google_fonts::unavailable_faces('') === [],
+    'an empty family name is handled');
+
+foreach (\mod_certificatepro\local\font\google_fonts::preset_status() as $statusrow) {
+    if (!array_key_exists('unavailable', $statusrow)) {
+        check(false, 'every status row says which faces are unavailable',
+            $statusrow['family']);
+        break;
+    }
+}
+check(true, 'every status row says which faces are unavailable');
+
+// What an install found outranks the bundled table, in both directions.
+set_config('gfontsunavailablefaces', json_encode(['cairo' => []]), 'mod_certificatepro');
+check(\mod_certificatepro\local\font\google_fonts::unavailable_faces('Cairo') === [],
+    'a family that gains a face upstream repairs its own record');
+
+set_config('gfontsunavailablefaces', json_encode(['lato' => ['BI']]), 'mod_certificatepro');
+check(\mod_certificatepro\local\font\google_fonts::unavailable_faces('Lato') === ['BI'],
+    'a family outside the bundled table learns from its own install');
+
+set_config('gfontsunavailablefaces', $previousunavailable === false ? '' : $previousunavailable,
+    'mod_certificatepro');
+
 // ------------------------------------------------------------- teardown.
 
 section('Deleting the activity');

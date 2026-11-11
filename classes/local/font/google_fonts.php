@@ -76,6 +76,27 @@ class google_fonts {
         'BI' => [700, true],
     ];
 
+    /** @var string Plugin config holding, as JSON, faces found not to exist. */
+    protected const UNAVAILABLE_CONFIG = 'gfontsunavailablefaces';
+
+    /**
+     * @var array[] Faces the bundled designs' own families do not publish,
+     *              keyed by family key. Checked against the Google Fonts API:
+     *              a request for a weight or an italic axis a family does not
+     *              have is refused, and these are the refusals. Only families
+     *              the designs actually name are listed, because this exists to
+     *              stop the fonts page reporting permanent work on a site that
+     *              installed everything before installs kept the answer.
+     */
+    protected const UNAVAILABLE_SEED = [
+        'archivoblack' => ['B', 'I', 'BI'],
+        'greatvibes' => ['B', 'I', 'BI'],
+        'cairo' => ['I', 'BI'],
+        'cinzel' => ['I', 'BI'],
+        'spacegrotesk' => ['I', 'BI'],
+        'tajawal' => ['I', 'BI'],
+    ];
+
     /** @var string The last HTTP request succeeded. */
     public const FAILURE_NONE = '';
 
@@ -401,6 +422,11 @@ class google_fonts {
             self::purge_face_cache();
         }
 
+        // What this run learned about which faces exist is the only reliable
+        // answer there is, and it is worth more than the catalogue's guess.
+        self::record_unavailable($family, $report['skipped'],
+            array_merge(array_keys($report['installed']), $report['present']));
+
         return $report;
     }
 
@@ -482,14 +508,86 @@ class google_fonts {
     }
 
     /**
-     * Whether a family has all four faces installed.
+     * Faces a family's publisher does not offer, which can never be installed.
+     *
+     * A family is not deficient for lacking a face that does not exist. Most
+     * display and handwriting families publish no italic and several publish no
+     * bold, and counting those as missing leaves the fonts page permanently
+     * reporting work that no amount of installing can finish: the batch button
+     * downloads the same families again on every run and the count never falls.
+     *
+     * Two sources, in that order. First what an install actually found, because
+     * {@see install()} already separates a face the publisher does not offer
+     * from one that failed, and {@see record_unavailable()} now keeps that
+     * answer instead of discarding it. Second the table above, so that a site
+     * installed before the answer was kept still reads correctly without having
+     * to reinstall anything.
+     *
+     * @param string $family the family name or key
+     * @return string[] TCPDF style flags that do not exist upstream
+     */
+    public static function unavailable_faces(string $family): array {
+        $key = font_manager::family_key($family);
+        if ($key === '') {
+            return [];
+        }
+
+        $recorded = json_decode(
+            (string) get_config('mod_certificatepro', self::UNAVAILABLE_CONFIG), true);
+        if (is_array($recorded) && is_array($recorded[$key] ?? null)) {
+            return array_values(array_intersect(array_keys(self::FACES), $recorded[$key]));
+        }
+
+        return self::UNAVAILABLE_SEED[$key] ?? [];
+    }
+
+    /**
+     * Keep what an install discovered about which faces exist upstream.
+     *
+     * A face that has just installed plainly does exist whatever an earlier run
+     * concluded, so a family that gains an italic repairs its own record.
+     *
+     * @param string $family the family name
+     * @param string[] $skipped style flags the publisher did not offer
+     * @param string[] $exists style flags now known to be installed or present
+     * @return void
+     */
+    protected static function record_unavailable(string $family, array $skipped,
+            array $exists): void {
+        $key = font_manager::family_key($family);
+        if ($key === '') {
+            return;
+        }
+
+        $all = json_decode(
+            (string) get_config('mod_certificatepro', self::UNAVAILABLE_CONFIG), true);
+        if (!is_array($all)) {
+            $all = [];
+        }
+
+        $known = $all[$key] ?? (self::UNAVAILABLE_SEED[$key] ?? []);
+        $known = array_diff(array_merge($known, $skipped), $exists);
+        $known = array_values(array_unique(
+            array_intersect(array_keys(self::FACES), $known)));
+
+        if (($all[$key] ?? null) === $known) {
+            return;
+        }
+
+        $all[$key] = $known;
+        set_config(self::UNAVAILABLE_CONFIG, json_encode($all), 'mod_certificatepro');
+    }
+
+    /**
+     * Whether a family has every face its publisher offers installed.
      *
      * @param string $family the family name or key
      * @return bool
      */
     public static function is_complete(string $family): bool {
-        foreach (self::installed_faces($family) as $present) {
-            if (!$present) {
+        $unavailable = self::unavailable_faces($family);
+        foreach (self::installed_faces($family) as $style => $present) {
+            if (!$present && !in_array($style, $unavailable, true)) {
                 return false;
             }
         }
@@ -510,11 +608,21 @@ class google_fonts {
 
         foreach (style_library::required_families() as $family) {
             $faces = self::installed_faces($family);
+            $unavailable = self::unavailable_faces($family);
+
+            $missing = false;
+            foreach ($faces as $style => $present) {
+                if (!$present && !in_array($style, $unavailable, true)) {
+                    $missing = true;
+                }
+            }
+
             $rows[] = [
                 'family' => $family,
                 'faces' => $faces,
+                'unavailable' => $unavailable,
                 'installed' => $faces[''],
-                'complete' => !in_array(false, $faces, true),
+                'complete' => !$missing,
             ];
         }
 

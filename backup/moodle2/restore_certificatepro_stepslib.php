@@ -206,5 +206,12 @@ class restore_certificatepro_activity_structure_step extends restore_activity_st
 
         $this->add_related_files('mod_certificatepro',
             \mod_certificatepro\local\issue_service::FILEAREA, 'certificatepro_issue');
+
+        // The serial counter is not in the backup, because it is a position in
+        // the activity rather than a fact about it. It still has to be put back,
+        // or the next certificate this restored activity issues repeats a serial
+        // that the same restore has just brought across.
+        \mod_certificatepro\local\issue_service::realign_serial_counter(
+            (int) $this->task->get_activityid());
     }
 }

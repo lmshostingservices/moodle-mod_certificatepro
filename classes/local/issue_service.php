@@ -678,6 +678,56 @@ class issue_service {
     }
 
     /**
+     * Move an activity's serial counter past every serial it has already used.
+     *
+     * The counter is a position rather than a fact, so it is not carried in a
+     * course backup; it is derived from the certificates instead. It does have
+     * to be derived, though. A restored activity is a new activity with no
+     * counter of its own, so without this the next certificate it issues is
+     * numbered one — a serial already printed on a certificate the same restore
+     * brought across, and already in a learner's hands. Only the verification
+     * code is unique in the database, so the duplicate would be issued silently.
+     *
+     * Taking the highest number actually present is also right when a restore
+     * merges into an activity that has certificates of its own, and it leaves an
+     * activity restored without user data alone at zero. It only ever moves the
+     * counter forwards.
+     *
+     * @param int $instanceid the activity instance id
+     * @return int the counter the activity ended up with, or 0 for none
+     */
+    public static function realign_serial_counter(int $instanceid): int {
+        global $DB;
+
+        if ($instanceid <= 0) {
+            return 0;
+        }
+
+        $highest = (int) $DB->get_field_sql(
+            'SELECT MAX(serialnumber) FROM {certificatepro_issues} WHERE certificateproid = ?',
+            [$instanceid]);
+        if ($highest <= 0) {
+            return 0;
+        }
+
+        $scope = 'instance_' . $instanceid;
+        $record = $DB->get_record('certificatepro_serials', ['scope' => $scope]);
+
+        if (!$record) {
+            $DB->insert_record('certificatepro_serials',
+                (object) ['scope' => $scope, 'counter' => $highest]);
+            return $highest;
+        }
+
+        if ((int) $record->counter < $highest) {
+            $DB->set_field('certificatepro_serials', 'counter', $highest, ['id' => $record->id]);
+            return $highest;
+        }
+
+        return (int) $record->counter;
+    }
+
+    /**
      * The file name a downloaded certificate is given.
      *
      * @param \stdClass $instance the activity instance
