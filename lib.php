@@ -227,9 +227,20 @@ function certificatepro_pluginfile($course, $cm, $context, string $filearea, arr
 
     // A rendered certificate belongs to one person.
     if ($filearea === \mod_certificatepro\local\issue_service::FILEAREA) {
+        // A rendered certificate belongs to one person in one activity. The
+        // file is fetched from the context in the address, so a mismatched id
+        // finds nothing anyway; saying so here means the request is refused on
+        // the grounds that are actually meant, rather than by accident.
+        if ($context->contextlevel !== CONTEXT_MODULE || empty($cm->instance)) {
+            return false;
+        }
+
         $issueid = (int) ($args[0] ?? 0);
         $issue = $DB->get_record('certificatepro_issues', ['id' => $issueid]);
         if (!$issue) {
+            return false;
+        }
+        if ((int) $issue->certificateproid !== (int) $cm->instance) {
             return false;
         }
         // Withdrawing an award has to withdraw the document as well. The

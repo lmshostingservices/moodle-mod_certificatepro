@@ -63,7 +63,11 @@ certificatepro_view($instance, $course, $cm, $context);
 $unmet = issue_service::unmet_criteria($instance, $USER, $course, $cm);
 $issue = issue_service::get_issue((int) $instance->id, (int) $USER->id);
 
-if ($issue === null && empty($unmet) && !empty($instance->autoissue)) {
+// Opening the page is not the same as being its recipient. Without this, a
+// trainer who looks at her own certificate activity is handed a certificate
+// saying she completed the course she teaches.
+if ($issue === null && empty($unmet) && !empty($instance->autoissue)
+        && has_capability('mod/certificatepro:receive', $context, null, false)) {
     $issue = issue_service::issue($instance, $course, $context, $USER);
 }
 

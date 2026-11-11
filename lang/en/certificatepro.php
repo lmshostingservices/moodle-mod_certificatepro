@@ -597,6 +597,7 @@ $string['pagenumber'] = 'Page {$a}';
 $string['pdfsubject'] = 'Certificate of achievement';
 $string['picturecircular'] = 'Crop to a circle';
 $string['pluginadministration'] = 'Certificate Pro administration';
+$string['notenrolledreceive'] = 'This user is not enrolled in the course as someone who can receive this certificate.';
 $string['pluginname'] = 'Certificate Pro';
 $string['privacy:metadata:artworkservice'] = 'When an administrator has configured an external artwork service, a written description of the wanted background is sent to it. No information about any learner is sent.';
 $string['privacy:metadata:artworkservice:prompt'] = 'The description of the wanted artwork, written by whoever is designing the certificate.';

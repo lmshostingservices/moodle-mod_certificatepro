@@ -103,6 +103,14 @@ class issue_certificates extends \core\task\scheduled_task {
                 continue;
             }
 
+            // A hidden activity is one the trainer has not opened yet, and one
+            // being deleted is on its way out. Neither should be handing out
+            // certificates in the background.
+            $cminfo = get_fast_modinfo($course)->get_cm($cm->id);
+            if (!$cminfo->visible || !empty($cminfo->deletioninprogress)) {
+                continue;
+            }
+
             $context = \context_module::instance($cm->id);
             $candidates = self::candidates($course, $cm, $context);
 

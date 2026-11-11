@@ -169,8 +169,8 @@ class grade_helper {
                     return $ctx->is_preview() ? self::sample($format, $decimals, $wording) : '';
                 }
                 return $final >= $passmark
-                    ? ($wording['pass'] ?? get_string('gradepassdefault', 'mod_certificatepro'))
-                    : ($wording['fail'] ?? get_string('gradefaildefault', 'mod_certificatepro'));
+                    ? self::word($wording, 'pass')
+                    : self::word($wording, 'fail');
 
             default:
                 $range = $max - $min;
@@ -198,9 +198,32 @@ class grade_helper {
             'points' => format_float(87, $decimals),
             'pointsmax' => format_float(87, $decimals) . ' / ' . format_float(100, $decimals),
             'letter' => 'A',
-            'passfail' => $wording['pass'] ?? get_string('gradepassdefault', 'mod_certificatepro'),
+            'passfail' => self::word($wording, 'pass'),
             default => format_float(87, $decimals) . '%',
         };
+    }
+
+    /**
+     * The word for passing or failing, falling back when none was given.
+     *
+     * The element always hands these over as strings, so an unset field arrives
+     * as an empty one rather than as null. A null check therefore never fired,
+     * and a design left at its defaults printed nothing at all where the result
+     * should have said "Passed".
+     *
+     * @param array $wording the pass and fail wording from the element
+     * @param string $which pass or fail
+     * @return string
+     */
+    protected static function word(array $wording, string $which): string {
+        $given = trim((string) ($wording[$which] ?? ''));
+        if ($given !== '') {
+            return $given;
+        }
+
+        return $which === 'pass'
+            ? get_string('gradepassdefault', 'mod_certificatepro')
+            : get_string('gradefaildefault', 'mod_certificatepro');
     }
 }
 

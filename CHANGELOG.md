@@ -1,5 +1,66 @@
 # Changelog
 
+## [2.0.8] - 2026-11-11
+
+Closes a known gap in bulk download. Includes everything in 2.0.5 to 2.0.7.
+
+- Fixed: **"Download all as a zip" could pack a withdrawn certificate as a current one.**
+  It decided what to include from the revoked column alone, but a certification-cycle
+  award can be withdrawn in the recertification ledger without that column changing.
+  Downloading such a certificate one at a time was already refused, so the zip
+  contradicted the rest of the plugin. It now asks for the certificate's status, the
+  same question every other part asks, and leaves out awards that are withdrawn,
+  unfinished, or whose ledger cannot be read.
+- The cycle-only activity now explains itself when Course Recertification is not
+  installed, instead of showing "Error occurred" with the explanation discarded.
+
+
+## [2.0.7] - 2026-11-11
+
+Two settings that quietly did the wrong thing. Includes everything in 2.0.5 and 2.0.6.
+
+- Fixed: **"Minimum time in the course" was sixty times too long.** The setting is entered
+  as minutes or hours and stored as seconds, and the time a learner has spent is counted
+  in seconds, but the stored number was multiplied by a minute again before the two were
+  compared. A trainer asking for ten minutes was asking for ten hours, the learner was
+  told to "spend at least 10 hours in this course", and on any sensible setting the
+  certificate never issued at all.
+- Fixed: **a pass or fail result printed nothing unless the wording was typed in by
+  hand.** The element always supplies its pass and fail wording as text, so a field left
+  alone arrives empty rather than unset, and the fall-back to "Passed" and "Not passed"
+  could never fire. A design left at its defaults printed a blank space where the result
+  belongs. The default wording is used again, and wording that is only spaces falls back
+  to it as well.
+
+
+## [2.0.6] - 2026-11-11
+
+Four more checks that the 1.4.0 merge dropped. Each one guards an action the
+interface already appears to guard, so none of this was visible from the screen.
+Includes everything in 2.0.5.
+
+- Fixed: **a hidden activity still issued certificates.** A certificate set up for next
+  term and hidden from learners went on posting certificates out on its schedule, as did
+  one in the middle of being deleted.
+- Fixed: **opening the activity page issued a certificate to whoever opened it.** The
+  scheduled task was corrected in 2.0.3; this is the same fault on the other path, so a
+  trainer looking at her own certificate activity was handed one for the course she
+  teaches.
+- Fixed: **"Allow revocation" was only hiding a button.** With the setting off the
+  Revoke control disappeared, but the address behind it still worked, so a certificate
+  an activity had declared permanent could still be withdrawn.
+- Fixed: **issuing by hand accepted any user id.** It did not check that the person was
+  in the course or could receive a certificate at all, and did not exclude deleted users,
+  so a certificate could be issued to somebody who had never been enrolled.
+
+### Hardening
+
+- An issued certificate's file is now refused unless the address names a module context
+  and the certificate belongs to that activity. The file was already fetched from the
+  context in the address, so a mismatch found nothing; the request is now refused on the
+  grounds that are meant rather than by accident.
+
+
 ## [2.0.5] - 2026-11-11
 
 A security fix, and two more things the 1.4.0 merge dropped. Upgrading is strongly

@@ -894,6 +894,137 @@ $restored = \mod_certificatepro\task\issue_certificates::candidates($course, $cm
 check(array_key_exists($learner->id, $restored),
     'and is a candidate again once the restriction is lifted');
 
+// ------------------------------------------------------ pass and fail wording.
+
+section('The wording on a pass or fail result');
+
+// The element hands this wording over as strings, so a field nobody filled in
+// arrives empty rather than null. A design left at its defaults must still say
+// "Passed" rather than printing nothing where the result belongs.
+$wordmethod = new ReflectionMethod(\mod_certificatepro\local\grade_helper::class, 'word');
+$wordmethod->setAccessible(true);
+
+check($wordmethod->invoke(null, ['pass' => '', 'fail' => ''], 'pass')
+    === get_string('gradepassdefault', 'mod_certificatepro'),
+    'an empty pass wording falls back to the default word');
+check($wordmethod->invoke(null, ['pass' => '  ', 'fail' => '  '], 'fail')
+    === get_string('gradefaildefault', 'mod_certificatepro'),
+    'wording that is only spaces falls back too');
+check($wordmethod->invoke(null, [], 'pass')
+    === get_string('gradepassdefault', 'mod_certificatepro'),
+    'missing wording falls back as well');
+check($wordmethod->invoke(null, ['pass' => 'Competent'], 'pass') === 'Competent',
+    'wording that was actually set is used');
+check($wordmethod->invoke(null, ['pass' => '  Competent  '], 'pass') === 'Competent',
+    'and is trimmed');
+
+// ------------------------------------------------------- the time criterion.
+
+section('The minimum time criterion');
+
+// Moodle's duration element stores seconds and the time spent is counted in
+// seconds. Treating the stored number as minutes made every requirement sixty
+// times too long, and said so on screen, so the setting never let anyone past.
+$timed = clone $cert;
+$timed->requiredtime = 10 * MINSECS;
+$timed->requiregrade = null;
+$timed->requirecompletion = 0;
+
+$fresh = (object) [
+    'username' => 'cptimed' . time(),
+    'password' => 'Testpass!1',
+    'firstname' => 'Tim',
+    'lastname' => 'Early',
+    'email' => 'cptimed' . time() . '@example.com',
+    'confirmed' => 1,
+    'mnethostid' => $CFG->mnet_localhost_id,
+];
+$fresh->id = user_create_user($fresh, false, false);
+$fresh = $DB->get_record('user', ['id' => $fresh->id]);
+$manual->enrol_user($instance, $fresh->id, $studentrole->id);
+
+$timereasons = \mod_certificatepro\local\issue_service::unmet_criteria(
+    $timed, $fresh, $course, $cm);
+$timetext = implode(' | ', $timereasons);
+
+check(count($timereasons) >= 1, 'a ten minute requirement is unmet by a new learner');
+check(strpos($timetext, format_time(10 * MINSECS)) !== false,
+    'the learner is told ten minutes, which is what was asked for',
+    $timetext . '  (expected ' . format_time(10 * MINSECS) . ')');
+check(strpos($timetext, format_time(10 * MINSECS * MINSECS)) === false,
+    'and is not told ten hours', $timetext);
+
+// ------------------------------------------------ guards on the issue paths.
+
+section('Guards on issuing and revoking');
+
+// A hidden activity is one the trainer has not opened to learners yet. It must
+// not be posting certificates out in the background.
+$DB->set_field('course_modules', 'visible', 0, ['id' => $cm->id]);
+rebuild_course_cache($course->id, true);
+$hiddeninfo = get_fast_modinfo($course)->get_cm($cm->id);
+check(!$hiddeninfo->visible, 'the activity can be hidden');
+
+// Someone who would certainly be issued to, so the check cannot pass by there
+// being nobody eligible.
+$waiting = (object) [
+    'username' => 'cpwaiting' . time(),
+    'password' => 'Testpass!1',
+    'firstname' => 'Wade',
+    'lastname' => 'Ingh',
+    'email' => 'cpwaiting' . time() . '@example.com',
+    'confirmed' => 1,
+    'mnethostid' => $CFG->mnet_localhost_id,
+];
+$waiting->id = user_create_user($waiting, false, false);
+$waiting = $DB->get_record('user', ['id' => $waiting->id]);
+$manual->enrol_user($instance, $waiting->id, $studentrole->id);
+$DB->set_field('certificatepro', 'autoissue', 1, ['id' => $cert->id]);
+$DB->set_field('certificatepro', 'requiregrade', 0, ['id' => $cert->id]);
+$DB->set_field('certificatepro', 'requirecompletion', 0, ['id' => $cert->id]);
+$DB->set_field('certificatepro', 'requiredtime', 0, ['id' => $cert->id]);
+rebuild_course_cache($course->id, true);
+
+$hiddentask = new \mod_certificatepro\task\issue_certificates();
+ob_start();
+$hiddentask->execute();
+ob_end_clean();
+check(\mod_certificatepro\local\issue_service::get_issue((int) $cert->id,
+    (int) $waiting->id) === null, 'a hidden activity issues nothing automatically');
+
+$DB->set_field('course_modules', 'visible', 1, ['id' => $cm->id]);
+rebuild_course_cache($course->id, true);
+
+// And the same person is issued to once it is visible, so the check above was
+// really about the hiding.
+$visibletask = new \mod_certificatepro\task\issue_certificates();
+ob_start();
+$visibletask->execute();
+ob_end_clean();
+check(\mod_certificatepro\local\issue_service::get_issue((int) $cert->id,
+    (int) $waiting->id) !== null, 'and does issue once it is visible again');
+
+// Opening the page is not the same as being a recipient: the view path has to
+// check the capability too, not only the scheduled task.
+$viewsource = file_get_contents($CFG->dirroot . '/mod/certificatepro/view.php');
+check(strpos($viewsource, "'mod/certificatepro:receive'") !== false,
+    'opening the activity only issues to someone who may receive one');
+
+// The setting that says certificates here are never withdrawn has to be
+// enforced where the record is written, not only where the button is drawn.
+$reportsource = file_get_contents($CFG->dirroot . '/mod/certificatepro/report.php');
+$revokeaction = strstr($reportsource, "\$action === 'revoke'");
+$revokeaction = $revokeaction ? substr($revokeaction, 0, 1200) : '';
+check(strpos($revokeaction, 'revocationallowed') !== false,
+    'revoking checks the activity setting, not just the button');
+
+$issueaction = strstr($reportsource, "\$action === 'issue'");
+$issueaction = $issueaction ? substr($issueaction, 0, 1200) : '';
+check(strpos($issueaction, 'is_enrolled') !== false,
+    'issuing by hand checks the person is a recipient of this activity');
+check(strpos($issueaction, "'deleted' => 0") !== false,
+    'issuing by hand will not pick a deleted user');
+
 // ------------------------------------------------ the activity settings form.
 
 section('The activity settings form');

@@ -68,7 +68,13 @@ class issue_service {
 
         if (!empty($instance->requiredtime)) {
             $spent = course_helper::time_in_course((int) $course->id, (int) $user->id);
-            $required = (int) $instance->requiredtime * MINSECS;
+
+            // The form's duration element stores seconds, and time_in_course
+            // answers in seconds. Multiplying by a minute again made every
+            // requirement sixty times too long: a trainer asking for ten
+            // minutes in the course was asking for ten hours, and the learner
+            // was told so, so the setting quietly never let anyone through.
+            $required = (int) $instance->requiredtime;
             if ($spent < $required) {
                 $reasons[] = get_string('criteriontime', 'mod_certificatepro',
                     format_time($required));
@@ -191,7 +197,10 @@ class issue_service {
         global $DB;
 
         if (!class_exists('\\local_recertify\\cycle_service')) {
-            throw new \moodle_exception('error', 'error', '', 'Course Recertification is unavailable');
+            // The same wording the activity page uses. The generic error string
+            // that stood here has no placeholder, so the explanation handed to
+            // it was dropped and the administrator read only "Error occurred".
+            throw new \moodle_exception('cycleproviderunavailable', 'mod_certificatepro');
         }
 
         $cycle = $DB->get_record('local_recertify_cycles', ['id' => $cycleid], '*', MUST_EXIST);
@@ -570,6 +579,7 @@ class issue_service {
         }
 
         $sql = "SELECT i.id, i.userid, i.code, i.serial, i.timecreated, i.revoked, i.expires,
+                       i.cycleid, i.pdfhash,
                        u.id AS uid, $namefields
                   FROM {certificatepro_issues} i
                   JOIN {user} u ON u.id = i.userid
@@ -588,7 +598,27 @@ class issue_service {
                 'timecreated' => (int) $record->timecreated,
                 'revoked' => (int) $record->revoked,
                 'expires' => (int) $record->expires,
+                'cycleid' => $record->cycleid,
+                'pdfhash' => $record->pdfhash,
             ];
+
+            // The revoked column is not the whole story. A cycle award can be
+            // withdrawn in the recertification ledger without this column
+            // changing, and the single-file download already refuses those by
+            // asking for the status. Packing them into the zip as current
+            // contradicted that, so the same question is asked here.
+            $state = self::status($row);
+            if ($state === 'revoked' && !$includerevoked) {
+                continue;
+            }
+            if ($state === 'expired' && !$includeexpired) {
+                continue;
+            }
+            if ($state === 'pending' || $state === 'unknown') {
+                // Not finished, or its ledger cannot be read. Either way it is
+                // not something to hand to an employer.
+                continue;
+            }
 
             $user = new \stdClass();
             $user->id = (int) $record->uid;

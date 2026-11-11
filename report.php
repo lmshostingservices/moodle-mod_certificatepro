@@ -57,7 +57,14 @@ if ($action === 'issue' && $userid > 0) {
     require_sesskey();
     require_capability('mod/certificatepro:issue', $context);
 
-    $user = $DB->get_record('user', ['id' => $userid], '*', MUST_EXIST);
+    $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0], '*', MUST_EXIST);
+
+    // Being able to issue is not the same as this person being a recipient.
+    // Without this, a user id typed into the address bar gets a certificate,
+    // whether they are in the course or not.
+    if (!is_enrolled($context, $user, 'mod/certificatepro:receive')) {
+        throw new moodle_exception('notenrolledreceive', 'mod_certificatepro');
+    }
 
     if (!$confirm) {
         $continue = new moodle_url($url, [
@@ -149,6 +156,14 @@ if ($action === 'downloadall') {
 if ($action === 'revoke' && $issueid > 0) {
     require_sesskey();
     require_capability('mod/certificatepro:revoke', $context);
+
+    // The activity can say its certificates are never withdrawn, and some are
+    // set up that way deliberately. Hiding the button is not enforcing it: the
+    // setting has to be checked where the record is written.
+    if (empty($instance->revocationallowed)) {
+        throw new moodle_exception('nopermissions', 'error', '',
+            get_string('revokecertificate', 'mod_certificatepro'));
+    }
 
     $issue = $DB->get_record('certificatepro_issues',
         ['id' => $issueid, 'certificateproid' => $instance->id], '*', MUST_EXIST);

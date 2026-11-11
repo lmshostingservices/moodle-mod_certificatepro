@@ -24,7 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026111105;
+$plugin->version   = 2026111108;
 
 // Moodle 4.4. The code's own floor is lower — the newest core APIs it touches
 // are core/modal's static Modal.create() from 4.3 and the namespaced
@@ -38,5 +38,5 @@ $plugin->supported = [405, 503]; // Moodle 4.5 to 5.3.
 
 $plugin->component = 'mod_certificatepro';
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '2.0.5';
+$plugin->release   = '2.0.8';
 $plugin->cron      = 0;
